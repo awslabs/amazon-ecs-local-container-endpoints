@@ -12,13 +12,10 @@
 *.out
 
 bin/
-ecs-cli/out/
-bin/
+out/
 *.swp
 *.orig
-ecs-cli/vendor/pkg
 .vscode/*
-ecs-cli/.vscode/*
-ecs-cli/.idea
+.idea
 .idea/*
 .DS_Store

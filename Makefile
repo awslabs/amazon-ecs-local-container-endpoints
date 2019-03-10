@@ -21,7 +21,7 @@ LOCAL_BINARY := bin/local-container-endpoints
 LINUX_BINARY := bin/linux-amd64/local-container-endpoints
 VERSION := $(shell cat VERSION)
 AGENT_VERSION_COMPATIBILITY := $(shell cat AGENT_VERSION_COMPATIBILITY)
-TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatibile
+TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
 
 .PHONY: local-build
 local-build: $(LOCAL_BINARY)

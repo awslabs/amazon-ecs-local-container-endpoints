@@ -83,8 +83,8 @@ func gitHash() string {
 	return strings.TrimSpace(string(hash))
 }
 
-// version-gen is a simple program that generates the ecs-cli's version file,
-// containing information about the ecs-cli's version, commit hash, and repository
+// version-gen is a simple program that generates the version file,
+// containing information about the version, commit hash, and repository
 // cleanliness.
 func main() {
 
