@@ -168,7 +168,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 }
 
 func (service *CredentialService) isCurrentSessionTemporary() bool {
-	if service.currentSession.Config != nil && service.currentSession.Config.Credentials != nil {
+	if service.currentSession != nil && service.currentSession.Config != nil && service.currentSession.Config.Credentials != nil {
 		credVal, err := service.currentSession.Config.Credentials.Get()
 
 		if err == nil && credVal.SessionToken != "" { // current session is already temp creds

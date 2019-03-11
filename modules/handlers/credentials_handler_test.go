@@ -226,6 +226,6 @@ func newCredentialServiceInTest(iamMock *mock_iamiface.MockIAMAPI, stsMock *mock
 	return &CredentialService{
 		stsClient:      stsMock,
 		iamClient:      iamMock,
-		currentSession: session.New(),
+		currentSession: nil,
 	}
 }
