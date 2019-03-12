@@ -16,10 +16,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/handlers"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/utils"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/version"
 	"github.com/sirupsen/logrus"
 )
@@ -29,16 +29,21 @@ func main() {
 	logrus.Info("Running...")
 	credentialsService, err := handlers.NewCredentialService()
 	if err != nil {
-		logrus.Fatal("Failed to create Credentials Server: ", err)
+		logrus.Fatal("Failed to create Credentials Service: ", err)
+	}
+
+	metadataService, err := handlers.NewMetadataService()
+	if err != nil {
+		logrus.Fatal("Failed to create Metadata Service: ", err)
 	}
 
 	http.HandleFunc("/role/", handlers.ServeHTTP(credentialsService.GetRoleHandler()))
 	http.HandleFunc("/creds", handlers.ServeHTTP(credentialsService.GetTemporaryCredentialHandler()))
 
-	port := config.DefaultPort
-	if os.Getenv(config.PortEnvVar) != "" {
-		port = os.Getenv(config.PortEnvVar)
-	}
+	http.HandleFunc("/v2/", handlers.ServeHTTP(metadataService.GetV2Handler()))
+	http.HandleFunc("/ecs-local-metadata-v3/", handlers.ServeHTTP(metadataService.GetV3Handler()))
+
+	port := utils.GetValue(config.DefaultPort, config.PortEnvVar)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	if err != nil {
 		logrus.Fatal("HTTP Server exited with error: ", err)
