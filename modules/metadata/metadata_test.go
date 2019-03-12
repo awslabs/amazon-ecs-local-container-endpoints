@@ -16,7 +16,10 @@ package metadata
 import (
 	"os"
 	"testing"
+	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/containermetadata"
+	"github.com/aws/amazon-ecs-agent/agent/handlers/v1"
 	"github.com/aws/amazon-ecs-agent/agent/handlers/v2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/config"
@@ -54,33 +57,45 @@ func TestNewMockTaskResponseWithEnvVars(t *testing.T) {
 }
 
 func TestGetTaskMetadata(t *testing.T) {
+	containerID := "c3439823c17dc7a35c7e272b7dc51cb2dcdedcef428242fcd0f5473d2c724d0"
+	image := "ecs-local-metadata_shell"
+	imageID := "sha256:11edcbc416845013254cbab0726bb65abcc6eea1981254a888659381a630aa20"
+	var publicPort uint16 = 8000
+	var privatePort uint16 = 80
+	protocol := "tcp"
+	labels := map[string]string{
+		"com.docker.compose.config-hash":      "0e48fcb738f3d237e6681f0e22f32a04172949211dee8290da691925e8ed937c",
+		"com.docker.compose.container-number": "1",
+		"com.docker.compose.oneoff":           "False",
+		"com.docker.compose.project":          "ecs-local-metadata",
+		"com.docker.compose.service":          "ecs-local",
+		"com.docker.compose.version":          "1.23.2",
+	}
+	networkName := "bridge"
+	ipAddress := "172.17.0.2"
+	volumeName := "volume0"
+	source := "/var/run"
+	destination := "/run"
 	dockerContainer := types.Container{
-		ID: " c3439823c17dc7a35c7e272b7dc51cb2dcdedcef428242fcd0f5473d2c724d0",
+		ID: containerID,
 		Names: []string{
 			"/ecs-local-metadata_shell_1",
 		},
-		Image:   "ecs-local-metadata_shell",
-		ImageID: "sha256:11edcbc416845013254cbab0726bb65abcc6eea1981254a888659381a630aa20",
+		Image:   image,
+		ImageID: imageID,
 		Ports: []types.Port{
 			types.Port{
 				IP:          "0.0.0.0",
-				PrivatePort: 80,
-				PublicPort:  80,
-				Type:        "tcp",
+				PrivatePort: privatePort,
+				PublicPort:  publicPort,
+				Type:        protocol,
 			},
 		},
-		Labels: map[string]string{
-			"com.docker.compose.config-hash":      "0e48fcb738f3d237e6681f0e22f32a04172949211dee8290da691925e8ed937c",
-			"com.docker.compose.container-number": "1",
-			"com.docker.compose.oneoff":           "False",
-			"com.docker.compose.project":          "ecs-local-metadata",
-			"com.docker.compose.service":          "ecs-local",
-			"com.docker.compose.version":          "1.23.2",
-		},
+		Labels:  labels,
 		Created: createdAt,
 		NetworkSettings: &types.SummaryNetworkSettings{
 			Networks: map[string]*network.EndpointSettings{
-				"bridge": &network.EndpointSettings{
+				networkName: &network.EndpointSettings{
 					NetworkID: "e8884d2d5eb158e35d2d78d012e265834fb0da9cd42a288b6a5d70bfc735c84c",
 					Gateway:   "172.17.0.1",
 					IPAddress: "172.17.0.2",
@@ -89,9 +104,9 @@ func TestGetTaskMetadata(t *testing.T) {
 		},
 		Mounts: []types.MountPoint{
 			types.MountPoint{
-				Name:        "volume0",
-				Source:      "/var/run",
-				Destination: "/run",
+				Name:        volumeName,
+				Source:      source,
+				Destination: destination,
 			},
 		},
 	}
@@ -102,6 +117,7 @@ func TestGetTaskMetadata(t *testing.T) {
 	containerInstanceTags := map[string]string{
 		"containerInstance": "tags",
 	}
+	createTime := time.Unix(createdAt, 0)
 
 	expected := &v2.TaskResponse{
 		TaskTags:              taskTags,
@@ -117,9 +133,40 @@ func TestGetTaskMetadata(t *testing.T) {
 				DesiredStatus: ecs.DesiredStatusRunning,
 				KnownStatus:   ecs.DesiredStatusRunning,
 				Type:          config.DefaultContainerType,
+				ID:            containerID,
+				Name:          "ecs-local-metadata_shell_1",
+				DockerName:    "ecs-local-metadata_shell_1",
+				Image:         image,
+				ImageID:       imageID,
+				Ports: []v1.PortResponse{
+					v1.PortResponse{
+						ContainerPort: privatePort,
+						HostPort:      publicPort,
+						Protocol:      protocol,
+					},
+				},
+				Labels:    labels,
+				CreatedAt: &createTime,
+				StartedAt: &createTime,
+				Networks: []containermetadata.Network{
+					containermetadata.Network{
+						NetworkMode: networkName,
+						IPv4Addresses: []string{
+							ipAddress,
+						},
+					},
+				},
+				Volumes: []v1.VolumeResponse{
+					v1.VolumeResponse{
+						DockerName:  volumeName,
+						Source:      source,
+						Destination: destination,
+					},
+				},
 			},
 		},
 	}
-	//GetTaskMetadata([], containerInstanceTags, taskTags)
 
+	actual := GetTaskMetadata([]types.Container{dockerContainer}, containerInstanceTags, taskTags)
+	assert.Equal(t, expected, actual, "Expected task response to match")
 }

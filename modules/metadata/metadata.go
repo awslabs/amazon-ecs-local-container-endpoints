@@ -81,7 +81,7 @@ func newMockTaskResponse(containerInstanceTags, taskTags map[string]string) *v2.
 }
 
 func convertVolumes(mounts []types.MountPoint) []v1.VolumeResponse {
-	ecsVolumes := make([]v1.VolumeResponse, len(mounts))
+	var ecsVolumes []v1.VolumeResponse
 	for _, mount := range mounts {
 		ecsVolumes = append(ecsVolumes, v1.VolumeResponse{
 			DockerName:  mount.Name,
@@ -93,7 +93,7 @@ func convertVolumes(mounts []types.MountPoint) []v1.VolumeResponse {
 }
 
 func convertNetworks(dockerNetworkSettings *types.SummaryNetworkSettings) []containermetadata.Network {
-	ecsNetworks := make([]containermetadata.Network, len(dockerNetworkSettings.Networks))
+	var ecsNetworks []containermetadata.Network
 	for netMode, netSettings := range dockerNetworkSettings.Networks {
 		ecsNet := containermetadata.Network{
 			NetworkMode: netMode,
@@ -114,7 +114,7 @@ func convertNetworks(dockerNetworkSettings *types.SummaryNetworkSettings) []cont
 }
 
 func convertPorts(dockerPorts []types.Port) []v1.PortResponse {
-	ecsPorts := make([]v1.PortResponse, len(dockerPorts))
+	var ecsPorts []v1.PortResponse
 	for _, port := range dockerPorts {
 		ecsPorts = append(ecsPorts, v1.PortResponse{
 			ContainerPort: port.PrivatePort,
