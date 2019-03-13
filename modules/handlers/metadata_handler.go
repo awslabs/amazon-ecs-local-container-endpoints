@@ -15,7 +15,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -43,7 +42,7 @@ type MetadataService struct {
 	taskTags              map[string]string
 }
 
-// NewCredentialService returns a struct that handles credentials requests
+// NewMetadataService returns a struct that handles metadata requests
 func NewMetadataService() (*MetadataService, error) {
 	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
@@ -75,10 +74,10 @@ func NewMetadataService() (*MetadataService, error) {
 // GetV3Handler returns the task metadata V3 Handler
 func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *http.Request) error {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		callerIp, _, err := net.SplitHostPort(r.RemoteAddr)
+		callerIP, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			// Failed to get the callerIp
-			callerIp = ""
+			// Failed to get the callerIP
+			callerIP = ""
 		}
 
 		// URL Path format = /ecs-local-metadata-v3/<container identifier>/
@@ -96,7 +95,7 @@ func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *ht
 				}
 			}
 			identifier := urlParts[2]
-			return service.taskMetadataResponse(w, identifier, callerIp)
+			return service.taskMetadataResponse(w, identifier, callerIP)
 		}
 
 		return HttpError{
@@ -109,14 +108,14 @@ func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *ht
 // GetV2Handler returns the task metadata V2 Handler
 func (service *MetadataService) GetV2Handler() func(w http.ResponseWriter, r *http.Request) error {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		callerIp, _, err := net.SplitHostPort(r.RemoteAddr)
+		callerIP, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			// Failed to get the callerIp
-			callerIp = ""
+			// Failed to get the callerIP
+			callerIP = ""
 		}
 
 		if re := regexp.MustCompile("/v2/metadata/?"); re.MatchString(r.URL.Path) {
-			return service.taskMetadataResponse(w, "", callerIp)
+			return service.taskMetadataResponse(w, "", callerIP)
 		}
 
 		return HttpError{
@@ -135,8 +134,6 @@ func (service *MetadataService) taskMetadataResponse(w http.ResponseWriter, iden
 	if err != nil {
 		return err
 	}
-	bits, _ := json.Marshal(containers)
-	fmt.Println(string(bits))
 	taskContainers := getTaskContainers(containers, identifier, callerIP)
 
 	response := metadata.GetTaskMetadata(taskContainers, service.containerInstanceTags, service.taskTags)
@@ -190,7 +187,7 @@ func filterByComposeProject(dockerContainers []types.Container, projectName stri
 // 	b. Filter the remaining containers by removing any which are not in at least one of the same networks as the endpoints container.
 // 5. If no container is found, or more than one container matches, we return an error.
 func findContainer(dockerContainers []types.Container, identifier string, callerIP string) (*types.Container, error) {
-	var filteredList []types.Container
+	var filteredList []types.Container = dockerContainers
 
 	if identifier != "" {
 		filteredList = filterContainersByIdentifier(dockerContainers, identifier)
@@ -206,7 +203,7 @@ func findContainer(dockerContainers []types.Container, identifier string, caller
 		}
 	}
 
-	filteredList = filterContainersByMyNetworks(filteredList, dockerContainers)
+	filteredList = filterContainersByMyNetworks(filteredList, dockerContainers, callerIP)
 	if len(filteredList) == 1 { // we found the container
 		return &filteredList[0], nil
 	}
@@ -228,23 +225,35 @@ func filterContainersByIdentifier(dockerContainers []types.Container, identifier
 			}
 		}
 	}
-	return filteredList
+	if len(filteredList) > 0 {
+		return filteredList
+	}
+	return dockerContainers
+
 }
 
 func filterContainersByRequestIP(dockerContainers []types.Container, callerIP string) []types.Container {
 	var filteredList []types.Container
 	for _, container := range dockerContainers {
+		if container.NetworkSettings == nil {
+			continue
+		}
 		for _, settings := range container.NetworkSettings.Networks {
-			if settings.IPAddress == callerIP {
+			if settings != nil && settings.IPAddress == callerIP {
 				filteredList = append(filteredList, container)
 			}
 		}
+
 	}
-	return filteredList
+
+	if len(filteredList) > 0 {
+		return filteredList
+	}
+	return dockerContainers
 }
 
 // filter the list by the networks which the endpoints container is in
-func filterContainersByMyNetworks(filteredContainerList []types.Container, allContainers []types.Container) []types.Container {
+func filterContainersByMyNetworks(filteredContainerList []types.Container, allContainers []types.Container, callerIP string) []types.Container {
 	// find endpoints containers
 	var endpointContainer *types.Container
 	shortID := os.Getenv("HOSTNAME")
@@ -254,7 +263,7 @@ func filterContainersByMyNetworks(filteredContainerList []types.Container, allCo
 		}
 	}
 
-	if endpointContainer == nil {
+	if endpointContainer == nil || endpointContainer.NetworkSettings == nil {
 		logrus.Warn("Failed to find endpoints container among running containers")
 		// Return the list we were given, since we can't filter it any further
 		return filteredContainerList
@@ -270,9 +279,12 @@ func filterContainersByMyNetworks(filteredContainerList []types.Container, allCo
 	}
 
 	for _, container := range filteredContainerList {
+		if container.NetworkSettings == nil {
+			continue
+		}
 		for network, settings := range container.NetworkSettings.Networks {
-			if networkMatches(network, settings.Aliases, networksToSearch) {
-				// This container is in one of the right networks
+			if settings != nil && networkMatches(network, settings.Aliases, networksToSearch) && settings.IPAddress == callerIP {
+				// This container is in one of the right networks and has the caller IP in that network
 				finalList = append(finalList, container)
 			}
 		}
