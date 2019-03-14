@@ -1,8 +1,9 @@
 module github.com/awslabs/amazon-ecs-local-container-endpoints
 
 require (
+	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/aws/amazon-ecs-agent v1.26.0
-	github.com/aws/amazon-ecs-cli v1.13.0
+	github.com/aws/amazon-ecs-cli v1.13.0 // indirect
 	github.com/aws/aws-sdk-go v1.17.9
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/containerd/cgroups v0.0.0-20190226200435-dbea6f2bd416 // indirect

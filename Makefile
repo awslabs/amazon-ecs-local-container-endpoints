@@ -37,11 +37,11 @@ generate: $(SOURCES)
 
 .PHONY: test
 test:
-	go test -timeout=120s -v -cover ./...
+	go test -mod=vendor -timeout=120s -v -cover ./...
 
 .PHONY: functional-test
 functional-test:
-	go test -timeout=120s -v -tags functional -cover ./functional-tests/...
+	go test -mod=vendor -timeout=120s -v -tags functional -cover ./modules/handlers/functional-tests/...
 
 $(LINUX_BINARY): $(SOURCES)
 	@mkdir -p ./bin/linux-amd64
