@@ -94,7 +94,7 @@ func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *ht
 					Err:  fmt.Errorf("Invalid URL path %s; expected '/ecs-local-metadata-v3/<container identifier>/task/'", r.URL.Path),
 				}
 			}
-			identifier := urlParts[2]
+			identifier := urlParts[1]
 			return service.taskMetadataResponse(w, identifier, callerIP)
 		}
 
