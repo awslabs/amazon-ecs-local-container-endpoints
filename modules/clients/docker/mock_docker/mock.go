@@ -18,6 +18,7 @@
 package mock_docker
 
 import (
+	context "context"
 	reflect "reflect"
 
 	types "github.com/docker/docker/api/types"
@@ -48,14 +49,14 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // ContainerList mocks base method
-func (m *MockClient) ContainerList() ([]types.Container, error) {
-	ret := m.ctrl.Call(m, "ContainerList")
+func (m *MockClient) ContainerList(arg0 context.Context) ([]types.Container, error) {
+	ret := m.ctrl.Call(m, "ContainerList", arg0)
 	ret0, _ := ret[0].([]types.Container)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerList indicates an expected call of ContainerList
-func (mr *MockClientMockRecorder) ContainerList() *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerList", reflect.TypeOf((*MockClient)(nil).ContainerList))
+func (mr *MockClientMockRecorder) ContainerList(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerList", reflect.TypeOf((*MockClient)(nil).ContainerList), arg0)
 }

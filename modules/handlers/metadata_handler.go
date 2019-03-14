@@ -48,6 +48,11 @@ func NewMetadataService() (*MetadataService, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewMetadataServiceWithClient(dockerClient)
+}
+
+// NewMetadataServiceWithClient returns a struct that handles metadata requests using the given Docker Client
+func NewMetadataServiceWithClient(dockerClient docker.Client) (*MetadataService, error) {
 	metadata := &MetadataService{
 		dockerClient: dockerClient,
 	}

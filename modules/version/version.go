@@ -30,4 +30,4 @@ const AgentVersionCompatibility = "1.26.0"
 const GitDirty = true
 
 // GitShortHash is the short hash of this build
-const GitShortHash = "011c9ee"
+const GitShortHash = "7e8dc53"

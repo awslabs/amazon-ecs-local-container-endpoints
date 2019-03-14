@@ -1,0 +1,205 @@
+// Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"). You may
+// not use this file except in compliance with the License. A copy of the
+// License is located at
+//
+//	http://aws.amazon.com/apache2.0/
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
+// package functional_tests includes tests that make http requests to the handlers using net/http/test
+package functional_tests
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/aws/amazon-ecs-agent/agent/handlers/v2"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/clients/docker/mock_docker"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/config"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/handlers"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/modules/testingutils"
+	"github.com/docker/docker/api/types"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+)
+
+// Tests Path: /ecs-local-metadata-v3/<container identifier>/task
+func TestV3Handler_TaskMetadata(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	// Metadata response containers
+	endpointsContainerMetadata := testingutils.BaseMetadataContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container2Metadata := testingutils.BaseMetadataContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3Metadata := testingutils.BaseMetadataContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	identifier := "container3"
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	taskTags := map[string]string{
+		"task": "tags",
+	}
+	containerInstanceTags := map[string]string{
+		"containerInstance": "tags",
+	}
+
+	os.Setenv(config.ContainerInstanceTagsVar, "containerInstance=tags")
+	os.Setenv(config.TaskTagsVar, "task=tags")
+	defer os.Clearenv()
+
+	expectedMetadata := &v2.TaskResponse{
+		TaskTags:              taskTags,
+		ContainerInstanceTags: containerInstanceTags,
+		Cluster:               config.DefaultClusterName,
+		TaskARN:               config.DefaultTaskARN,
+		Family:                config.DefaultTDFamily,
+		Revision:              config.DefaultTDRevision,
+		DesiredStatus:         ecs.DesiredStatusRunning,
+		KnownStatus:           ecs.DesiredStatusRunning,
+		Containers: []v2.ContainerResponse{
+			endpointsContainerMetadata,
+			container2Metadata,
+			container3Metadata,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	gomock.InOrder(
+		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
+	)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/%s/task", testServer.URL, identifier))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualMetadata := &v2.TaskResponse{}
+	err = json.Unmarshal(response, actualMetadata)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
+	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
+	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
+	assert.Equal(t, expectedMetadata.Family, actualMetadata.Family, "Expected Family to match")
+	assert.Equal(t, expectedMetadata.Revision, actualMetadata.Revision, "Expected Revision to match")
+	assert.Equal(t, expectedMetadata.DesiredStatus, actualMetadata.DesiredStatus, "Expected DesiredStatus to match")
+	assert.Equal(t, expectedMetadata.KnownStatus, actualMetadata.KnownStatus, "Expected KnownStatus to match")
+
+}
+
+// Tests Path: /ecs-local-metadata-v3/<container identifier>/task/
+func TestV3Handler_TaskMetadata_TrailingSlash(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	// Metadata response containers
+	endpointsContainerMetadata := testingutils.BaseMetadataContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container2Metadata := testingutils.BaseMetadataContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3Metadata := testingutils.BaseMetadataContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	identifier := "container3"
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	taskTags := map[string]string{
+		"task": "tags",
+	}
+	containerInstanceTags := map[string]string{
+		"containerInstance": "tags",
+	}
+
+	os.Setenv(config.ContainerInstanceTagsVar, "containerInstance=tags")
+	os.Setenv(config.TaskTagsVar, "task=tags")
+	defer os.Clearenv()
+
+	expectedMetadata := &v2.TaskResponse{
+		TaskTags:              taskTags,
+		ContainerInstanceTags: containerInstanceTags,
+		Cluster:               config.DefaultClusterName,
+		TaskARN:               config.DefaultTaskARN,
+		Family:                config.DefaultTDFamily,
+		Revision:              config.DefaultTDRevision,
+		DesiredStatus:         ecs.DesiredStatusRunning,
+		KnownStatus:           ecs.DesiredStatusRunning,
+		Containers: []v2.ContainerResponse{
+			endpointsContainerMetadata,
+			container2Metadata,
+			container3Metadata,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	gomock.InOrder(
+		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
+	)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/%s/task/", testServer.URL, identifier))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualMetadata := &v2.TaskResponse{}
+	err = json.Unmarshal(response, actualMetadata)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
+	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
+	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
+	assert.Equal(t, expectedMetadata.Family, actualMetadata.Family, "Expected Family to match")
+	assert.Equal(t, expectedMetadata.Revision, actualMetadata.Revision, "Expected Revision to match")
+	assert.Equal(t, expectedMetadata.DesiredStatus, actualMetadata.DesiredStatus, "Expected DesiredStatus to match")
+	assert.Equal(t, expectedMetadata.KnownStatus, actualMetadata.KnownStatus, "Expected KnownStatus to match")
+
+}

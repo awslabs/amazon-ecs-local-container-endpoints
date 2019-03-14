@@ -41,6 +41,7 @@ const (
 	network1         = "metadata-network"
 	network2         = "app-network"
 	projectName      = "project"
+	projectName2     = "operation-clyde-undercover"
 )
 
 func TestFindContainerWithIdentifierID(t *testing.T) {
@@ -186,7 +187,6 @@ func TestFindContainerWithCallerIPAndNetworks(t *testing.T) {
 }
 
 func TestFindContainerWithCallerIPAndNetworksFailure(t *testing.T) {
-	// technically
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork("bridge", ipAddress).Get()
 	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).Get()
 	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).Get()
@@ -206,7 +206,6 @@ func TestFindContainerWithCallerIPAndNetworksFailure(t *testing.T) {
 }
 
 func TestFindContainerWithIdentifierFailure(t *testing.T) {
-	// technically
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork("bridge", ipAddress).Get()
 	container1 := testingutils.BaseDockerContainer(containerName1, longID1).Get()
 	container2 := testingutils.BaseDockerContainer(containerName2, longID2).Get()
@@ -222,6 +221,55 @@ func TestFindContainerWithIdentifierFailure(t *testing.T) {
 	_, err := findContainer(containers, badName, "")
 	// No container matches
 	assert.Error(t, err, "Expected error from findContainer")
+
+}
+
+func TestGetTaskContainers(t *testing.T) {
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	containers := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	expected := []types.Container{
+		container3,
+		container2,
+		endpointsContainer,
+	}
+
+	result := getTaskContainers(containers, "", ipAddress1)
+
+	assert.ElementsMatch(t, expected, result, "Expected containers returned by getTaskContainers to be from the correct compose project")
+
+}
+
+func TestGetTaskContainersOneContainerReturned(t *testing.T) {
+	// technically
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName2).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName2).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	containers := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	expected := []types.Container{
+		container3,
+	}
+
+	result := getTaskContainers(containers, containerName3, ipAddress1)
+
+	assert.ElementsMatch(t, expected, result, "Expected containers returned by getTaskContainers to be from the correct compose project")
 
 }
 
