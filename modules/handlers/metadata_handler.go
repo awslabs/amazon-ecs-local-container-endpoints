@@ -60,8 +60,8 @@ func NewMetadataService() (*MetadataService, error) {
 		metadata.containerInstanceTags = tags
 	}
 
-	if ciTagVal := os.Getenv(config.TaskTagsVar); ciTagVal != "" {
-		tags, err := utils.GetTagsMap(ciTagVal)
+	if taskTagVal := os.Getenv(config.TaskTagsVar); taskTagVal != "" {
+		tags, err := utils.GetTagsMap(taskTagVal)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *ht
 
 		return HttpError{
 			Code: http.StatusBadRequest,
-			Err:  fmt.Errorf("Invalid URL path: %s", r.URL.Path),
+			Err:  fmt.Errorf("invalid URL path: %s", r.URL.Path),
 		}
 	}
 }
@@ -120,7 +120,7 @@ func (service *MetadataService) GetV2Handler() func(w http.ResponseWriter, r *ht
 
 		return HttpError{
 			Code: http.StatusBadRequest,
-			Err:  fmt.Errorf("Invalid URL path: %s", r.URL.Path),
+			Err:  fmt.Errorf("invalid URL path: %s", r.URL.Path),
 		}
 	}
 }
@@ -147,7 +147,7 @@ func (service *MetadataService) taskMetadataResponse(w http.ResponseWriter, iden
 func getTaskContainers(allContainers []types.Container, identifier string, callerIP string) []types.Container {
 	callerContainer, err := findContainer(allContainers, identifier, callerIP)
 	if err != nil {
-		logrus.Info(err)
+		logrus.Warn(err)
 		logrus.Info("Will use all containers to represent one 'local task'")
 		return allContainers
 	}
@@ -155,6 +155,7 @@ func getTaskContainers(allContainers []types.Container, identifier string, calle
 	projectName := callerContainer.Labels[composeProjectNameLabel]
 
 	if projectName == "" {
+		logrus.Info("Will use all containers to represent one 'local task': The container which made the request is not in a Docker Compose Project")
 		return allContainers
 	}
 
@@ -170,7 +171,7 @@ func filterByComposeProject(dockerContainers []types.Container, projectName stri
 		}
 	}
 
-	if len(filteredContainers) > 1 {
+	if len(filteredContainers) > 0 {
 		return filteredContainers
 	}
 
@@ -184,7 +185,7 @@ func filterByComposeProject(dockerContainers []types.Container, projectName stri
 // 3. Filter the remaining results in the list by the request IP. If this leaves only one container, then we have found our match.
 // 4. Filter the remaining results by the docker networks that the endpoint container is in. A container can only call the endpoints if it is in the same docker network as the endpoints container.
 // 	a. Determine which Docker Networks the Endpoints container is in by determining which container it is (We can do this using $HOSTNAME, which will be our container short ID) and then use the output of Docker API's ContainerList (https://godoc.org/github.com/docker/docker/client#Client.ContainerList) to find its networks.
-// 	b. Filter the remaining containers by removing any which are not in at least one of the same networks as the endpoints container.
+// 	b. Filter the remaining containers by selecting those containers which have the callerIP in one of the endpoints container's networks.
 // 5. If no container is found, or more than one container matches, we return an error.
 func findContainer(dockerContainers []types.Container, identifier string, callerIP string) (*types.Container, error) {
 	var filteredList []types.Container = dockerContainers

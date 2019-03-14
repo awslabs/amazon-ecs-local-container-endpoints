@@ -17,7 +17,7 @@ package config
 // Environment Variables
 const (
 	// PortEnvVar defines the port that metadata and credentials listen at
-	PortEnvVar = "ECS_LOCAL_METADATA_PORT"
+	PortVar = "ECS_LOCAL_METADATA_PORT"
 
 	// Metadata related
 	ClusterARNVar            = "CLUSTER_ARN"

@@ -43,7 +43,7 @@ func main() {
 	http.HandleFunc("/v2/", handlers.ServeHTTP(metadataService.GetV2Handler()))
 	http.HandleFunc("/ecs-local-metadata-v3/", handlers.ServeHTTP(metadataService.GetV3Handler()))
 
-	port := utils.GetValue(config.DefaultPort, config.PortEnvVar)
+	port := utils.GetValue(config.DefaultPort, config.PortVar)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	if err != nil {
 		logrus.Fatal("HTTP Server exited with error: ", err)

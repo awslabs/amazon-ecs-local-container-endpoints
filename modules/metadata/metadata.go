@@ -11,6 +11,7 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
+// Package metadata creates metadata responses
 package metadata
 
 import (
@@ -28,7 +29,7 @@ import (
 
 // GetTaskMetadata returns the task metadata for the given containers
 func GetTaskMetadata(dockerContainers []types.Container, containerInstanceTags, taskTags map[string]string) *v2.TaskResponse {
-	response := newMockTaskResponse(containerInstanceTags, taskTags)
+	response := newLocalTaskResponse(containerInstanceTags, taskTags)
 	ecsContainers := response.Containers
 	for _, container := range dockerContainers {
 		ecsContainer := GetContainerMetadata(&container)
@@ -41,7 +42,7 @@ func GetTaskMetadata(dockerContainers []types.Container, containerInstanceTags, 
 // GetContainerMetadata creates a container metadata response using info from the docker API,
 // with other values mocked
 func GetContainerMetadata(dockerContainer *types.Container) *v2.ContainerResponse {
-	response := newMockContainerResponse()
+	response := newLocalContainerResponse()
 	response.ID = dockerContainer.ID
 	response.Name = getContainerName(dockerContainer)
 	response.DockerName = getContainerName(dockerContainer)
@@ -59,7 +60,7 @@ func GetContainerMetadata(dockerContainer *types.Container) *v2.ContainerRespons
 	return response
 }
 
-func newMockContainerResponse() *v2.ContainerResponse {
+func newLocalContainerResponse() *v2.ContainerResponse {
 	return &v2.ContainerResponse{
 		DesiredStatus: ecs.DesiredStatusRunning,
 		KnownStatus:   ecs.DesiredStatusRunning,
@@ -67,7 +68,7 @@ func newMockContainerResponse() *v2.ContainerResponse {
 	}
 }
 
-func newMockTaskResponse(containerInstanceTags, taskTags map[string]string) *v2.TaskResponse {
+func newLocalTaskResponse(containerInstanceTags, taskTags map[string]string) *v2.TaskResponse {
 	return &v2.TaskResponse{
 		Cluster:               utils.GetValue(config.DefaultClusterName, config.ClusterARNVar),
 		TaskARN:               utils.GetValue(config.DefaultTaskARN, config.TaskARNVar),

@@ -228,6 +228,8 @@ func TestFindContainerWithIdentifierFailure(t *testing.T) {
 func TestNewMetadataServiceWithTags(t *testing.T) {
 	os.Setenv(config.ContainerInstanceTagsVar, "mitchell=webb,thats=numberwang")
 	os.Setenv(config.TaskTagsVar, "hello=goodbye,get=back,come=together")
+	defer os.Clearenv()
+
 	expectedCITags := map[string]string{
 		"mitchell": "webb",
 		"thats":    "numberwang",

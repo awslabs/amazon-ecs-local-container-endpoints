@@ -54,6 +54,7 @@ func NewDockerClient() (Client, error) {
 	}, nil
 }
 
+// ContainerList lists all containers running on the host
 func (c *dockerClient) ContainerList(ctx context.Context) ([]types.Container, error) {
 	return c.sdkClient.ContainerList(ctx, types.ContainerListOptions{})
 }

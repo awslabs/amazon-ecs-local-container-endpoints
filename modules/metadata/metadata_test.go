@@ -36,7 +36,7 @@ const (
 	containerName = "ecs-local-endpoints"
 )
 
-func TestNewMockTaskResponseWithEnvVars(t *testing.T) {
+func TestnewLocalTaskResponseWithEnvVars(t *testing.T) {
 	expected := &v2.TaskResponse{
 		Cluster:       cluster,
 		TaskARN:       taskARN,
@@ -52,7 +52,7 @@ func TestNewMockTaskResponseWithEnvVars(t *testing.T) {
 	os.Setenv(config.TDRevisionVar, revision)
 	defer os.Clearenv()
 
-	actual := newMockTaskResponse(nil, nil)
+	actual := newLocalTaskResponse(nil, nil)
 	assert.Equal(t, expected, actual, "Expected TaskResponse to match")
 }
 
