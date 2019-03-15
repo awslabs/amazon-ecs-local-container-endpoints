@@ -50,11 +50,16 @@ func NewCredentialService() (*CredentialService, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewCredentialServiceWithClients(iam.New(sess), sts.New(sess), sess), nil
+}
+
+// NewCredentialServiceWithClients returns a struct that handles credentials requests with the given clients
+func NewCredentialServiceWithClients(iamClient iamiface.IAMAPI, stsClient stsiface.STSAPI, currentSession *session.Session) *CredentialService {
 	return &CredentialService{
-		iamClient:      iam.New(sess),
-		stsClient:      sts.New(sess),
-		currentSession: sess,
-	}, nil
+		iamClient:      iamClient,
+		stsClient:      stsClient,
+		currentSession: currentSession,
+	}
 }
 
 // GetRoleHandler returns the Task IAM Role handler
