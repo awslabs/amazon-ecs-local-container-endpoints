@@ -28,5 +28,6 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/urfave/cli v1.20.0 // indirect
 	golang.org/x/net v0.0.0-20190301231341-16b79f2e4e95 // indirect
+	golang.org/x/text v0.3.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
