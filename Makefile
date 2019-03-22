@@ -37,11 +37,11 @@ generate: $(SOURCES)
 
 .PHONY: test
 test:
-	go test -timeout=120s -v -cover ./...
+	go test -mod=vendor -timeout=120s -v -cover ./local-container-endpoints/...
 
 .PHONY: functional-test
 functional-test:
-	go test -timeout=120s -v -tags functional -cover ./functional-tests/...
+	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional-tests/...
 
 $(LINUX_BINARY): $(SOURCES)
 	@mkdir -p ./bin/linux-amd64
@@ -58,6 +58,11 @@ release:
 	docker build -t amazon/amazon-ecs-local-container-endpoints:latest .
 	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(TAG)
 	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(VERSION)
+
+.PHONY: integ
+integ: release
+	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
+	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
 
 .PHONY: clean
 clean:
