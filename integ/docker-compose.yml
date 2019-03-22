@@ -1,0 +1,55 @@
+version: "2"
+
+networks:
+  # This special network is configured so that the local metadata
+  # service can bind to the specific IP address that ECS uses
+  # in production
+  metadata_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "169.254.170.0/24"
+          gateway: 169.254.170.1
+
+  # # A generic network interface for everything else.
+  # app:
+  #   driver: bridge
+
+services:
+  # The ECS Local container, which vends credentials and metadata
+  ecs-local:
+    image: amazon/amazon-ecs-local-container-endpoints:latest
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run:/var/run
+      - $HOME/.aws/:/home/.aws/
+    environment:
+      ECS_LOCAL_METADATA_PORT: "80"
+      HOME: "/home"
+    networks:
+      metadata_network:
+        ipv4_address: "169.254.170.2"
+
+  integration-test:
+    image: amazon-ecs-local-container-endpoints-integ-test:latest
+    tty: true
+    networks:
+      metadata_network:
+        ipv4_address: "169.254.170.3"
+    depends_on:
+      - ecs-local
+    environment:
+      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/ecs-local-metadata-v3/integ"
+      AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/creds"
+      AWS_DEFAULT_REGION: "us-east-1"
+
+  nginx:
+    image: nginx
+    networks:
+      metadata_network:
+        ipv4_address: "169.254.170.5"
+    environment:
+      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/ecs-local-metadata-v3/nginx"
+      AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/tempcreds"
+      AWS_DEFAULT_REGION: "us-east-1"
