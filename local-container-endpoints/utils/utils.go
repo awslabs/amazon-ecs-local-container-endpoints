@@ -14,10 +14,40 @@
 // Package utils is a grab bag of things that don't belong anywhere else
 package utils
 
+import (
+	"fmt"
+	"os"
+	"strings"
+)
+
+// Truncate truncates a string
 func Truncate(s string, length int) string {
 	if len(s) > length {
 		return s[0:length]
 	}
 
 	return s
+}
+
+// GetTagsMap parses tags in the format key1=value1,key2=value2
+func GetTagsMap(value string) (map[string]string, error) {
+	tags := make(map[string]string)
+	keyValPairs := strings.Split(value, ",")
+	for _, pair := range keyValPairs {
+		split := strings.Split(pair, "=")
+		if len(split) != 2 {
+			return nil, fmt.Errorf("Tag input not formatted correctly: %s", pair)
+		}
+		tags[split[0]] = split[1]
+	}
+	return tags, nil
+}
+
+// GetValue Returns the value of the envVar, or the default
+func GetValue(defaultVal, envVar string) string {
+	if val := os.Getenv(envVar); val != "" {
+		return val
+	}
+
+	return defaultVal
 }
