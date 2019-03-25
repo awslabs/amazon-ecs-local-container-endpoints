@@ -43,7 +43,7 @@ func TestGetRoleCredentials(t *testing.T) {
 
 	credsService := newCredentialServiceInTest(iamMock, stsMock)
 
-	expiration, _ := time.Parse(credentialExpirationTimeFormat, expirationTimeString)
+	expiration, _ := time.Parse(CredentialExpirationTimeFormat, expirationTimeString)
 
 	gomock.InOrder(
 		iamMock.EXPECT().GetRole(gomock.Any()).Do(func(x interface{}) {
@@ -134,7 +134,7 @@ func TestGetTemporaryCredentials(t *testing.T) {
 
 	credsService := newCredentialServiceInTest(iamMock, stsMock)
 
-	expiration, _ := time.Parse(credentialExpirationTimeFormat, expirationTimeString)
+	expiration, _ := time.Parse(CredentialExpirationTimeFormat, expirationTimeString)
 
 	gomock.InOrder(
 		stsMock.EXPECT().GetSessionToken(gomock.Any()).Return(&sts.GetSessionTokenOutput{
@@ -186,7 +186,7 @@ func (m *CustomProvider) ExpiresAt() time.Time {
 }
 
 func TestGetTemporaryCredentialsExistingTempCreds(t *testing.T) {
-	expiration, _ := time.Parse(credentialExpirationTimeFormat, expirationTimeString)
+	expiration, _ := time.Parse(CredentialExpirationTimeFormat, expirationTimeString)
 
 	provider := &CustomProvider{
 		expiration: expiration,
