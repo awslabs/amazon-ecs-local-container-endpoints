@@ -23,11 +23,11 @@ package version
 // Version is the version of ECS Local Container Endpoints
 const Version = "0.x.x"
 
-// The Latest Agent Version that ECS Local Container Endpoints is compatibile with
+// AgentVersionCompatibility is the Latest Agent Version that ECS Local Container Endpoints is compatibile with
 const AgentVersionCompatibility = "1.26.0"
 
 // GitDirty indicates the cleanliness of the git repo when it was built
 const GitDirty = true
 
 // GitShortHash is the short hash of this build
-const GitShortHash = "7e8dc53"
+const GitShortHash = "51edf4b"

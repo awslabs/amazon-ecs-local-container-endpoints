@@ -16,7 +16,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,7 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/utils"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +34,11 @@ import (
 const (
 	temporaryCredentialsDurationInS = 3600
 	roleSessionNameLength           = 64
-	CredentialExpirationTimeFormat  = time.RFC3339
+)
+
+const (
+	// CredentialExpirationTimeFormat is the time stamp format used in the Local Credentials Service HTTP response
+	CredentialExpirationTimeFormat = time.RFC3339
 )
 
 // CredentialService vends credentials to containers
@@ -63,11 +68,30 @@ func NewCredentialServiceWithClients(iamClient iamiface.IAMAPI, stsClient stsifa
 	}
 }
 
+// SetupRoutes sets up the credentials paths in mux
+func (service *CredentialService) SetupRoutes(router *mux.Router) {
+	router.HandleFunc(config.RoleCredentialsPath, ServeHTTP(service.getRoleHandler()))
+	router.HandleFunc(config.RoleCredentialsPathWithSlash, ServeHTTP(service.getRoleHandler()))
+
+	router.HandleFunc(config.TempCredentialsPath, ServeHTTP(service.getTemporaryCredentialHandler()))
+	router.HandleFunc(config.TempCredentialsPathWithSlash, ServeHTTP(service.getTemporaryCredentialHandler()))
+}
+
 // GetRoleHandler returns the Task IAM Role handler
-func (service *CredentialService) GetRoleHandler() func(w http.ResponseWriter, r *http.Request) error {
+func (service *CredentialService) getRoleHandler() func(w http.ResponseWriter, r *http.Request) error {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		logrus.Debug("Received role credentials request")
-		response, err := service.getRoleCredentials(r.URL.Path)
+
+		vars := mux.Vars(r)
+		roleName := vars["role"]
+		if roleName == "" {
+			return HTTPError{
+				Code: http.StatusBadRequest,
+				Err:  fmt.Errorf("Invalid URL path %s; expected '/role/<IAM Role Name>'", r.URL.Path),
+			}
+		}
+
+		response, err := service.getRoleCredentials(roleName)
 		if err != nil {
 			return err
 		}
@@ -77,19 +101,7 @@ func (service *CredentialService) GetRoleHandler() func(w http.ResponseWriter, r
 	}
 }
 
-func (service *CredentialService) getRoleCredentials(urlPath string) (*CredentialResponse, error) {
-	// URL Path format = /role/<role name>
-	regExpr := regexp.MustCompile(`/role/([\w+=,.@-]+)`)
-	urlParts := regExpr.FindStringSubmatch(urlPath)
-
-	if len(urlParts) < 2 {
-		return nil, HttpError{
-			Code: http.StatusBadRequest,
-			Err:  fmt.Errorf("Invalid URL path %s; expected '/role/<IAM Role Name>'", urlPath),
-		}
-	}
-
-	roleName := urlParts[1]
+func (service *CredentialService) getRoleCredentials(roleName string) (*CredentialResponse, error) {
 	logrus.Debugf("Requesting credentials for %s", roleName)
 
 	output, err := service.iamClient.GetRole(&iam.GetRoleInput{
@@ -110,7 +122,7 @@ func (service *CredentialService) getRoleCredentials(urlPath string) (*Credentia
 	}
 
 	return &CredentialResponse{
-		AccessKeyId:     aws.StringValue(creds.Credentials.AccessKeyId),
+		AccessKeyID:     aws.StringValue(creds.Credentials.AccessKeyId),
 		SecretAccessKey: aws.StringValue(creds.Credentials.SecretAccessKey),
 		RoleArn:         aws.StringValue(output.Role.Arn),
 		Token:           aws.StringValue(creds.Credentials.SessionToken),
@@ -119,7 +131,7 @@ func (service *CredentialService) getRoleCredentials(urlPath string) (*Credentia
 }
 
 // GetTemporaryCredentialHandler returns a handler which vends temporary credentials for the local IAM identity
-func (service *CredentialService) GetTemporaryCredentialHandler() func(w http.ResponseWriter, r *http.Request) error {
+func (service *CredentialService) getTemporaryCredentialHandler() func(w http.ResponseWriter, r *http.Request) error {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		logrus.Debug("Received temporary local credentials request")
 
@@ -144,7 +156,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 
 		logrus.Debug("Current session contains temporary credentials")
 		response := CredentialResponse{
-			AccessKeyId:     credVal.AccessKeyID,
+			AccessKeyID:     credVal.AccessKeyID,
 			SecretAccessKey: credVal.SecretAccessKey,
 			Token:           credVal.SessionToken,
 		}
@@ -167,7 +179,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 	}
 
 	response := CredentialResponse{
-		AccessKeyId:     aws.StringValue(creds.Credentials.AccessKeyId),
+		AccessKeyID:     aws.StringValue(creds.Credentials.AccessKeyId),
 		SecretAccessKey: aws.StringValue(creds.Credentials.SecretAccessKey),
 		Token:           aws.StringValue(creds.Credentials.SessionToken),
 		Expiration:      creds.Credentials.Expiration.Format(CredentialExpirationTimeFormat),

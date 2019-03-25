@@ -12,7 +12,7 @@
 // permissions and limitations under the License.
 
 // package functional_tests includes tests that make http requests to the handlers using net/http/test
-package functional_tests
+package functionaltests
 
 import (
 	"encoding/json"
@@ -33,10 +33,11 @@ import (
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/testingutils"
 	"github.com/docker/docker/api/types"
 	"github.com/golang/mock/gomock"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
-// Tests Path: /ecs-local-metadata-v3/<container identifier>/task
+// Tests Path: /v3/containers/<container identifier>/task
 func TestV3Handler_TaskMetadata(t *testing.T) {
 	// Docker API Containers
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
@@ -96,11 +97,13 @@ func TestV3Handler_TaskMetadata(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
-	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	// make a request to the testing server
-	res, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/%s/task", testServer.URL, identifier))
+	res, err := http.Get(fmt.Sprintf("%s/v3/containers/%s/task", testServer.URL, identifier))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	response, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
@@ -121,7 +124,7 @@ func TestV3Handler_TaskMetadata(t *testing.T) {
 
 }
 
-// Tests Path: /ecs-local-metadata-v3/<container identifier>/task/
+// Tests Path: /v3/containers/<container identifier>/task/
 func TestV3Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 	// Docker API Containers
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
@@ -181,11 +184,13 @@ func TestV3Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
-	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	// make a request to the testing server
-	res, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/%s/task/", testServer.URL, identifier))
+	res, err := http.Get(fmt.Sprintf("%s/v3/containers/%s/task/", testServer.URL, identifier))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	response, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
@@ -218,11 +223,13 @@ func TestV3Handler_TaskMetadata_DockerAPIError(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
-	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	// make a request to the testing server
-	response, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/%s/task/", testServer.URL, "container3"))
+	response, err := http.Get(fmt.Sprintf("%s/v3/containers/%s/task/", testServer.URL, "container3"))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusInternalServerError)), "Expected http response status to be internal server error")
 }
@@ -239,11 +246,13 @@ func TestV3Handler_TaskMetadata_InvalidURL(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
-	testServer := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(metadataService.GetV3Handler())))
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	// make a request to the testing server
-	response, err := http.Get(fmt.Sprintf("%s/ecs-local-metadata-v3/cats/", testServer.URL))
+	response, err := http.Get(fmt.Sprintf("%s/v3/cats/", testServer.URL))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
-	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusBadRequest)), "Expected http response status to be internal server error")
+	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusNotFound)), "Expected http response status to be 404 not found")
 }

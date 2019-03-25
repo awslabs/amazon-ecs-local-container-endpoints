@@ -27,6 +27,7 @@ TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
 local-build: $(LOCAL_BINARY)
 
 $(LOCAL_BINARY): $(SOURCES)
+	PATH=${PATH} golint ./local-container-endpoints/...
 	./scripts/build_binary.sh ./bin/
 	@echo "Built local-container-endpoints"
 
@@ -41,7 +42,7 @@ test:
 
 .PHONY: functional-test
 functional-test:
-	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional-tests/...
+	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 $(LINUX_BINARY): $(SOURCES)
 	@mkdir -p ./bin/linux-amd64

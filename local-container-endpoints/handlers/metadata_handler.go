@@ -14,25 +14,15 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"regexp"
-	"strings"
-	"time"
 
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/clients/docker"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
-	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/metadata"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/utils"
-	"github.com/docker/docker/api/types"
-	"github.com/sirupsen/logrus"
-)
-
-const (
-	composeProjectNameLabel = "com.docker.compose.project"
+	"github.com/gorilla/mux"
 )
 
 // MetadataService vends docker metadata to containers
@@ -76,243 +66,70 @@ func NewMetadataServiceWithClient(dockerClient docker.Client) (*MetadataService,
 	return metadata, nil
 }
 
-// GetV3Handler returns the task metadata V3 Handler
-func (service *MetadataService) GetV3Handler() func(w http.ResponseWriter, r *http.Request) error {
+// SetupV2Routes sets up the V2 Metadata routes
+func (service *MetadataService) SetupV2Routes(router *mux.Router) {
+	router.HandleFunc(config.V2TaskMetadataPath, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+	router.HandleFunc(config.V2TaskMetadataPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+
+	router.HandleFunc(config.V2TaskStatsPath, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+	router.HandleFunc(config.V2TaskStatsPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+
+	router.HandleFunc(config.V2ContainerMetadataPath, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+	router.HandleFunc(config.V2ContainerMetadataPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+
+	router.HandleFunc(config.V2ContainerStatsPath, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+	router.HandleFunc(config.V2ContainerStatsPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+}
+
+// SetupV3Routes sets up the V3 Metadata routes
+func (service *MetadataService) SetupV3Routes(router *mux.Router) {
+	router.HandleFunc(config.V3ContainerMetadataPath, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+	router.HandleFunc(config.V3ContainerMetadataPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+	router.HandleFunc(config.V3ContainerMetadataPathWithIdentifier, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+	router.HandleFunc(config.V3ContainerMetadataPathWithIdentifierAndSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerMetadata)))
+
+	router.HandleFunc(config.V3ContainerStatsPath, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+	router.HandleFunc(config.V3ContainerStatsPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+	router.HandleFunc(config.V3ContainerStatsPathWithIdentifier, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+	router.HandleFunc(config.V3ContainerStatsPathWithIdentifierAndSlash, ServeHTTP(service.getMetadataHandler(requestTypeContainerStats)))
+
+	router.HandleFunc(config.V3TaskMetadataPath, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+	router.HandleFunc(config.V3TaskMetadataPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+	router.HandleFunc(config.V3TaskMetadataPathWithIdentifier, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+	router.HandleFunc(config.V3TaskMetadataPathWithIdentifierWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskMetadata)))
+
+	router.HandleFunc(config.V3TaskStatsPath, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+	router.HandleFunc(config.V3TaskStatsPathWithSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+	router.HandleFunc(config.V3TaskStatsPathWithIdentifier, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+	router.HandleFunc(config.V3TaskStatsPathWithIdentifierAndSlash, ServeHTTP(service.getMetadataHandler(requestTypeTaskStats)))
+}
+
+// getMetadataHandler returns a metadata handler given a requestType
+func (service *MetadataService) getMetadataHandler(requestType int) func(w http.ResponseWriter, r *http.Request) error {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		callerIP, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			// Failed to get the callerIP
 			callerIP = ""
 		}
-
-		// URL Path format = /ecs-local-metadata-v3/<container identifier>/
-		//                   /ecs-local-metadata-v3/<container identifier>/stats
-		//                   /ecs-local-metadata-v3/<container identifier>/task/
-		//                   /ecs-local-metadata-v3/<container identifier>/task/stats
-		if re := regexp.MustCompile("/ecs-local-metadata-v3/([a-zA-Z0-9_-]*)/task/?"); re.MatchString(r.URL.Path) {
-			// return val should be [full URL Path, container identifier]
-			urlParts := re.FindStringSubmatch(r.URL.Path)
-
-			if len(urlParts) < 2 {
-				return HttpError{
-					Code: http.StatusBadRequest,
-					Err:  fmt.Errorf("Invalid URL path %s; expected '/ecs-local-metadata-v3/<container identifier>/task/'", r.URL.Path),
-				}
-			}
-			identifier := urlParts[1]
-			return service.taskMetadataResponse(w, identifier, callerIP)
-		}
-
-		return HttpError{
-			Code: http.StatusBadRequest,
-			Err:  fmt.Errorf("invalid URL path: %s", r.URL.Path),
-		}
+		vars := mux.Vars(r)
+		identifier := vars["identifier"]
+		return service.handleRequest(requestType, w, identifier, callerIP)
 	}
 }
 
-// GetV2Handler returns the task metadata V2 Handler
-func (service *MetadataService) GetV2Handler() func(w http.ResponseWriter, r *http.Request) error {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		callerIP, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			// Failed to get the callerIP
-			callerIP = ""
-		}
-
-		if re := regexp.MustCompile("/v2/metadata/?"); re.MatchString(r.URL.Path) {
-			return service.taskMetadataResponse(w, "", callerIP)
-		}
-
-		return HttpError{
-			Code: http.StatusBadRequest,
-			Err:  fmt.Errorf("invalid URL path: %s", r.URL.Path),
-		}
-	}
-}
-
-func (service *MetadataService) taskMetadataResponse(w http.ResponseWriter, identifier string, callerIP string) error {
-	timeout, _ := time.ParseDuration(config.HTTPTimeoutDuration)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	containers, err := service.dockerClient.ContainerList(ctx)
-	if err != nil {
-		return err
-	}
-	taskContainers := getTaskContainers(containers, identifier, callerIP)
-
-	response := metadata.GetTaskMetadata(taskContainers, service.containerInstanceTags, service.taskTags)
-
-	writeJSONResponse(w, response)
-	return nil
-}
-
-// A Local 'Task' is defined as all containers in the same Docker Compose Project as the caller container
-// OR all containers running on this machine if the user is not using Compose
-func getTaskContainers(allContainers []types.Container, identifier string, callerIP string) []types.Container {
-	callerContainer, err := findContainer(allContainers, identifier, callerIP)
-	if err != nil {
-		logrus.Warn(err)
-		logrus.Info("Will use all containers to represent one 'local task'")
-		return allContainers
+func (service *MetadataService) handleRequest(requestType int, w http.ResponseWriter, identifier string, callerIP string) error {
+	switch requestType {
+	case requestTypeTaskMetadata:
+		return service.taskMetadataResponse(w, identifier, callerIP)
+	case requestTypeTaskStats:
+		return service.taskStatsResponse(w, identifier, callerIP)
+	case requestTypeContainerStats:
+		return service.containerStatsResponse(w, identifier, callerIP)
+	case requestTypeContainerMetadata:
+		return service.containerMetadataResponse(w, identifier, callerIP)
 	}
 
-	projectName := callerContainer.Labels[composeProjectNameLabel]
-
-	if projectName == "" {
-		logrus.Info("Will use all containers to represent one 'local task': The container which made the request is not in a Docker Compose Project")
-		return allContainers
-	}
-
-	return filterByComposeProject(allContainers, projectName)
-}
-
-func filterByComposeProject(dockerContainers []types.Container, projectName string) []types.Container {
-	var filteredContainers []types.Container
-
-	for _, container := range dockerContainers {
-		if container.Labels != nil && container.Labels[composeProjectNameLabel] == projectName {
-			filteredContainers = append(filteredContainers, container)
-		}
-	}
-
-	if len(filteredContainers) > 0 {
-		return filteredContainers
-	}
-
-	return dockerContainers
-}
-
-// Algorithm:
-// 1. Given a list of all running containers
-// 2. Filter the list by the <container identifier> if it was present in the request URI. If this leaves only one container, then we have found our match.
-// 	a. First we check if the identifier was is a prefix for the container ID (i.e. it is the container short ID or the full ID), and then we check if it was a subset of the container name
-// 3. Filter the remaining results in the list by the request IP. If this leaves only one container, then we have found our match.
-// 4. Filter the remaining results by the docker networks that the endpoint container is in. A container can only call the endpoints if it is in the same docker network as the endpoints container.
-// 	a. Determine which Docker Networks the Endpoints container is in by determining which container it is (We can do this using $HOSTNAME, which will be our container short ID) and then use the output of Docker API's ContainerList (https://godoc.org/github.com/docker/docker/client#Client.ContainerList) to find its networks.
-// 	b. Filter the remaining containers by selecting those containers which have the callerIP in one of the endpoints container's networks.
-// 5. If no container is found, or more than one container matches, we return an error.
-func findContainer(dockerContainers []types.Container, identifier string, callerIP string) (*types.Container, error) {
-	var filteredList []types.Container = dockerContainers
-
-	if identifier != "" {
-		filteredList = filterContainersByIdentifier(dockerContainers, identifier)
-		if len(filteredList) == 1 { // we found the container
-			return &filteredList[0], nil
-		}
-	}
-
-	if callerIP != "" {
-		filteredList = filterContainersByRequestIP(filteredList, callerIP)
-		if len(filteredList) == 1 { // we found the container
-			return &filteredList[0], nil
-		}
-	}
-
-	filteredList = filterContainersByMyNetworks(filteredList, dockerContainers, callerIP)
-	if len(filteredList) == 1 { // we found the container
-		return &filteredList[0], nil
-	}
-
-	return nil, fmt.Errorf("Failed to find the container which the request came from. Narrowed down search to %d containers", len(filteredList))
-}
-
-func filterContainersByIdentifier(dockerContainers []types.Container, identifier string) []types.Container {
-	var filteredList []types.Container
-	for _, container := range dockerContainers {
-		if strings.HasPrefix(container.ID, identifier) {
-			filteredList = append(filteredList, container)
-			continue
-		}
-
-		for _, name := range container.Names {
-			if strings.Contains(name, identifier) {
-				filteredList = append(filteredList, container)
-			}
-		}
-	}
-	if len(filteredList) > 0 {
-		return filteredList
-	}
-	return dockerContainers
-
-}
-
-func filterContainersByRequestIP(dockerContainers []types.Container, callerIP string) []types.Container {
-	var filteredList []types.Container
-	for _, container := range dockerContainers {
-		if container.NetworkSettings == nil {
-			continue
-		}
-		for _, settings := range container.NetworkSettings.Networks {
-			if settings != nil && settings.IPAddress == callerIP {
-				filteredList = append(filteredList, container)
-			}
-		}
-
-	}
-
-	if len(filteredList) > 0 {
-		return filteredList
-	}
-	return dockerContainers
-}
-
-// filter the list by the networks which the endpoints container is in
-func filterContainersByMyNetworks(filteredContainerList []types.Container, allContainers []types.Container, callerIP string) []types.Container {
-	// find endpoints containers
-	var endpointContainer *types.Container
-	shortID := os.Getenv("HOSTNAME")
-	for _, container := range allContainers {
-		if strings.HasPrefix(container.ID, shortID) {
-			endpointContainer = &container
-		}
-	}
-
-	if endpointContainer == nil || endpointContainer.NetworkSettings == nil || endpointContainer.NetworkSettings.Networks == nil {
-		logrus.Warn("Failed to find endpoints container among running containers")
-		// Return the list we were given, since we can't filter it any further
-		return filteredContainerList
-	}
-
-	var finalList []types.Container
-
-	// containers can only make request to the endpoint container from within one of its networks
-	var networksToSearch []string
-	for network, settings := range endpointContainer.NetworkSettings.Networks {
-		if settings != nil {
-			networksToSearch = append(networksToSearch, network)
-			networksToSearch = append(networksToSearch, settings.Aliases...)
-		}
-	}
-
-	for _, container := range filteredContainerList {
-		if container.NetworkSettings == nil {
-			continue
-		}
-		for network, settings := range container.NetworkSettings.Networks {
-			if settings != nil && networkMatches(network, settings.Aliases, networksToSearch) && settings.IPAddress == callerIP {
-				// This container is in one of the right networks and has the caller IP in that network
-				finalList = append(finalList, container)
-			}
-		}
-	}
-
-	return finalList
-}
-
-// Returns true if the networkName of any alias is in the list networksToSearch
-func networkMatches(networkName string, aliases []string, networksToSearch []string) bool {
-	for _, check := range networksToSearch {
-		if networkName == check {
-			return true
-		}
-		for _, alias := range aliases {
-			if alias == check {
-				return true
-			}
-		}
-	}
-
-	return false
+	// This should never run, but explicitly returning an error here helps make it easy to find bugs
+	return fmt.Errorf("There's a bug in this code: Invalid request type %d", requestType)
 }

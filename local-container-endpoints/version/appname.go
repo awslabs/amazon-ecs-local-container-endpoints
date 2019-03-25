@@ -14,5 +14,6 @@
 package version
 
 const (
+	// AppName is the name of this app
 	AppName = "ecs-local-container-endpoints"
 )
