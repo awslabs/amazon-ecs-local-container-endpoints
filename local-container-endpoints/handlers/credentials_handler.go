@@ -33,7 +33,7 @@ import (
 const (
 	temporaryCredentialsDurationInS = 3600
 	roleSessionNameLength           = 64
-	credentialExpirationTimeFormat  = time.RFC3339
+	CredentialExpirationTimeFormat  = time.RFC3339
 )
 
 // CredentialService vends credentials to containers
@@ -51,11 +51,16 @@ func NewCredentialService() (*CredentialService, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewCredentialServiceWithClients(iam.New(sess), sts.New(sess), sess), nil
+}
+
+// NewCredentialServiceWithClients returns a struct that handles credentials requests with the given clients
+func NewCredentialServiceWithClients(iamClient iamiface.IAMAPI, stsClient stsiface.STSAPI, currentSession *session.Session) *CredentialService {
 	return &CredentialService{
-		iamClient:      iam.New(sess),
-		stsClient:      sts.New(sess),
-		currentSession: sess,
-	}, nil
+		iamClient:      iamClient,
+		stsClient:      stsClient,
+		currentSession: currentSession,
+	}
 }
 
 // GetRoleHandler returns the Task IAM Role handler
@@ -109,7 +114,7 @@ func (service *CredentialService) getRoleCredentials(urlPath string) (*Credentia
 		SecretAccessKey: aws.StringValue(creds.Credentials.SecretAccessKey),
 		RoleArn:         aws.StringValue(output.Role.Arn),
 		Token:           aws.StringValue(creds.Credentials.SessionToken),
-		Expiration:      creds.Credentials.Expiration.Format(credentialExpirationTimeFormat),
+		Expiration:      creds.Credentials.Expiration.Format(CredentialExpirationTimeFormat),
 	}, nil
 }
 
@@ -147,7 +152,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 		// It is valid for a credential provider to not return an expiration
 		// TODO: Check if expiration is optional from the POV of the SDKs
 		if err == nil {
-			response.Expiration = expiration.Format(credentialExpirationTimeFormat)
+			response.Expiration = expiration.Format(CredentialExpirationTimeFormat)
 		}
 		return &response, nil
 	}
@@ -165,7 +170,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 		AccessKeyId:     aws.StringValue(creds.Credentials.AccessKeyId),
 		SecretAccessKey: aws.StringValue(creds.Credentials.SecretAccessKey),
 		Token:           aws.StringValue(creds.Credentials.SessionToken),
-		Expiration:      creds.Credentials.Expiration.Format(credentialExpirationTimeFormat),
+		Expiration:      creds.Credentials.Expiration.Format(CredentialExpirationTimeFormat),
 	}
 
 	return &response, nil

@@ -27,6 +27,7 @@ services:
     environment:
       ECS_LOCAL_METADATA_PORT: "80"
       HOME: "/home"
+      AWS_PROFILE: "default"
     networks:
       metadata_network:
         ipv4_address: "169.254.170.2"
@@ -41,8 +42,7 @@ services:
       - ecs-local
     environment:
       ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/ecs-local-metadata-v3/integ"
-      AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/creds"
-      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_REGION: "us-east-1"
 
   nginx:
     image: nginx
