@@ -14,10 +14,8 @@
 package handlers
 
 import (
-	"os"
 	"testing"
 
-	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/testingutils"
 	"github.com/docker/docker/api/types"
 	"github.com/stretchr/testify/assert"
@@ -348,23 +346,24 @@ func TestGetTaskContainersOneContainerReturned(t *testing.T) {
 
 }
 
-func TestNewMetadataServiceWithTags(t *testing.T) {
-	os.Setenv(config.ContainerInstanceTagsVar, "mitchell=webb,thats=numberwang")
-	os.Setenv(config.TaskTagsVar, "hello=goodbye,get=back,come=together")
-	defer os.Clearenv()
-
-	expectedCITags := map[string]string{
-		"mitchell": "webb",
-		"thats":    "numberwang",
-	}
-	expectedTaskTags := map[string]string{
-		"hello": "goodbye",
-		"get":   "back",
-		"come":  "together",
-	}
-
-	service, err := NewMetadataService()
-	assert.NoError(t, err, "Unexpected error calling NewMetadataService")
-	assert.Equal(t, expectedCITags, service.containerInstanceTags, "Expected container instance tags to match")
-	assert.Equal(t, expectedTaskTags, service.taskTags, "Expected task tags to match")
-}
+// TODO: re-enable test once metadata with Tags field is added
+// func TestNewMetadataServiceWithTags(t *testing.T) {
+// 	os.Setenv(config.ContainerInstanceTagsVar, "mitchell=webb,thats=numberwang")
+// 	os.Setenv(config.TaskTagsVar, "hello=goodbye,get=back,come=together")
+// 	defer os.Clearenv()
+//
+// 	expectedCITags := map[string]string{
+// 		"mitchell": "webb",
+// 		"thats":    "numberwang",
+// 	}
+// 	expectedTaskTags := map[string]string{
+// 		"hello": "goodbye",
+// 		"get":   "back",
+// 		"come":  "together",
+// 	}
+//
+// 	service, err := NewMetadataService()
+// 	assert.NoError(t, err, "Unexpected error calling NewMetadataService")
+// 	assert.Equal(t, expectedCITags, service.containerInstanceTags, "Expected container instance tags to match")
+// 	assert.Equal(t, expectedTaskTags, service.taskTags, "Expected task tags to match")
+// }

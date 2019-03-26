@@ -17,11 +17,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/clients/docker"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
-	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -47,21 +45,22 @@ func NewMetadataServiceWithClient(dockerClient docker.Client) (*MetadataService,
 		dockerClient: dockerClient,
 	}
 
-	if ciTagVal := os.Getenv(config.ContainerInstanceTagsVar); ciTagVal != "" {
-		tags, err := utils.GetTagsMap(ciTagVal)
-		if err != nil {
-			return nil, err
-		}
-		metadata.containerInstanceTags = tags
-	}
-
-	if taskTagVal := os.Getenv(config.TaskTagsVar); taskTagVal != "" {
-		tags, err := utils.GetTagsMap(taskTagVal)
-		if err != nil {
-			return nil, err
-		}
-		metadata.taskTags = tags
-	}
+	// TODO: re-enable tagging when supporting the new V2 and V3 metdata with Tags paths
+	// if ciTagVal := os.Getenv(config.ContainerInstanceTagsVar); ciTagVal != "" {
+	// 	tags, err := utils.GetTagsMap(ciTagVal)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	metadata.containerInstanceTags = tags
+	// }
+	//
+	// if taskTagVal := os.Getenv(config.TaskTagsVar); taskTagVal != "" {
+	// 	tags, err := utils.GetTagsMap(taskTagVal)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	metadata.taskTags = tags
+	// }
 
 	return metadata, nil
 }

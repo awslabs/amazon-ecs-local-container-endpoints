@@ -58,27 +58,27 @@ func TestV3Handler_TaskMetadata(t *testing.T) {
 		container2,
 		endpointsContainer,
 	}
-
-	taskTags := map[string]string{
-		"task": "tags",
-	}
-	containerInstanceTags := map[string]string{
-		"containerInstance": "tags",
-	}
+	// TODO: re-enable when new task with tags metadata path is added
+	// taskTags := map[string]string{
+	// 	"task": "tags",
+	// }
+	// containerInstanceTags := map[string]string{
+	// 	"containerInstance": "tags",
+	// }
 
 	os.Setenv(config.ContainerInstanceTagsVar, "containerInstance=tags")
 	os.Setenv(config.TaskTagsVar, "task=tags")
 	defer os.Clearenv()
 
 	expectedMetadata := &v2.TaskResponse{
-		TaskTags:              taskTags,
-		ContainerInstanceTags: containerInstanceTags,
-		Cluster:               config.DefaultClusterName,
-		TaskARN:               config.DefaultTaskARN,
-		Family:                config.DefaultTDFamily,
-		Revision:              config.DefaultTDRevision,
-		DesiredStatus:         ecs.DesiredStatusRunning,
-		KnownStatus:           ecs.DesiredStatusRunning,
+		// TaskTags:              taskTags,
+		// ContainerInstanceTags: containerInstanceTags,
+		Cluster:       config.DefaultClusterName,
+		TaskARN:       config.DefaultTaskARN,
+		Family:        config.DefaultTDFamily,
+		Revision:      config.DefaultTDRevision,
+		DesiredStatus: ecs.DesiredStatusRunning,
+		KnownStatus:   ecs.DesiredStatusRunning,
 		Containers: []v2.ContainerResponse{
 			endpointsContainerMetadata,
 			container2Metadata,
@@ -145,27 +145,27 @@ func TestV3Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 		container2,
 		endpointsContainer,
 	}
-
-	taskTags := map[string]string{
-		"task": "tags",
-	}
-	containerInstanceTags := map[string]string{
-		"containerInstance": "tags",
-	}
+	// TODO: re-enable when new task with tags metadata path is added
+	// taskTags := map[string]string{
+	// 	"task": "tags",
+	// }
+	// containerInstanceTags := map[string]string{
+	// 	"containerInstance": "tags",
+	// }
 
 	os.Setenv(config.ContainerInstanceTagsVar, "containerInstance=tags")
 	os.Setenv(config.TaskTagsVar, "task=tags")
 	defer os.Clearenv()
 
 	expectedMetadata := &v2.TaskResponse{
-		TaskTags:              taskTags,
-		ContainerInstanceTags: containerInstanceTags,
-		Cluster:               config.DefaultClusterName,
-		TaskARN:               config.DefaultTaskARN,
-		Family:                config.DefaultTDFamily,
-		Revision:              config.DefaultTDRevision,
-		DesiredStatus:         ecs.DesiredStatusRunning,
-		KnownStatus:           ecs.DesiredStatusRunning,
+		// TaskTags:              taskTags,
+		// ContainerInstanceTags: containerInstanceTags,
+		Cluster:       config.DefaultClusterName,
+		TaskARN:       config.DefaultTaskARN,
+		Family:        config.DefaultTDFamily,
+		Revision:      config.DefaultTDRevision,
+		DesiredStatus: ecs.DesiredStatusRunning,
+		KnownStatus:   ecs.DesiredStatusRunning,
 		Containers: []v2.ContainerResponse{
 			endpointsContainerMetadata,
 			container2Metadata,
