@@ -54,7 +54,7 @@ release:
 	docker run -v $(shell pwd):/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
 		--workdir=/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
 		--env GOPATH=/usr/src/app \
-		--env ECS_RELEASE=$(ECS_RELEASE) \
+		--env ECS_RELEASE=cleanbuild \
 		golang:1.12 make $(LINUX_BINARY)
 	docker build -t amazon/amazon-ecs-local-container-endpoints:latest .
 	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(TAG)
