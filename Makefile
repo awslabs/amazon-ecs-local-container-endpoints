@@ -65,6 +65,13 @@ integ: release
 	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
 	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
 
+
+.PHONY: publish
+publish: release
+	docker push amazon/amazon-ecs-local-container-endpoints:latest
+	docker push amazon/amazon-ecs-local-container-endpoints:$(TAG)
+	docker push amazon/amazon-ecs-local-container-endpoints:$(VERSION)
+
 .PHONY: clean
 clean:
 	rm bin/local-container-endpoints
