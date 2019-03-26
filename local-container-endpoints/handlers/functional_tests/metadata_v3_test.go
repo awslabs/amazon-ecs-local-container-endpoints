@@ -256,3 +256,256 @@ func TestV3Handler_TaskMetadata_InvalidURL(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusNotFound)), "Expected http response status to be 404 not found")
 }
+
+func TestV3Handler_ContainerStats(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	expectedStats := getMockStats()
+
+	gomock.InOrder(
+		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
+		dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(expectedStats, nil),
+	)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/v3/containers/%s/stats", testServer.URL, longID1))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualStats := &types.Stats{}
+	err = json.Unmarshal(response, actualStats)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.Equal(t, expectedStats, actualStats, "Expected container stats response to match")
+}
+
+func TestV3Handler_ContainerStats_TrailingSlash(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	expectedStats := getMockStats()
+
+	gomock.InOrder(
+		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
+		dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(expectedStats, nil),
+	)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/v3/containers/%s/stats", testServer.URL, longID1))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualStats := &types.Stats{}
+	err = json.Unmarshal(response, actualStats)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.Equal(t, expectedStats, actualStats, "Expected container stats response to match")
+}
+
+// Tests Path: /v2/stats/
+func TestV3Handler_TaskStats(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	container1Stats := getMockStats()
+	container2Stats := getMockStats()
+	container3Stats := getMockStats()
+	endpointsStats := getMockStats()
+
+	expectedStats := map[string]types.Stats{
+		longID1:         *container1Stats,
+		longID2:         *container2Stats,
+		longID3:         *container3Stats,
+		endpointsLongID: *endpointsStats,
+	}
+
+	dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(container1Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID2).Return(container2Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(container3Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/v3/task/stats", testServer.URL))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualStats := make(map[string]types.Stats)
+	err = json.Unmarshal(response, &actualStats)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.Equal(t, expectedStats, actualStats, "Expected container stats response to match")
+}
+
+func TestV3Handler_TaskStats_TrailingSlash(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	container1Stats := getMockStats()
+	container2Stats := getMockStats()
+	container3Stats := getMockStats()
+	endpointsStats := getMockStats()
+
+	expectedStats := map[string]types.Stats{
+		longID1:         *container1Stats,
+		longID2:         *container2Stats,
+		longID3:         *container3Stats,
+		endpointsLongID: *endpointsStats,
+	}
+
+	dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(container1Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID2).Return(container2Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(container3Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	// make a request to the testing server
+	res, err := http.Get(fmt.Sprintf("%s/v3/task/stats/", testServer.URL))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualStats := make(map[string]types.Stats)
+	err = json.Unmarshal(response, &actualStats)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.Equal(t, expectedStats, actualStats, "Expected container stats response to match")
+}
+
+func TestV3Handler_TaskStats_DockerAPIError(t *testing.T) {
+	// Docker API Containers
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
+
+	dockerAPIResponse := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	ctrl := gomock.NewController(t)
+	dockerMock := mock_docker.NewMockClient(ctrl)
+
+	container1Stats := getMockStats()
+	container2Stats := getMockStats()
+	endpointsStats := getMockStats()
+
+	dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(container1Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID2).Return(container2Stats, nil)
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(nil, fmt.Errorf("Some error"))
+	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
+
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	assert.NoError(t, err, "Unexpected error creating new metadata service")
+
+	// create a testing server
+	router := mux.NewRouter()
+	metadataService.SetupV3Routes(router)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	// make a request to the testing server
+	response, err := http.Get(fmt.Sprintf("%s/v3/task/stats", testServer.URL))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusInternalServerError)), "Expected http response status to be internal server error")
+}
