@@ -41,7 +41,7 @@ services:
     depends_on:
       - ecs-local
     environment:
-      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/ecs-local-metadata-v3/integ"
+      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/v3/containers/integ"
       AWS_REGION: "us-east-1"
 
   nginx:
@@ -50,6 +50,6 @@ services:
       metadata_network:
         ipv4_address: "169.254.170.5"
     environment:
-      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/ecs-local-metadata-v3/nginx"
+      ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/v3/containers/nginx"
       AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/tempcreds"
       AWS_DEFAULT_REGION: "us-east-1"

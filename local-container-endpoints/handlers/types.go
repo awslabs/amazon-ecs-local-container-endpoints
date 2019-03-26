@@ -15,7 +15,7 @@ package handlers
 
 // CredentialResponse is used to marshal the JSON response for the Credentials Service
 type CredentialResponse struct {
-	AccessKeyId     string
+	AccessKeyID     string `json:"AccessKeyId"`
 	Expiration      string
 	RoleArn         string
 	SecretAccessKey string

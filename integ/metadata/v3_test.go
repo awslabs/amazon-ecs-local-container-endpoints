@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/aws/amazon-ecs-agent/agent/handlers/v2"
+	"github.com/docker/docker/api/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,4 +53,30 @@ func TestV3Handler_TaskMetadata(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, expectedNames, actualNames, "Expected list of container names to match")
+}
+
+func TestV3Handler_ContainerkMetadata(t *testing.T) {
+	res, err := http.Get(os.Getenv("ECS_CONTAINER_METADATA_URI"))
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actualMetadata := &v2.ContainerResponse{}
+	err = json.Unmarshal(response, actualMetadata)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
+
+	assert.Equal(t, "integ_integration-test_1", actualMetadata.Name)
+}
+
+func TestV3Handler_ContainerkStats(t *testing.T) {
+	res, err := http.Get(os.Getenv("ECS_CONTAINER_METADATA_URI") + "/stats")
+	assert.NoError(t, err, "Unexpected error making HTTP Request")
+	response, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	assert.NoError(t, err, "Unexpected error reading HTTP response")
+
+	actual := types.Stats{}
+	err = json.Unmarshal(response, &actual)
+	assert.NoError(t, err, "Unexpected error unmarshalling response")
 }

@@ -60,3 +60,16 @@ func (m *MockClient) ContainerList(arg0 context.Context) ([]types.Container, err
 func (mr *MockClientMockRecorder) ContainerList(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerList", reflect.TypeOf((*MockClient)(nil).ContainerList), arg0)
 }
+
+// ContainerStats mocks base method
+func (m *MockClient) ContainerStats(arg0 context.Context, arg1 string) (*types.Stats, error) {
+	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1)
+	ret0, _ := ret[0].(*types.Stats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ContainerStats indicates an expected call of ContainerStats
+func (mr *MockClientMockRecorder) ContainerStats(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStats", reflect.TypeOf((*MockClient)(nil).ContainerStats), arg0, arg1)
+}

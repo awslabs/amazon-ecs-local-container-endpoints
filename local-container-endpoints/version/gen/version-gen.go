@@ -48,7 +48,7 @@ package version
 // Version is the version of ECS Local Container Endpoints
 const Version = "{{.Version}}"
 
-// The Latest Agent Version that ECS Local Container Endpoints is compatibile with
+// AgentVersionCompatibility is the Latest Agent Version that ECS Local Container Endpoints is compatible with
 const AgentVersionCompatibility = "{{.AgentVersionCompatibility}}"
 
 // GitDirty indicates the cleanliness of the git repo when it was built

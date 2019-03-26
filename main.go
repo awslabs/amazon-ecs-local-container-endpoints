@@ -21,6 +21,7 @@ import (
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/handlers"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/utils"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/version"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,14 +38,18 @@ func main() {
 		logrus.Fatal("Failed to create Metadata Service: ", err)
 	}
 
-	http.HandleFunc("/role/", handlers.ServeHTTP(credentialsService.GetRoleHandler()))
-	http.HandleFunc("/creds", handlers.ServeHTTP(credentialsService.GetTemporaryCredentialHandler()))
-
-	http.HandleFunc("/v2/", handlers.ServeHTTP(metadataService.GetV2Handler()))
-	http.HandleFunc("/ecs-local-metadata-v3/", handlers.ServeHTTP(metadataService.GetV3Handler()))
-
 	port := utils.GetValue(config.DefaultPort, config.PortVar)
-	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+
+	router := mux.NewRouter()
+	metadataService.SetupV2Routes(router)
+	metadataService.SetupV3Routes(router)
+	credentialsService.SetupRoutes(router)
+
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: router,
+	}
+	err = server.ListenAndServe()
 	if err != nil {
 		logrus.Fatal("HTTP Server exited with error: ", err)
 	}

@@ -28,19 +28,19 @@ type Error interface {
 	Status() int
 }
 
-// HttpError represents an error with a HTTP status code.
-type HttpError struct {
+// HTTPError represents an error with a HTTP status code.
+type HTTPError struct {
 	Code int
 	Err  error
 }
 
 // Error satisfies the error interface.
-func (herr HttpError) Error() string {
+func (herr HTTPError) Error() string {
 	return herr.Err.Error()
 }
 
 // Status retutns the HTTP status code.
-func (herr HttpError) Status() int {
+func (herr HTTPError) Status() int {
 	return herr.Code
 }
 

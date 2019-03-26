@@ -14,10 +14,8 @@
 package handlers
 
 import (
-	"os"
 	"testing"
 
-	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/testingutils"
 	"github.com/docker/docker/api/types"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +28,7 @@ const (
 	longID1          = "e18ab3d25b38c8b6a287831767b62475a79853dc38a0b92a98efabb20718c0d90"
 	longID2          = "457129ed3bd03f1fc70125c3be7bcbee760d5edf092e32155a5c6a730cd32020"
 	longID3          = "0756a2371cad1976b07954490660f07d240a6a6f52d17594ed691799915695f7"
-	containerName1   = "container1-puddle"
+	containerName1   = "container1-puddles"
 	containerName2   = "container2-pudding"
 	containerName3   = "clyde-container3-dumpling"
 	badName          = "tum-tum"
@@ -186,6 +184,25 @@ func TestFindContainerWithCallerIPAndNetworks(t *testing.T) {
 
 }
 
+func TestFindContainerWithCallerIPAndNetworksFailure(t *testing.T) {
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork("bridge", ipAddress).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).Get()
+
+	containers := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
+	}
+
+	_, err := findContainer(containers, "", ipAddress1)
+	// No container matches
+	assert.Error(t, err, "Expected error from findContainer")
+
+}
+
 // An unlikely scenario in which all of the checks (identifier, IP, and networks) must work correctly in order for the right container to be returned
 func TestFindContainerWithAllChecks(t *testing.T) {
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithNetwork(network2, ipAddress).Get()
@@ -214,8 +231,8 @@ func TestFindContainerWithAllChecks(t *testing.T) {
 
 }
 
-func TestFindContainerWithCallerIPAndNetworksFailure(t *testing.T) {
-	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork("bridge", ipAddress).Get()
+func TestFindContainerFailureMoreThanOneMatches(t *testing.T) {
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithNetwork(network2, ipAddress).Get()
 	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).Get()
 	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).Get()
 	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).Get()
@@ -227,7 +244,8 @@ func TestFindContainerWithCallerIPAndNetworksFailure(t *testing.T) {
 		endpointsContainer,
 	}
 
-	_, err := findContainer(containers, "", ipAddress1)
+	// all the containers have 'container' in their name, and endpoints has two networks so the IPAddress doesn't identify the container either
+	_, err := findContainer(containers, "container", ipAddress1)
 	// No container matches
 	assert.Error(t, err, "Expected error from findContainer")
 
@@ -247,26 +265,6 @@ func TestFindContainerWithIdentifierFailure(t *testing.T) {
 	}
 
 	_, err := findContainer(containers, badName, "")
-	// No container matches
-	assert.Error(t, err, "Expected error from findContainer")
-
-}
-
-func TestFindContainerFailureMoreThanOneMatches(t *testing.T) {
-	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithNetwork(network2, ipAddress).Get()
-	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).Get()
-	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).Get()
-	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).Get()
-
-	containers := []types.Container{
-		container3,
-		container1,
-		container2,
-		endpointsContainer,
-	}
-
-	// all the containers have 'container' in their name, and endpoints has two networks so the IPAddress doesn't identify the container either
-	_, err := findContainer(containers, "container", ipAddress1)
 	// No container matches
 	assert.Error(t, err, "Expected error from findContainer")
 
@@ -292,29 +290,6 @@ func TestGetTaskContainers(t *testing.T) {
 	}
 
 	result := getTaskContainers(containers, "", ipAddress1)
-
-	assert.ElementsMatch(t, expected, result, "Expected containers returned by getTaskContainers to be from the correct compose project")
-
-}
-
-func TestGetTaskContainersOneContainerReturned(t *testing.T) {
-	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName2).Get()
-	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
-	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName2).Get()
-	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
-
-	containers := []types.Container{
-		container3,
-		container1,
-		container2,
-		endpointsContainer,
-	}
-
-	expected := []types.Container{
-		container3,
-	}
-
-	result := getTaskContainers(containers, containerName3, ipAddress1)
 
 	assert.ElementsMatch(t, expected, result, "Expected containers returned by getTaskContainers to be from the correct compose project")
 
@@ -347,23 +322,48 @@ func TestGetTaskContainersNilTest(t *testing.T) {
 	getTaskContainers(containers, containerName3, ipAddress1)
 }
 
-func TestNewMetadataServiceWithTags(t *testing.T) {
-	os.Setenv(config.ContainerInstanceTagsVar, "mitchell=webb,thats=numberwang")
-	os.Setenv(config.TaskTagsVar, "hello=goodbye,get=back,come=together")
-	defer os.Clearenv()
+func TestGetTaskContainersOneContainerReturned(t *testing.T) {
+	// technically
+	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).WithComposeProject(projectName2).Get()
+	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).WithComposeProject(projectName2).Get()
+	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).WithComposeProject(projectName2).Get()
+	container3 := testingutils.BaseDockerContainer(containerName3, longID3).WithNetwork(network1, ipAddress1).WithComposeProject(projectName).Get()
 
-	expectedCITags := map[string]string{
-		"mitchell": "webb",
-		"thats":    "numberwang",
-	}
-	expectedTaskTags := map[string]string{
-		"hello": "goodbye",
-		"get":   "back",
-		"come":  "together",
+	containers := []types.Container{
+		container3,
+		container1,
+		container2,
+		endpointsContainer,
 	}
 
-	service, err := NewMetadataService()
-	assert.NoError(t, err, "Unexpected error calling NewMetadataService")
-	assert.Equal(t, expectedCITags, service.containerInstanceTags, "Expected container instance tags to match")
-	assert.Equal(t, expectedTaskTags, service.taskTags, "Expected task tags to match")
+	expected := []types.Container{
+		container3,
+	}
+
+	result := getTaskContainers(containers, containerName3, ipAddress1)
+
+	assert.ElementsMatch(t, expected, result, "Expected containers returned by getTaskContainers to be from the correct compose project")
+
 }
+
+// TODO: re-enable test once metadata with Tags field is added
+// func TestNewMetadataServiceWithTags(t *testing.T) {
+// 	os.Setenv(config.ContainerInstanceTagsVar, "mitchell=webb,thats=numberwang")
+// 	os.Setenv(config.TaskTagsVar, "hello=goodbye,get=back,come=together")
+// 	defer os.Clearenv()
+//
+// 	expectedCITags := map[string]string{
+// 		"mitchell": "webb",
+// 		"thats":    "numberwang",
+// 	}
+// 	expectedTaskTags := map[string]string{
+// 		"hello": "goodbye",
+// 		"get":   "back",
+// 		"come":  "together",
+// 	}
+//
+// 	service, err := NewMetadataService()
+// 	assert.NoError(t, err, "Unexpected error calling NewMetadataService")
+// 	assert.Equal(t, expectedCITags, service.containerInstanceTags, "Expected container instance tags to match")
+// 	assert.Equal(t, expectedTaskTags, service.taskTags, "Expected task tags to match")
+// }

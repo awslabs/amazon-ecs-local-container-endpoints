@@ -11,9 +11,19 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package version
+// Package functionaltests includes tests that make http requests to the handlers using net/http/test
+package functionaltests
 
-const (
-	// AppName is the name of this app
-	AppName = "ecs-local-container-endpoints"
+import (
+	"math/rand"
+
+	"github.com/docker/docker/api/types"
 )
+
+func getMockStats() *types.Stats {
+	return &types.Stats{
+		CPUStats: types.CPUStats{
+			SystemUsage: uint64(rand.Intn(10000)),
+		},
+	}
+}

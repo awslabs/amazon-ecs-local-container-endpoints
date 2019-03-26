@@ -45,3 +45,80 @@ const (
 const (
 	HTTPTimeoutDuration = "5s"
 )
+
+// URL Paths
+
+// Credentials
+const (
+	// RoleCredentialsPath is the path for obtaining credentials from a role
+	RoleCredentialsPath = "/role/{role}"
+	// RoleCredentialsPathWithSlash adds a trailing slash
+	RoleCredentialsPathWithSlash = RoleCredentialsPath + "/"
+
+	// TempCredentialsPath is the path for obtaining temp creds from sts:GetSessionsToken
+	TempCredentialsPath = "/creds"
+	// TempCredentialsPathWithSlash adds a trailing slash
+	TempCredentialsPathWithSlash = TempCredentialsPath + "/"
+)
+
+// V3
+const (
+	// V3ContainerMetadataPath is the path for V3 container metadata
+	V3ContainerMetadataPath = "/v3"
+	// V3ContainerMetadataPathWithSlash adds a trailing slash
+	V3ContainerMetadataPathWithSlash = V3ContainerMetadataPath + "/"
+	// V3ContainerMetadataPathWithIdentifier is the V3 container metadata path with an identifer specified
+	V3ContainerMetadataPathWithIdentifier = "/v3/containers/{identifier}"
+	// V3ContainerMetadataPathWithIdentifierAndSlash adds a trailing slash
+	V3ContainerMetadataPathWithIdentifierAndSlash = V3ContainerMetadataPathWithIdentifier + "/"
+
+	// V3ContainerStatsPath is the path for V3 container stats
+	V3ContainerStatsPath = "/v3/stats"
+	// V3ContainerStatsPathWithSlash adds a trailing slash
+	V3ContainerStatsPathWithSlash = V3ContainerStatsPath + "/"
+	// V3ContainerStatsPathWithIdentifier is the V3 container stats path with an identifier
+	V3ContainerStatsPathWithIdentifier = "/v3/containers/{identifier}/stats"
+	// V3ContainerStatsPathWithIdentifierAndSlash adds a trailing slash
+	V3ContainerStatsPathWithIdentifierAndSlash = V3ContainerStatsPathWithIdentifier + "/"
+
+	// V3TaskMetadataPath is the path for V3 task metadata
+	V3TaskMetadataPath = "/v3/task"
+	// V3TaskMetadataPathWithSlash adds a trailing slash
+	V3TaskMetadataPathWithSlash = V3TaskMetadataPath + "/"
+	// V3TaskMetadataPathWithIdentifier is the v3 task metadata path with an identifier
+	V3TaskMetadataPathWithIdentifier = "/v3/containers/{identifier}/task"
+	// V3TaskMetadataPathWithIdentifierWithSlash adds a trailing slash
+	V3TaskMetadataPathWithIdentifierWithSlash = V3TaskMetadataPathWithIdentifier + "/"
+
+	// V3TaskStatsPath is the path for V3 task stats
+	V3TaskStatsPath = "/v3/task/stats"
+	// V3TaskStatsPathWithSlash adds a trailing slash
+	V3TaskStatsPathWithSlash = V3TaskStatsPath + "/"
+	// V3TaskStatsPathWithIdentifier is the v3 task stats path with an identifier
+	V3TaskStatsPathWithIdentifier = "/v3/containers/{identifier}/task/stats"
+	// V3TaskStatsPathWithIdentifierAndSlash adds a trailing slash
+	V3TaskStatsPathWithIdentifierAndSlash = V3TaskStatsPathWithIdentifier + "/"
+)
+
+// V2
+const (
+	// V2TaskMetadataPath is the V2 Task Metadata path
+	V2TaskMetadataPath = "/v2/metadata"
+	// V2TaskMetadataPathWithSlash adds a trailing slash
+	V2TaskMetadataPathWithSlash = V2TaskMetadataPath + "/"
+
+	// V2ContainerMetadataPath is the V2 Container Metadata path
+	V2ContainerMetadataPath = "/v2/metadata/{identifier}"
+	// V2ContainerMetadataPathWithSlash adds a trailing slash
+	V2ContainerMetadataPathWithSlash = V2ContainerMetadataPath + "/"
+
+	// V2TaskStatsPath is the V2 Task Stats Path
+	V2TaskStatsPath = "/v2/stats"
+	// V2TaskStatsPathWithSlash adds a trailing slash
+	V2TaskStatsPathWithSlash = V2TaskStatsPath + "/"
+
+	// V2ContainerStatsPath is the V2 container stats path
+	V2ContainerStatsPath = "/v2/stats/{identifier}"
+	// V2ContainerStatsPathWithSlash adds a trailing slash
+	V2ContainerStatsPathWithSlash = V2ContainerStatsPath + "/"
+)

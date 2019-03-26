@@ -11,15 +11,17 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-// Package Docker includes a wrapper of the Docker Go SDK Client
+// Package docker includes a wrapper of the Docker Go SDK Client
 package docker
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -31,6 +33,7 @@ const (
 // Client is a wrapper for Docker SDK Client
 type Client interface {
 	ContainerList(context.Context) ([]types.Container, error)
+	ContainerStats(ctx context.Context, longContainerID string) (*types.Stats, error)
 }
 
 type dockerClient struct {
@@ -57,4 +60,20 @@ func NewDockerClient() (Client, error) {
 // ContainerList lists all containers running on the host
 func (c *dockerClient) ContainerList(ctx context.Context) ([]types.Container, error) {
 	return c.sdkClient.ContainerList(ctx, types.ContainerListOptions{})
+}
+
+func (c *dockerClient) ContainerStats(ctx context.Context, longContainerID string) (*types.Stats, error) {
+	resp, err := c.sdkClient.ContainerStats(ctx, longContainerID, false)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get docker stats for %s", longContainerID)
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+	data := new(types.Stats)
+	err = decoder.Decode(data)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get docker stats for %s", longContainerID)
+	}
+	return data, nil
 }

@@ -11,7 +11,7 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package functional_tests
+package functionaltests
 
 import (
 	"encoding/json"
@@ -21,6 +21,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -68,7 +70,9 @@ func TestGetRoleCredentials(t *testing.T) {
 		}, nil),
 	)
 
-	ts := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(credsService.GetRoleHandler())))
+	router := mux.NewRouter()
+	credsService.SetupRoutes(router)
+	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	res, err := http.Get(fmt.Sprintf("%s/role/%s", ts.URL, roleName))
@@ -80,7 +84,7 @@ func TestGetRoleCredentials(t *testing.T) {
 	creds := &handlers.CredentialResponse{}
 	err = json.Unmarshal(response, creds)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
-	assert.Equal(t, creds.AccessKeyId, accessKey, "Expected access key to match")
+	assert.Equal(t, creds.AccessKeyID, accessKey, "Expected access key to match")
 	assert.Equal(t, creds.SecretAccessKey, secretKey, "Expected secret key to match")
 	assert.Equal(t, creds.Token, sessionToken, "Expected session token to match")
 	assert.Equal(t, creds.Expiration, expirationTimeString, "Expected expiration to match")
@@ -105,10 +109,12 @@ func TestGetTemporaryCredentials(t *testing.T) {
 		}, nil),
 	)
 
-	ts := httptest.NewServer(http.HandlerFunc(handlers.ServeHTTP(credsService.GetTemporaryCredentialHandler())))
+	router := mux.NewRouter()
+	credsService.SetupRoutes(router)
+	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	res, err := http.Get(fmt.Sprintf("%s/role/%s", ts.URL, roleName))
+	res, err := http.Get(fmt.Sprintf("%s/creds", ts.URL))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	response, err := ioutil.ReadAll(res.Body)
 	res.Body.Close()
@@ -118,7 +124,7 @@ func TestGetTemporaryCredentials(t *testing.T) {
 	err = json.Unmarshal(response, creds)
 
 	assert.NoError(t, err, "Unexpected error calling getRoleCredentials")
-	assert.Equal(t, creds.AccessKeyId, accessKey, "Expected access key to match")
+	assert.Equal(t, creds.AccessKeyID, accessKey, "Expected access key to match")
 	assert.Equal(t, creds.SecretAccessKey, secretKey, "Expected secret key to match")
 	assert.Equal(t, creds.Token, sessionToken, "Expected session token to match")
 	assert.Equal(t, creds.Expiration, expirationTimeString, "Expected expiration to match")

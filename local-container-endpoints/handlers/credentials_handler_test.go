@@ -67,23 +67,13 @@ func TestGetRoleCredentials(t *testing.T) {
 		}, nil),
 	)
 
-	response, err := credsService.getRoleCredentials(fmt.Sprintf("/role/%s", roleName))
+	response, err := credsService.getRoleCredentials(roleName)
 	assert.NoError(t, err, "Unexpected error calling getRoleCredentials")
-	assert.Equal(t, response.AccessKeyId, accessKey, "Expected access key to match")
+	assert.Equal(t, response.AccessKeyID, accessKey, "Expected access key to match")
 	assert.Equal(t, response.SecretAccessKey, secretKey, "Expected secret key to match")
 	assert.Equal(t, response.Token, sessionToken, "Expected session token to match")
 	assert.Equal(t, response.Expiration, expirationTimeString, "Expected expiration to match")
 	assert.Equal(t, response.RoleArn, roleARN, "Expected role ARN to match")
-
-}
-
-func TestGetRoleCredentialsInvalidURL(t *testing.T) {
-	iamMock, stsMock := setupMocks(t)
-
-	credsService := newCredentialServiceInTest(iamMock, stsMock)
-
-	_, err := credsService.getRoleCredentials("/role/*")
-	assert.Error(t, err, "Expected error calling getRoleCredentials")
 
 }
 
@@ -99,7 +89,7 @@ func TestGetRoleCredentialsGetRoleError(t *testing.T) {
 		}).Return(nil, fmt.Errorf("Some API Error")),
 	)
 
-	_, err := credsService.getRoleCredentials(fmt.Sprintf("/role/%s", roleName))
+	_, err := credsService.getRoleCredentials(roleName)
 	assert.Error(t, err, "Expected error calling getRoleCredentials")
 
 }
@@ -124,7 +114,7 @@ func TestGetRoleCredentialsSTSError(t *testing.T) {
 		}).Return(nil, fmt.Errorf("Some API Error")),
 	)
 
-	_, err := credsService.getRoleCredentials(fmt.Sprintf("/role/%s", roleName))
+	_, err := credsService.getRoleCredentials(roleName)
 	assert.Error(t, err, "Expected error calling getRoleCredentials")
 
 }
@@ -149,7 +139,7 @@ func TestGetTemporaryCredentials(t *testing.T) {
 
 	response, err := credsService.getTemporaryCredentials()
 	assert.NoError(t, err, "Unexpected error calling getRoleCredentials")
-	assert.Equal(t, response.AccessKeyId, accessKey, "Expected access key to match")
+	assert.Equal(t, response.AccessKeyID, accessKey, "Expected access key to match")
 	assert.Equal(t, response.SecretAccessKey, secretKey, "Expected secret key to match")
 	assert.Equal(t, response.Token, sessionToken, "Expected session token to match")
 	assert.Equal(t, response.Expiration, expirationTimeString, "Expected expiration to match")
@@ -208,7 +198,7 @@ func TestGetTemporaryCredentialsExistingTempCreds(t *testing.T) {
 
 	response, err := credsService.getTemporaryCredentials()
 	assert.NoError(t, err, "Unexpected error calling getRoleCredentials")
-	assert.Equal(t, response.AccessKeyId, accessKey, "Expected access key to match")
+	assert.Equal(t, response.AccessKeyID, accessKey, "Expected access key to match")
 	assert.Equal(t, response.SecretAccessKey, secretKey, "Expected secret key to match")
 	assert.Equal(t, response.Token, sessionToken, "Expected session token to match")
 	assert.Equal(t, response.Expiration, expirationTimeString, "Expected expiration to match")
