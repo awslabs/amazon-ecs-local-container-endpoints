@@ -26,7 +26,6 @@ services:
       - $HOME/.aws/:/home/.aws/
     environment:
       ECS_LOCAL_METADATA_PORT: "80"
-      HOME: "/home"
       AWS_PROFILE: "default"
     networks:
       metadata_network:
