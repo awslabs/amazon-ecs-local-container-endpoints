@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/clients/useragent"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/utils"
 	"github.com/gorilla/mux"
@@ -56,7 +57,11 @@ func NewCredentialService() (*CredentialService, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewCredentialServiceWithClients(iam.New(sess), sts.New(sess), sess), nil
+	iamClient := iam.New(sess)
+	iamClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
+	stsClient := sts.New(sess)
+	stsClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
+	return NewCredentialServiceWithClients(iamClient, stsClient, sess), nil
 }
 
 // NewCredentialServiceWithClients returns a struct that handles credentials requests with the given clients
