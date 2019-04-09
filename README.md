@@ -4,6 +4,10 @@ A container that provides local versions of the [ECS Task IAM Roles endpoint](ht
 
 This repository contains the source code for the project. To use it, pull the [amazon/amazon-ecs-local-container-endpoints:latest image from Docker Hub](https://hub.docker.com/r/amazon/amazon-ecs-local-container-endpoints/).
 
+## Tutorial
+
+[A Guide to Locally Testing Containers with Amazon ECS Local Endpoints and Docker Compose](https://aws.amazon.com/blogs/compute/a-guide-to-locally-testing-containers-with-amazon-ecs-local-endpoints-and-docker-compose/)
+
 ## Setting Up Networking
 
 ECS Local Container Endpoints supports 3 endpoints:
