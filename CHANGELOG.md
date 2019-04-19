@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1
+* Enhancement - Add custom user agent header for calls made to STS and IAM (#9)
+
 ## 1.0.0
 * Feature - Support vending temporary credentials to containers from a base set of credentials
 * Feature - Support vending temporary credentials to containers from an IAM Role
