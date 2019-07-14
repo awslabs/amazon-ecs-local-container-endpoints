@@ -51,16 +51,48 @@ type CredentialService struct {
 
 // NewCredentialService returns a struct that handles credentials requests
 func NewCredentialService() (*CredentialService, error) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	iamCustomEndpoint := utils.GetValue(config.DefaultIAMCustomEndpoint, config.IAMCustomEndpointVar)
+	var iamOptions session.Options
+	if iamCustomEndpoint != config.DefaultIAMCustomEndpoint {
+		logrus.Infof("Using custom IAM endpoint %s", iamCustomEndpoint)
+		iamOptions = session.Options{
+			Config: aws.Config{
+				Endpoint: aws.String(iamCustomEndpoint),
+			},
+		}
+	} else {
+		iamOptions = session.Options{
+			SharedConfigState: session.SharedConfigEnable,
+		}
+	}
+	sess, err := session.NewSessionWithOptions(iamOptions)
 	if err != nil {
 		return nil, err
 	}
 	iamClient := iam.New(sess)
 	iamClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
+
+	stsCustomEndpoint := utils.GetValue(config.DefaultSTSCustomEndpoint, config.STSCustomEndpointVar)
+	var stsOptions session.Options
+	if stsCustomEndpoint != config.DefaultSTSCustomEndpoint {
+		logrus.Infof("Using custom STS endpoint %s", stsCustomEndpoint)
+		stsOptions = session.Options{
+			Config: aws.Config{
+				Endpoint: aws.String(stsCustomEndpoint),
+			},
+		}
+	} else {
+		stsOptions = session.Options{
+			SharedConfigState: session.SharedConfigEnable,
+		}
+	}
+	sess, err = session.NewSessionWithOptions(stsOptions)
+	if err != nil {
+		return nil, err
+	}
 	stsClient := sts.New(sess)
 	stsClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
+
 	return NewCredentialServiceWithClients(iamClient, stsClient, sess), nil
 }
 
