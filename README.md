@@ -20,6 +20,10 @@ This repository contains the source code for the project. To use it, pull the [a
     * [Task Metadata V2](docs/features.md#task-metadata-v2)
     * [Task Metadata V3](docs/features.md#task-metadata-v3)
 
+#### Security disclosures
+
+If you think you’ve found a potential security issue, please do not post it in the Issues.  Instead, please follow the instructions [here](https://aws.amazon.com/security/vulnerability-reporting/) or email AWS security directly at [aws-security@amazon.com](mailto:aws-security@amazon.com).
+
 #### License
 
 This library is licensed under the Apache 2.0 License.
