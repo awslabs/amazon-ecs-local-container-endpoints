@@ -28,8 +28,8 @@ const (
 	TaskTagsVar              = "TASK_TAGS_VAR"
 
 	// Custom endpoint related
-	IAMCustomEndpointVar = "IAM_CUSTOM_ENDPOINT"
-	STSCustomEndpointVar = "STS_CUSTOM_ENDPOINT"
+	IAMCustomEndpointVar = "IAM_ENDPOINT"
+	STSCustomEndpointVar = "STS_ENDPOINT"
 )
 
 // Defaults
@@ -43,10 +43,6 @@ const (
 	DefaultTaskARN       = "arn:aws:ecs:us-west-2:111111111111:task/ecs-local-cluster/37e873f6-37b4-42a7-af47-eac7275c6152"
 	DefaultTDFamily      = "esc-local-task-definition"
 	DefaultTDRevision    = "1"
-
-	// Custom endpoint related
-	DefaultIAMCustomEndpoint = ""
-	DefaultSTSCustomEndpoint = ""
 )
 
 // Settings

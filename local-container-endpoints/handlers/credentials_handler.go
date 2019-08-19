@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -51,48 +52,44 @@ type CredentialService struct {
 
 // NewCredentialService returns a struct that handles credentials requests
 func NewCredentialService() (*CredentialService, error) {
-	iamCustomEndpoint := utils.GetValue(config.DefaultIAMCustomEndpoint, config.IAMCustomEndpointVar)
-	var iamOptions session.Options
-	if iamCustomEndpoint != config.DefaultIAMCustomEndpoint {
+	iamCustomEndpoint := utils.GetValue("", config.IAMCustomEndpointVar)
+	if iamCustomEndpoint != "" {
 		logrus.Infof("Using custom IAM endpoint %s", iamCustomEndpoint)
-		iamOptions = session.Options{
-			Config: aws.Config{
-				Endpoint: aws.String(iamCustomEndpoint),
-			},
-		}
-	} else {
-		iamOptions = session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}
 	}
-	sess, err := session.NewSessionWithOptions(iamOptions)
+
+	stsCustomEndpoint := utils.GetValue("", config.STSCustomEndpointVar)
+	if stsCustomEndpoint != "" {
+		logrus.Infof("Using custom STS endpoint %s", stsCustomEndpoint)
+	}
+
+	defaultResolver := endpoints.DefaultResolver()
+	customResolverFn := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		if service == endpoints.IamServiceID && iamCustomEndpoint != "" {
+			return endpoints.ResolvedEndpoint{
+				URL: iamCustomEndpoint,
+			}, nil
+		} else if service == endpoints.StsServiceID && stsCustomEndpoint != "" {
+			return endpoints.ResolvedEndpoint{
+				URL: stsCustomEndpoint,
+			}, nil
+		}
+		return defaultResolver.EndpointFor(service, region, optFns...)
+	}
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			EndpointResolver: endpoints.ResolverFunc(customResolverFn),
+		},
+		SharedConfigState: session.SharedConfigEnable,
+	})
 	if err != nil {
 		return nil, err
 	}
+
 	iamClient := iam.New(sess)
 	iamClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
-
-	stsCustomEndpoint := utils.GetValue(config.DefaultSTSCustomEndpoint, config.STSCustomEndpointVar)
-	var stsOptions session.Options
-	if stsCustomEndpoint != config.DefaultSTSCustomEndpoint {
-		logrus.Infof("Using custom STS endpoint %s", stsCustomEndpoint)
-		stsOptions = session.Options{
-			Config: aws.Config{
-				Endpoint: aws.String(stsCustomEndpoint),
-			},
-		}
-	} else {
-		stsOptions = session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}
-	}
-	sess, err = session.NewSessionWithOptions(stsOptions)
-	if err != nil {
-		return nil, err
-	}
 	stsClient := sts.New(sess)
 	stsClient.Handlers.Build.PushBackNamed(useragent.CustomUserAgentHandler())
-
 	return NewCredentialServiceWithClients(iamClient, stsClient, sess), nil
 }
 
