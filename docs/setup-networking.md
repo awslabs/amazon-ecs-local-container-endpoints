@@ -11,7 +11,7 @@ There are two methods to achieve this.
 
 #### Option 1: Use a User Defined Docker Bridge Network (Recommended)
 
-If you launch containers into a custom [bridge network](https://docs.docker.com/network/bridge/), you can specify that the ECS Local Endpoints container will receive `169.254.170.2` as its IP address in the network. The endpoints will only be reachable inside this network, so all your containers must run inside of it. The [example Docker Compose file](examples/docker-compose.yml) in this repository shows how to create this network using Compose.
+If you launch containers into a custom [bridge network](https://docs.docker.com/network/bridge/), you can specify that the ECS Local Endpoints container will receive `169.254.170.2` as its IP address in the network. The endpoints will only be reachable inside this network, so all your containers must run inside of it. The [example Docker Compose file](../examples/docker-compose.yml) in this repository shows how to create this network using Compose.
 
 This method is the recommended way of using ECS Local Container Endpoints.
 
