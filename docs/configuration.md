@@ -13,6 +13,14 @@ The Local Endpoints container will retrieve temporary session credentials from S
 
 For example, on an Ubuntu machine, you can mount your machine's certificates file at `/etc/ssl/certs/ca-certificates.crt` into the Local Endpoint container at `/etc/ssl/certs/ca-certificates.crt`.
 
+### Custom IAM and STS Endpoints
+
+Local Endpoionts can be configured to use custom IAM and STS endpoints. Simply define the `IAM_ENDPOINT` and `STS_ENDPOINT` environment variables in the Local Endpoints container.
+
+This may be useful in scenarios where your application container is configured to obtain credentials from ECS (see [Vend Credentials to Containers](features.md#vend-credentials-to-containers)), but you do not want to provide Local Endpoints with AWS credentials. Providing an IAM and STS simulator and configuring the Local Endpoints container with custom IAM and STS endpoints enables testing without an AWS account.
+
+See [`docker-compose.localstack.yml`](../examples/docker-compose.localstack.yml) for an example.
+
 ### Docker
 
 Local Endpoints responds to Metadata requests with real data about the containers running on your machine. In order to do this, you must mount the [Docker socket](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option) into the container. Make sure the Local Endpoints container is given a volume with source path `/var/run` and container path `/var/run`.
@@ -21,6 +29,8 @@ Local Endpoints responds to Metadata requests with real data about the container
 
 General Configuration:
 * `ECS_LOCAL_METADATA_PORT` - Set the port that the container listens at. The default is `80`.
+* `IAM_ENDPOINT` - Set the endpoint used by the AWS SDK for IAM. The default is undefined, which results in using the default AWS region.
+* `STS_ENDPOINT` - Set the endpoint used by the AWS SDK for STS. The default is undefined, which results in using the default AWS region.
 
 Task Metadata Configuration: while Local Endpoints returns real runtime information obtained from Docker in metadata requests, some values have no relevance locally and are mocked:
 * `CLUSTER_ARN` - Set the 'cluster' name which is returned in Task Metadata responses. Default: `ecs-local-cluster`.

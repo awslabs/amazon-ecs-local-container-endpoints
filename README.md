@@ -12,6 +12,7 @@ This repository contains the source code for the project. To use it, pull the [a
   * [Option 2: Set up iptables rules](docs/setup-networking.md#option-2-set-up-iptables-rules)
 * [Configuration](docs/configuration.md)
   * [Credentials](docs/configuration.md#credentials)
+  * [Custom IAM and STS Endpoints](docs/configuration.md#custom-iam-and-sts-endpoints)
   * [Docker](docs/configuration.md#docker)
   * [Environment Variables](docs/configuration.md#environment-variables)
 * [Features](docs/features.md)

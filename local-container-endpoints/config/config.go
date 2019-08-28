@@ -16,7 +16,7 @@ package config
 
 // Environment Variables
 const (
-	// PortEnvVar defines the port that metadata and credentials listen at
+	// PortVar defines the port that metadata and credentials listen at
 	PortVar = "ECS_LOCAL_METADATA_PORT"
 
 	// Metadata related
@@ -26,6 +26,10 @@ const (
 	TDRevisionVar            = "TASK_DEFINITION_REVISION"
 	ContainerInstanceTagsVar = "CONTAINER_INSTANCE_TAGS"
 	TaskTagsVar              = "TASK_TAGS_VAR"
+
+	// Custom endpoint related
+	IAMCustomEndpointVar = "IAM_ENDPOINT"
+	STSCustomEndpointVar = "STS_ENDPOINT"
 )
 
 // Defaults
