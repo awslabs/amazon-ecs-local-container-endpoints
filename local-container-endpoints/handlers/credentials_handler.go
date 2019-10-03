@@ -79,6 +79,7 @@ func NewCredentialService() (*CredentialService, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			EndpointResolver: endpoints.ResolverFunc(customResolverFn),
+			CredentialsChainVerboseErrors: aws.Bool(true),
 		},
 		SharedConfigState: session.SharedConfigEnable,
 	})
