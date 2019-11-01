@@ -37,3 +37,6 @@ Task Metadata Configuration: while Local Endpoints returns real runtime informat
 * `TASK_ARN` - Set ARN of the mock local 'task' which your containers will appear to be part of in Task Metadata responses. Default: `arn:aws:ecs:us-west-2:111111111111:task/ecs-local-cluster/37e873f6-37b4-42a7-af47-eac7275c6152`.
 * `TASK_DEFINITION_FAMILY` - Set family name for the mock task definition which your containers will appear to be part of in Task Metadata responses. Default: `esc-local-task-definition`.
 * `TASK_DEFINITION_REVISION` - Set the Task Definition revision. Default: `1`.
+
+Credentials Configuration:
+* `SHARED_TOKEN_EXPIRATION` - Set an expiration duration (quantity + unit) for shared credentials when a session token is provided. This provides a hint for clients to refresh their credentials periodically. The default is 750s (12.5 minutes), which results in some clients (notably Boto3) opportunistically refreshing credentials in a background thread.
