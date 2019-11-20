@@ -205,7 +205,7 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 		// timestamp a fixed point in the future.
 		// https://github.com/awslabs/amazon-ecs-local-container-endpoints/issues/26
 		if err != nil && len(response.Token) > 0 {
-			expiration, err = getSharedTokenExpiration();
+			expiration, err = getSharedTokenExpiration()
 		}
 
 		if err == nil {
@@ -256,6 +256,9 @@ func getSharedTokenExpiration() (time.Time, error) {
 		// If they didn't provide a unit, try to parse this as seconds.
 		durationSeconds, err := strconv.ParseInt(durationStr, 0, 64)
 		if err != nil {
+			logrus.Warnf(
+				"Could not parse SHARED_TOKEN_EXPIRATION value, defaulting to %d seconds: %s",
+				config.DefaultSharedTokenExpiration, durationStr)
 			durationSeconds = config.DefaultSharedTokenExpiration
 		}
 
@@ -264,6 +267,9 @@ func getSharedTokenExpiration() (time.Time, error) {
 
 	// Make sure the duration is always in the future.
 	if duration <= 0 {
+		logrus.Warnf(
+			"SHARED_TOKEN_EXPIRATION value must be positive, forcing to %d seconds: %s",
+			config.DefaultSharedTokenExpiration, durationStr)
 		duration = config.DefaultSharedTokenExpiration * time.Second
 	}
 
