@@ -30,6 +30,9 @@ const (
 	// Custom endpoint related
 	IAMCustomEndpointVar = "IAM_ENDPOINT"
 	STSCustomEndpointVar = "STS_ENDPOINT"
+
+	// Shared credentials default expiration value when a token is detected.
+	SharedTokenExpirationVar = "SHARED_TOKEN_EXPIRATION"
 )
 
 // Defaults
@@ -43,6 +46,9 @@ const (
 	DefaultTaskARN       = "arn:aws:ecs:us-west-2:111111111111:task/ecs-local-cluster/37e873f6-37b4-42a7-af47-eac7275c6152"
 	DefaultTDFamily      = "esc-local-task-definition"
 	DefaultTDRevision    = "1"
+
+	// Expire shared credentials with a token in 12.5 minutes.
+	DefaultSharedTokenExpiration = 750
 )
 
 // Settings

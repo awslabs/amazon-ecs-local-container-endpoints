@@ -16,6 +16,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -195,12 +196,22 @@ func (service *CredentialService) getTemporaryCredentials() (*CredentialResponse
 			SecretAccessKey: credVal.SecretAccessKey,
 			Token:           credVal.SessionToken,
 		}
+
 		expiration, err := service.currentSession.Config.Credentials.ExpiresAt()
-		// It is valid for a credential provider to not return an expiration
-		// TODO: Check if expiration is optional from the POV of the SDKs
+
+		// It is valid for a credential provider to not return an expiration;
+		// however, we need to have an expiration if a token is present to
+		// satsify various client SDKs. In this case, we return an expiration
+		// timestamp a fixed point in the future.
+		// https://github.com/awslabs/amazon-ecs-local-container-endpoints/issues/26
+		if err != nil && len(response.Token) > 0 {
+			expiration, err = getSharedTokenExpiration()
+		}
+
 		if err == nil {
 			response.Expiration = expiration.Format(CredentialExpirationTimeFormat)
 		}
+
 		return &response, nil
 	}
 
@@ -232,4 +243,35 @@ func (service *CredentialService) isCurrentSessionTemporary() bool {
 		}
 	}
 	return false
+}
+
+// Return an expiration date a set point in the future. error is currently
+// always nil (we gracefully fail back to the 12.5 minute default), but we
+// reserve it for future use in case there are valid reasons to error out.
+func getSharedTokenExpiration() (time.Time, error) {
+	durationStr := utils.GetValue(fmt.Sprintf("%ds", config.DefaultSharedTokenExpiration), config.SharedTokenExpirationVar)
+	duration, err := time.ParseDuration(durationStr)
+
+	if err != nil {
+		// If they didn't provide a unit, try to parse this as seconds.
+		durationSeconds, err := strconv.ParseInt(durationStr, 0, 64)
+		if err != nil {
+			logrus.Warnf(
+				"Could not parse SHARED_TOKEN_EXPIRATION value, defaulting to %d seconds: %s",
+				config.DefaultSharedTokenExpiration, durationStr)
+			durationSeconds = config.DefaultSharedTokenExpiration
+		}
+
+		duration = time.Duration(durationSeconds) * time.Second
+	}
+
+	// Make sure the duration is always in the future.
+	if duration <= 0 {
+		logrus.Warnf(
+			"SHARED_TOKEN_EXPIRATION value must be positive, forcing to %d seconds: %s",
+			config.DefaultSharedTokenExpiration, durationStr)
+		duration = config.DefaultSharedTokenExpiration * time.Second
+	}
+
+	return time.Now().UTC().Add(duration), nil
 }
