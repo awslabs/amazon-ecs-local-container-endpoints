@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+* Bug - Set expiration timestamp on temporary credentials (#26)
+* Feature - Change base image to amazonlinux to support sourcing credentials from an external process (#30)
+* Feature - Add support for custom endpoints for STS and IAM (#16)
+* Enhancement - Print verbose error messages for credential chain problems (#25)
+
 ## 1.0.1
 * Enhancement - Add custom user agent header for calls made to STS and IAM (#9)
 
