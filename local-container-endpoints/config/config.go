@@ -65,6 +65,11 @@ const (
 	// RoleCredentialsPathWithSlash adds a trailing slash
 	RoleCredentialsPathWithSlash = RoleCredentialsPath + "/"
 
+	//RoleArnCredentialsPath is the path for obtaining credentials from a role ARN
+	RoleArnCredentialsPath = "/role-arn/{roleArn}/{roleName}"
+	// RoleArnCredentialsPathWithSlash adds a trailing slash
+	RoleArnCredentialsPathWithSlash = RoleArnCredentialsPath + "/"
+
 	// TempCredentialsPath is the path for obtaining temp creds from sts:GetSessionsToken
 	TempCredentialsPath = "/creds"
 	// TempCredentialsPathWithSlash adds a trailing slash
