@@ -6,13 +6,14 @@ The AWS CLI, and all of the AWS SDKs, will look for the environment variable `AW
 
 If the variable exists, then the SDKs will try to obtain credentials by making requests to `http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`. The ECS Agent injects this environment variable into containers running on ECS, and responds to requests at the endpoint. This is how [IAM Roles for Tasks](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html) is implemented under the hood.
 
-You can set AWS_CONTAINER_CREDENTIALS_RELATIVE_URI to two different values on your application container:
+You can set AWS_CONTAINER_CREDENTIALS_RELATIVE_URI to one of three different values on your application container:
 * `"/creds"` - With this value, Local Endpoints returns temporary credentials obtained by calling [sts:GetSessionToken](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html#stsapi_comparison). These credentials will have the same permissions as the base credentials given to the Local Endpoints container, with a few exceptions. **The returned credentials will not be able to access the IAM APIs or the STS APIs**, except for sts:AssumeRole and sts:GetCallerIdentity.
-* `"/role/{role name}"` - With this value, your application container receives credentials obtained via assuming the given role name. This could be a Task IAM Role, or it could be any other IAM Role.
+* `"/role/{role name}"` - With this value, your application container receives credentials obtained via assuming the given role name. This could be a Task IAM Role, or it could be any other IAM Role. The role must exist in the same AWS account as for your default credentials.
+* `"/role-arn/{role arn}"` - With this value, your application container receives credentials obtained via assuming the given role arn. This could be a Task IAM Role, or it could be any other IAM Role. Use this format when the role exists in a different AWS account to your default credentials.
 
 **Note:** *We do not recommend using production credentials or production roles when testing locally. Modifying the trust policy of a production role changes its security boundary. More importantly, using credentials with access to production when testing locally could lead to accidental changes in your production account. We recommend using a separate account for testing.*
 
-If you use the second option, make sure your IAM Role contains the following trust policy:
+If you use the second or third options, make sure your IAM Role contains the following trust policy:
 ```
 {
   "Version": "2012-10-17",
