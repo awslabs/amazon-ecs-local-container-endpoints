@@ -79,7 +79,7 @@ func NewCredentialService() (*CredentialService, error) {
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			EndpointResolver: endpoints.ResolverFunc(customResolverFn),
+			EndpointResolver:              endpoints.ResolverFunc(customResolverFn),
 			CredentialsChainVerboseErrors: aws.Bool(true),
 		},
 		SharedConfigState: session.SharedConfigEnable,
@@ -109,6 +109,9 @@ func (service *CredentialService) SetupRoutes(router *mux.Router) {
 	router.HandleFunc(config.RoleCredentialsPath, ServeHTTP(service.getRoleHandler()))
 	router.HandleFunc(config.RoleCredentialsPathWithSlash, ServeHTTP(service.getRoleHandler()))
 
+	router.HandleFunc(config.RoleArnCredentialsPath, ServeHTTP(service.getRoleArnHandler()))
+	router.HandleFunc(config.RoleArnCredentialsPathWithSlash, ServeHTTP(service.getRoleArnHandler()))
+
 	router.HandleFunc(config.TempCredentialsPath, ServeHTTP(service.getTemporaryCredentialHandler()))
 	router.HandleFunc(config.TempCredentialsPathWithSlash, ServeHTTP(service.getTemporaryCredentialHandler()))
 }
@@ -137,6 +140,31 @@ func (service *CredentialService) getRoleHandler() func(w http.ResponseWriter, r
 	}
 }
 
+// GetRoleArnHandler returns the Task IAM Role handler for complete role ARNs
+func (service *CredentialService) getRoleArnHandler() func(w http.ResponseWriter, r *http.Request) error {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		logrus.Debug("Received role credentials request using ARN")
+
+		vars := mux.Vars(r)
+		roleName := vars["roleName"]
+		roleArn := fmt.Sprintf("%s/%s", vars["roleArn"], roleName)
+		if roleArn == "" {
+			return HTTPError{
+				Code: http.StatusBadRequest,
+				Err:  fmt.Errorf("Invalid URL path %s; expected '/role-arn/<IAM Role ARN>", r.URL.Path),
+			}
+		}
+
+		response, err := service.getRoleCredentialsFromArn(roleArn, roleName)
+		if err != nil {
+			return err
+		}
+
+		writeJSONResponse(w, response)
+		return nil
+	}
+}
+
 func (service *CredentialService) getRoleCredentials(roleName string) (*CredentialResponse, error) {
 	logrus.Debugf("Requesting credentials for %s", roleName)
 
@@ -147,8 +175,14 @@ func (service *CredentialService) getRoleCredentials(roleName string) (*Credenti
 		return nil, err
 	}
 
+	return service.getRoleCredentialsFromArn(aws.StringValue(output.Role.Arn), roleName)
+}
+
+func (service *CredentialService) getRoleCredentialsFromArn(roleArn, roleName string) (*CredentialResponse, error) {
+	logrus.Debugf("Requesting credentials for role with ARN %s", roleArn)
+
 	creds, err := service.stsClient.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         output.Role.Arn,
+		RoleArn:         aws.String(roleArn),
 		DurationSeconds: aws.Int64(temporaryCredentialsDurationInS),
 		RoleSessionName: aws.String(utils.Truncate(fmt.Sprintf("ecs-local-%s", roleName), roleSessionNameLength)),
 	})
@@ -160,7 +194,7 @@ func (service *CredentialService) getRoleCredentials(roleName string) (*Credenti
 	return &CredentialResponse{
 		AccessKeyID:     aws.StringValue(creds.Credentials.AccessKeyId),
 		SecretAccessKey: aws.StringValue(creds.Credentials.SecretAccessKey),
-		RoleArn:         aws.StringValue(output.Role.Arn),
+		RoleArn:         roleArn,
 		Token:           aws.StringValue(creds.Credentials.SessionToken),
 		Expiration:      creds.Credentials.Expiration.Format(CredentialExpirationTimeFormat),
 	}, nil
