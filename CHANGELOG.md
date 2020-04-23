@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+* Feature - Add support for assuming roles in other accounts with path `/role-arn/{role arn}` (#36)
+
 ## 1.1.0
 * Bug - Set expiration timestamp on temporary credentials (#26)
 * Feature - Change base image to amazonlinux to support sourcing credentials from an external process (#30)
