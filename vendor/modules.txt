@@ -72,6 +72,7 @@ github.com/aws/aws-sdk-go/aws/request
 github.com/aws/aws-sdk-go/service/iam
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/aws
+github.com/aws/aws-sdk-go/aws/endpoints
 github.com/aws/aws-sdk-go/aws/session
 github.com/aws/aws-sdk-go/service/iam/iamiface
 github.com/aws/aws-sdk-go/service/sts/stsiface
@@ -86,7 +87,6 @@ github.com/aws/aws-sdk-go/aws/signer/v4
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/aws/credentials
-github.com/aws/aws-sdk-go/aws/endpoints
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials/processcreds
 github.com/aws/aws-sdk-go/aws/credentials/stscreds
@@ -163,6 +163,8 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-units v0.3.3
 github.com/docker/go-units
+# github.com/fatih/structs v1.1.0
+github.com/fatih/structs
 # github.com/godbus/dbus v0.0.0-20190305164336-85c147412614
 github.com/godbus/dbus
 # github.com/gogo/protobuf v1.2.1
@@ -192,6 +194,8 @@ github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
+# github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
+github.com/peterbourgon/mergemap
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -221,7 +225,7 @@ golang.org/x/crypto/ssh/terminal
 golang.org/x/net/proxy
 golang.org/x/net/internal/socks
 golang.org/x/net/context
-# golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33
+# golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc/eventlog
