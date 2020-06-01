@@ -26,24 +26,29 @@ import (
 // MetadataService vends docker metadata to containers
 type MetadataService struct {
 	dockerClient          docker.Client
+	baseTaskMetadata      map[string]interface{}
+	baseContainerMetadata map[string]interface{}
 	containerInstanceTags map[string]string
 	taskTags              map[string]string
 }
 
 // NewMetadataService returns a struct that handles metadata requests
-func NewMetadataService() (*MetadataService, error) {
+func NewMetadataService(taskMetadata, contMetadata map[string]interface{}) (*MetadataService, error) {
 	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
 		return nil, err
 	}
-	return NewMetadataServiceWithClient(dockerClient)
+	return NewMetadataServiceWithClient(dockerClient, taskMetadata, contMetadata)
 }
 
 // NewMetadataServiceWithClient returns a struct that handles metadata requests using the given Docker Client
-func NewMetadataServiceWithClient(dockerClient docker.Client) (*MetadataService, error) {
+func NewMetadataServiceWithClient(dockerClient docker.Client, taskMetadata, contMetadata map[string]interface{}) (*MetadataService, error) {
 	metadata := &MetadataService{
 		dockerClient: dockerClient,
 	}
+
+	metadata.baseContainerMetadata = contMetadata
+	metadata.baseTaskMetadata = taskMetadata
 
 	// TODO: re-enable tagging when supporting the new V2 and V3 metdata with Tags paths
 	// if ciTagVal := os.Getenv(config.ContainerInstanceTagsVar); ciTagVal != "" {

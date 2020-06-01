@@ -24,6 +24,8 @@ import (
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/metadata"
 	"github.com/docker/docker/api/types"
+	"github.com/fatih/structs"
+	"github.com/peterbourgon/mergemap"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -77,9 +79,17 @@ func (service *MetadataService) containerMetadataResponse(w http.ResponseWriter,
 		return err
 	}
 
-	response := metadata.GetContainerMetadata(container)
+	data := metadata.GetContainerMetadata(container)
 
-	writeJSONResponse(w, response)
+	if service.baseContainerMetadata != nil {
+		response := structs.Map(data)
+		// Merges, with baseContainerMetadata taking priority on conflicts
+		response = mergemap.Merge(response, service.baseContainerMetadata)
+		writeJSONResponse(w, response)
+	} else {
+		writeJSONResponse(w, data)
+	}
+
 	return nil
 }
 
@@ -94,7 +104,31 @@ func (service *MetadataService) taskMetadataResponse(w http.ResponseWriter, iden
 	}
 	taskContainers := getTaskContainers(containers, identifier, callerIP)
 
-	response := metadata.GetTaskMetadata(taskContainers, service.containerInstanceTags, service.taskTags)
+	data := metadata.GetTaskMetadata(taskContainers, service.containerInstanceTags, service.taskTags)
+
+	if service.baseContainerMetadata == nil && service.baseTaskMetadata == nil {
+		writeJSONResponse(w, data)
+		return nil
+	}
+
+	response := structs.Map(data)
+	if service.baseContainerMetadata != nil {
+		rawContainers, _ := response["Containers"]
+		jsonContainers := rawContainers.([]interface{})
+		var mergedContainers []map[string]interface{}
+		for _, container := range jsonContainers {
+			// Merges, with baseContainerMetadata taking priority on conflicts
+			cont := container.(map[string]interface{})
+			cont = mergemap.Merge(cont, service.baseContainerMetadata)
+			mergedContainers = append(mergedContainers, cont)
+		}
+		response["Containers"] = mergedContainers
+	}
+
+	if service.baseTaskMetadata != nil {
+		// Merges, with baseTaskMetadata taking priority on conflicts
+		response = mergemap.Merge(response, service.baseTaskMetadata)
+	}
 
 	writeJSONResponse(w, response)
 	return nil

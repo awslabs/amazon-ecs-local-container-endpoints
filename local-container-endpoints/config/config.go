@@ -33,6 +33,10 @@ const (
 
 	// Shared credentials default expiration value when a token is detected.
 	SharedTokenExpirationVar = "SHARED_TOKEN_EXPIRATION"
+
+	// User-defined, static metadata that overrides/augments the normal response
+	ContainerMetadataPathVar = "CONTAINER_METADATA_PATH"
+	TaskMetadataPathVar      = "TASK_METADATA_PATH"
 )
 
 // Defaults

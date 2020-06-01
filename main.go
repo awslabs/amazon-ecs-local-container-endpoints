@@ -14,8 +14,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/handlers"
@@ -33,7 +36,10 @@ func main() {
 		logrus.Fatal("Failed to create Credentials Service: ", err)
 	}
 
-	metadataService, err := handlers.NewMetadataService()
+	contMetadata := getBaseMetadata(config.ContainerMetadataPathVar)
+	taskMetadata := getBaseMetadata(config.TaskMetadataPathVar)
+
+	metadataService, err := handlers.NewMetadataService(taskMetadata, contMetadata)
 	if err != nil {
 		logrus.Fatal("Failed to create Metadata Service: ", err)
 	}
@@ -53,4 +59,32 @@ func main() {
 	if err != nil {
 		logrus.Fatal("HTTP Server exited with error: ", err)
 	}
+}
+
+func getBaseMetadata(pathVar string) map[string]interface{} {
+	path := os.Getenv(pathVar)
+	if path == "" {
+		return nil
+	}
+
+	metadataFile, err := os.Open(path)
+	if err != nil {
+		logrus.Error("Failed to read user defined metadata file: ", err)
+		return nil
+	}
+
+	bits, err := ioutil.ReadAll(metadataFile)
+	if err != nil {
+		logrus.Error("Failed to read user defined metadata file: ", err)
+		return nil
+	}
+
+	var metadata map[string]interface{}
+	err = json.Unmarshal(bits, &metadata)
+	if err != nil {
+		logrus.Error("Failed to read user defined metadata file: ", err)
+		return nil
+	}
+
+	return metadata
 }
