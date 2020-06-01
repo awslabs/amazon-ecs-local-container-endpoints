@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/amazon-ecs-agent/agent/handlers/v2"
+	v2 "github.com/aws/amazon-ecs-agent/agent/handlers/v2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/clients/docker/mock_docker"
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/config"
@@ -114,7 +114,7 @@ func TestV2Handler_TaskMetadata(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -202,7 +202,7 @@ func TestV2Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -241,7 +241,7 @@ func TestV2Handler_TaskMetadata_DockerAPIError(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(nil, fmt.Errorf("Some API Error")),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -281,7 +281,7 @@ func TestV2Handler_ContainerMetadata(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -312,7 +312,7 @@ func TestV2Handler_TaskMetadata_InvalidURL(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(nil, fmt.Errorf("Some API Error")),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -352,7 +352,7 @@ func TestV2Handler_ContainerMetadata_TrailingSlash(t *testing.T) {
 		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(dockerAPIResponse, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -400,7 +400,7 @@ func TestV2Handler_ContainerStats(t *testing.T) {
 		dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(expectedStats, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -448,7 +448,7 @@ func TestV2Handler_ContainerStats_TrailingSlash(t *testing.T) {
 		dockerMock.EXPECT().ContainerStats(gomock.Any(), longID1).Return(expectedStats, nil),
 	)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -507,7 +507,7 @@ func TestV2Handler_TaskStats(t *testing.T) {
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(container3Stats, nil)
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -566,7 +566,7 @@ func TestV2Handler_TaskStats_TrailingSlash(t *testing.T) {
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(container3Stats, nil)
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
@@ -617,7 +617,7 @@ func TestV2Handler_TaskStats_DockerAPIError(t *testing.T) {
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), longID3).Return(nil, fmt.Errorf("Some error"))
 	dockerMock.EXPECT().ContainerStats(gomock.Any(), endpointsLongID).Return(endpointsStats, nil)
 
-	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock)
+	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
 	// create a testing server
