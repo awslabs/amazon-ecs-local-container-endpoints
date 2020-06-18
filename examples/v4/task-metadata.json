@@ -1,0 +1,25 @@
+{
+    "Containers": [
+        {
+            "Networks": [
+                {
+                    "NetworkMode": "awsvpc",
+                    "IPv4Addresses": [
+                        "10.0.0.108"
+                    ],
+                    "AttachmentIndex": 0,
+                    "IPv4SubnetCIDRBlock": "10.0.0.0/24",
+                    "MACAddress": "0a:62:17:7a:36:68",
+                    "DomainNameServers": [
+                        "10.0.0.2"
+                    ],
+                    "DomainNameSearchList": [
+                        "us-west-2.compute.internal"
+                    ],
+                    "PrivateDNSName": "ip-10-0-0-108.us-west-2.compute.internal",
+                    "SubnetGatewayIpv4Address": ""
+                }
+            ]
+        }
+    ]
+}
