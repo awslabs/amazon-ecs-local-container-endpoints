@@ -52,10 +52,10 @@ However, in a few cases, this will not work. This is because the Local Endpoints
 
 #### Task Metadata V4
 
-V4 Metadata uses `ECS_CONTAINER_METADATA_URI_V4` environment variable. In most cases, you can set `ECS_CONTAINER_METADATA_URI_V4` to `http://169.254.170.2/v3`. Similarly, in a few cases when Local Endpoints container doesn't know which container a request came from, you have to set `ECS_CONTAINER_METADATA_URI_V4` to `http://169.254.170.2/v3/containers/{container name}`.
+V4 Metadata uses `ECS_CONTAINER_METADATA_URI_V4` environment variable. In most cases, you can set `ECS_CONTAINER_METADATA_URI_V4` to `http://169.254.170.2/v3`. Similarly, in a few cases when Local Endpoints container doesn't know which container a request came from, you have to set `ECS_CONTAINER_METADATA_URI_V4` to `http://169.254.170.2/v3/containers/{container name}`. Please see the description above on V3 to understand why you'll need to specify the container name in the path.
 
-However, compared to V3, V4 includes additional network metadata when querying the task metadata endpoint (see [here](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html)). Please refer to this [example](../examples/v4) if you want to include those additional V4 metadata. Note that you'll also need to specify the path for your extra metadata by using `CONTAINER_METADATA_PATH` and `TASK_METADATA_PATH` environment variables respectively.
+However, compared to V3, V4 includes additional network metadata when querying the task metadata endpoint (see [here](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html)). Please refer to this [example](../examples/v4) if you want to include those additional V4 metadata. You can use the generic metadata injection feature (described below) to add the additional metadata fields included in V4.
 
 #### Generic Metadata Injection
 
-As mentioned above in the previous section, to inject generic metadata, you'll need to have those additional metadata in JSON files. Then specify paths for the JSON files by using `CONTAINER_METADATA_PATH` and `TASK_METADATA_PATH` environment variables.
+As mentioned above in the previous section, to inject generic metadata, you'll need to have those additional metadata in JSON files. Then specify paths for the JSON files by using `CONTAINER_METADATA_PATH` and `TASK_METADATA_PATH` environment variables. More specifically, `CONTAINER_METADATA_PATH` is the extra metadata for each container, which will override their counterparts in the normal response. Also, `TASK_METADATA_PATH` is for task level metadata, which is used for top level fields describing the task that are not in the containers list.

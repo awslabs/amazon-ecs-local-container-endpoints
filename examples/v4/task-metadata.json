@@ -1,25 +1,15 @@
 {
-    "Containers": [
-        {
-            "Networks": [
-                {
-                    "NetworkMode": "awsvpc",
-                    "IPv4Addresses": [
-                        "10.0.0.108"
-                    ],
-                    "AttachmentIndex": 0,
-                    "IPv4SubnetCIDRBlock": "10.0.0.0/24",
-                    "MACAddress": "0a:62:17:7a:36:68",
-                    "DomainNameServers": [
-                        "10.0.0.2"
-                    ],
-                    "DomainNameSearchList": [
-                        "us-west-2.compute.internal"
-                    ],
-                    "PrivateDNSName": "ip-10-0-0-108.us-west-2.compute.internal",
-                    "SubnetGatewayIpv4Address": ""
-                }
-            ]
-        }
-    ]
+  "Cluster": "arn:aws:ecs:us-west-2:&ExampleAWSAccountNo1;:cluster/default",
+  "TaskARN": "arn:aws:ecs:us-west-2:&ExampleAWSAccountNo1;:task/default/febee046097849aba589d4435207c04a",
+  "Family": "query-metadata",
+  "Revision": "7",
+  "DesiredStatus": "RUNNING",
+  "KnownStatus": "RUNNING",
+  "Limits": {
+      "CPU": 0.25,
+      "Memory": 512
+  },
+  "PullStartedAt": "2020-03-26T22:25:40.420726088Z",
+  "PullStoppedAt": "2020-03-26T22:26:22.235177616Z",
+  "AvailabilityZone": "us-west-2c",
 }
