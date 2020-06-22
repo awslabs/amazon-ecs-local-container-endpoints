@@ -1,6 +1,6 @@
 {
-  "Cluster": "arn:aws:ecs:us-west-2:&ExampleAWSAccountNo1;:cluster/default",
-  "TaskARN": "arn:aws:ecs:us-west-2:&ExampleAWSAccountNo1;:task/default/febee046097849aba589d4435207c04a",
+  "Cluster": "arn:aws:ecs:us-west-2:ExampleAWSAccountNo1;:cluster/default",
+  "TaskARN": "arn:aws:ecs:us-west-2:ExampleAWSAccountNo1;:task/default/febee046097849aba589d4435207c04a",
   "Family": "query-metadata",
   "Revision": "7",
   "DesiredStatus": "RUNNING",
@@ -11,5 +11,5 @@
   },
   "PullStartedAt": "2020-03-26T22:25:40.420726088Z",
   "PullStoppedAt": "2020-03-26T22:26:22.235177616Z",
-  "AvailabilityZone": "us-west-2c",
+  "AvailabilityZone": "us-west-2c"
 }
