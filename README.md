@@ -20,6 +20,8 @@ This repository contains the source code for the project. To use it, pull the [a
   * [Metadata](docs/features.md#metadata)
     * [Task Metadata V2](docs/features.md#task-metadata-v2)
     * [Task Metadata V3](docs/features.md#task-metadata-v3)
+    * [Task Metadata V4](docs/features.md#task-metadata-v4)
+    * [Generic Metadata](docs/features.md#generic-metadata-injection)
 
 #### Security disclosures
 
