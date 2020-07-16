@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.0
+* Feature - Add support for V4 and generic metadata endpoints (#38)
+
 ## 1.2.0
 * Feature - Add support for assuming roles in other accounts with path `/role-arn/{role arn}` (#36)
 
