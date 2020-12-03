@@ -1,4 +1,4 @@
-version: "2"
+version: "3.8"
 networks:
     # This special network is configured so that the local metadata
     # service can bind to the specific IP address that ECS uses
@@ -8,7 +8,6 @@ networks:
         ipam:
             config:
                 - subnet: "169.254.170.0/24"
-                  gateway: 169.254.170.1
 services:
     # This container vends credentials to your containers
     ecs-local-endpoints:
@@ -26,8 +25,9 @@ services:
           AWS_PROFILE: "default"
         networks:
             credentials_network:
-                # This special IP address is recognized by the AWS SDKs and AWS CLI
-                ipv4_address: "169.254.170.2"
+                # Use an alias to connect to the endpoints
+                aliases:
+                  - endpoints
 
     # Here we configure the application container that we are testing
     # You can test multiple containers at a time, simply duplicate this section
@@ -37,11 +37,10 @@ services:
             - ecs-local-endpoints
         networks:
             credentials_network:
-                ipv4_address: "169.254.170.3"
         environment:
           AWS_DEFAULT_REGION: "us-east-1"
           # This ENV VAR enables credentials
           # Set it to "/creds" or "/role/<role name>"
           AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/creds"
           # Enables V3 Metadata
-          ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/v3"
+          ECS_CONTAINER_METADATA_URI: "http://endpoints/v3"
