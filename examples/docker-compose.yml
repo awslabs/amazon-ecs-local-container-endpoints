@@ -21,9 +21,12 @@ services:
           # On Windows, this directory can be found at "%UserProfile%\.aws"
           # In the endpoints image, $HOME is set to /home.
           - $HOME/.aws/:/home/.aws/
+          - ./:/config
         environment:
           # You can change which AWS CLI Profile is used
           AWS_PROFILE: "default"
+          CONTAINER_METADATA_PATH: "/config/container_metadata.json"
+          TASK_METADATA_PATH: "/config/task_metadata.json"
         networks:
             credentials_network:
                 # This special IP address is recognized by the AWS SDKs and AWS CLI
@@ -33,6 +36,8 @@ services:
     # You can test multiple containers at a time, simply duplicate this section
     # and customize it for each container, and give it a unique IP in 'credentials_network'.
     app:
+        image: shell:latest
+        command: [ "/bin/bash", "-c", "--", "while true; do sleep 30; done;"]
         depends_on:
             - ecs-local-endpoints
         networks:
@@ -42,6 +47,6 @@ services:
           AWS_DEFAULT_REGION: "us-east-1"
           # This ENV VAR enables credentials
           # Set it to "/creds" or "/role/<role name>"
-          AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/creds"
+          AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/role-arn/arn:aws:iam::144718711470:role/provider-testing"
           # Enables V3 Metadata
           ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/v3"
