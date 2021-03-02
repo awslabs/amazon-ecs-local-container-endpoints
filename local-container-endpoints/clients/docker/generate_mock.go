@@ -13,4 +13,4 @@
 
 package docker
 
-//go:generate mockgen.sh github.com/awslabs/amazon-ecs-local-container-endpoints/modules/clients/docker Client mock_docker/mock.go
+//go:generate mockgen.sh github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/clients/docker Client mock_docker/mock.go
