@@ -212,8 +212,6 @@ github.com/google/uuid
 github.com/gorilla/mux
 # github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
-# github.com/konsorten/go-windows-terminal-sequences v1.0.1
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
@@ -259,14 +257,12 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/util
 github.com/prometheus/procfs/nfs
 github.com/prometheus/procfs/xfs
-# github.com/sirupsen/logrus v1.3.0
+# github.com/sirupsen/logrus v1.8.1
 ## explicit
 github.com/sirupsen/logrus
 # github.com/stretchr/testify v1.2.2
 ## explicit
 github.com/stretchr/testify/assert
-# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 golang.org/x/net/context
 golang.org/x/net/internal/socks
