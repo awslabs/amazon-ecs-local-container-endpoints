@@ -29,4 +29,4 @@ go run gen/version-gen.go
 
 cd "${ROOT}"
 
-GOOS=$TARGET_GOOS CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -installsuffix cgo -a -ldflags '-s' -o $1/local-container-endpoints ./
+GOOS=$TARGET_GOOS GOARCH=$GOARCH CGO_ENABLED=0 GO111MODULE=on go build -mod=vendor -installsuffix cgo -a -ldflags '-s' -o $1/local-container-endpoints ./

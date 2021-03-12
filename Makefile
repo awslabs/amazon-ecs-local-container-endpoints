@@ -15,13 +15,16 @@ ROOT := $(shell pwd)
 
 all: local-build
 
-GO_VERSION = 1.15
+GO_VERSION := 1.15
 SCRIPT_PATH := $(ROOT)/scripts/:${PATH}
 SOURCES := $(shell find . -name '*.go')
-BINARY_NAME=local-container-endpoints
-LOCAL_BINARY := bin/${BINARY_NAME}
-AMD_BINARY := bin/linux-amd64/${BINARY_NAME}
-ARM_BINARY := bin/linux-arm64/${BINARY_NAME}
+BINARY_NAME := local-container-endpoints
+IMAGE_NAME := amazon/amazon-ecs-local-container-endpoints
+LOCAL_BINARY := bin/local/${BINARY_NAME}
+AMD_DIR := linux-amd64
+ARM_DIR := linux-arm64
+AMD_BINARY := bin/${AMD_DIR}/${BINARY_NAME}
+ARM_BINARY := bin/${ARM_DIR}/${BINARY_NAME}
 VERSION := $(shell cat VERSION)
 AGENT_VERSION_COMPATIBILITY := $(shell cat AGENT_VERSION_COMPATIBILITY)
 TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
@@ -29,12 +32,13 @@ TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
 .PHONY: local-build
 local-build: $(LOCAL_BINARY)
 
+# build binaries for each architecture into their own subdirectories
 .PHONY: linux-build
 linux-build: $(AMD_BINARY) $(ARM_BINARY)
 
 $(LOCAL_BINARY): $(SOURCES)
 	PATH=${PATH} golint ./local-container-endpoints/...
-	./scripts/build_binary.sh ./bin/
+	./scripts/build_binary.sh ./bin/local
 	@echo "Built local-container-endpoints"
 
 .PHONY: generate
@@ -50,15 +54,16 @@ functional-test:
 	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 $(AMD_BINARY): $(SOURCES)
-	@mkdir -p ./bin/linux-amd64
-	TARGET_GOOS=linux GOARCH=amd64 ./scripts/build_binary.sh ./bin/linux-amd64
+	@mkdir -p ./bin/$(AMD_DIR)
+	TARGET_GOOS=linux GOARCH=amd64 ./scripts/build_binary.sh ./bin/$(AMD_DIR)
 	@echo "Built local-container-endpoints for linux-amd64"
 
-$(AMD_BINARY): $(SOURCES)
-	@mkdir -p ./bin/linux-arm64
-	TARGET_GOOS=linux GOARCH=arm64 ./scripts/build_binary.sh ./bin/linux-arm64
+$(ARM_BINARY): $(SOURCES)
+	@mkdir -p ./bin/$(ARM_DIR)
+	TARGET_GOOS=linux GOARCH=arm64 ./scripts/build_binary.sh ./bin/$(ARM_DIR)
 	@echo "Built local-container-endpoints for linux-arm64"
 
+# release uses each architecture-specific go binary to build images
 .PHONY: release
 release: release-amd release-arm
 
@@ -69,9 +74,9 @@ release-amd:
 		--env GOPATH=/usr/src/app \
 		--env ECS_RELEASE=cleanbuild \
 		golang:$(GO_VERSION) make $(AMD_BINARY)
-	docker build -t amazon/amazon-ecs-local-container-endpoints:latest-amd64 .
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest-amd64 amazon/amazon-ecs-local-container-endpoints:$(TAG)-amd64
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest-amd64 amazon/amazon-ecs-local-container-endpoints:$(VERSION)-amd64
+	docker build --build-arg ARCH_DIR=$(AMD_DIR) -t $(IMAGE_NAME):latest-amd64 .
+	docker tag $(IMAGE_NAME):latest-amd64 $(IMAGE_NAME):$(TAG)-amd64
+	docker tag $(IMAGE_NAME):latest-amd64 $(IMAGE_NAME):$(VERSION)-amd64
 
 .PHONY: release-arm
 release-arm:
@@ -80,9 +85,9 @@ release-arm:
 		--env GOPATH=/usr/src/app \
 		--env ECS_RELEASE=cleanbuild \
 		golang:$(GO_VERSION) make $(ARM_BINARY)
-	docker build -t amazon/amazon-ecs-local-container-endpoints:latest-arm64 .
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest-arm64 amazon/amazon-ecs-local-container-endpoints:$(TAG)-arm64
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest-arm64 amazon/amazon-ecs-local-container-endpoints:$(VERSION)-arm64
+	docker build --build-arg ARCH_DIR=$(ARM_DIR) -t $(IMAGE_NAME):latest-arm64 .
+	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(TAG)-arm64
+	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(VERSION)-arm64
 
 .PHONY: integ
 integ: release
@@ -94,16 +99,16 @@ publish: release publish-amd publish-arm
 
 .PHONY: publish-amd
 publish-amd:
-	docker push amazon/amazon-ecs-local-container-endpoints:latest-amd64
-	docker push amazon/amazon-ecs-local-container-endpoints:$(TAG)-amd64
-	docker push amazon/amazon-ecs-local-container-endpoints:$(VERSION)-amd64
+	docker push $(IMAGE_NAME):latest-amd64
+	docker push $(IMAGE_NAME):$(TAG)-amd64
+	docker push $(IMAGE_NAME):$(VERSION)-amd64
 
 .PHONY: publish-arn
 publish-arn:
-	docker push amazon/amazon-ecs-local-container-endpoints:latest-arm64
-	docker push amazon/amazon-ecs-local-container-endpoints:$(TAG)-arm64
-	docker push amazon/amazon-ecs-local-container-endpoints:$(VERSION)-arm64
+	docker push $(IMAGE_NAME):latest-arm64
+	docker push $(IMAGE_NAME):$(TAG)-arm64
+	docker push $(IMAGE_NAME):$(VERSION)-arm64
 
 .PHONY: clean
 clean:
-	rm bin/local-container-endpoints
+	rm bin/local/local-container-endpoints
