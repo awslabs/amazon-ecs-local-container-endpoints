@@ -18,7 +18,7 @@ networks:
 services:
   # The ECS Local container, which vends credentials and metadata
   ecs-local:
-    image: amazon/amazon-ecs-local-container-endpoints:latest
+    image: amazon/amazon-ecs-local-container-endpoints:latest-amd64
     ports:
       - "80:80"
     volumes:

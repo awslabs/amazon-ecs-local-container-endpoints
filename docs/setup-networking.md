@@ -37,5 +37,5 @@ docker run -d -p 51679:51679 \
 -v $HOME/.aws/:/home/.aws/ \
 -e "ECS_LOCAL_METADATA_PORT=51679" \
 --name ecs-local-endpoints \
-amazon/amazon-ecs-local-container-endpoints:latest
+amazon/amazon-ecs-local-container-endpoints:latest-amd64
 ```
