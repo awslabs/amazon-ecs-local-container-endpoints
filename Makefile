@@ -70,8 +70,8 @@ release-amd:
 		--env ECS_RELEASE=cleanbuild \
 		golang:$(GO_VERSION) make $(AMD_BINARY)
 	docker build -t amazon/amazon-ecs-local-container-endpoints:latest-amd64 .
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(TAG)-amd64
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(VERSION)-amd64
+	docker tag amazon/amazon-ecs-local-container-endpoints:latest-amd64 amazon/amazon-ecs-local-container-endpoints:$(TAG)-amd64
+	docker tag amazon/amazon-ecs-local-container-endpoints:latest-amd64 amazon/amazon-ecs-local-container-endpoints:$(VERSION)-amd64
 
 .PHONY: release-arm
 release-arm:
@@ -81,8 +81,8 @@ release-arm:
 		--env ECS_RELEASE=cleanbuild \
 		golang:$(GO_VERSION) make $(ARM_BINARY)
 	docker build -t amazon/amazon-ecs-local-container-endpoints:latest-arm64 .
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(TAG)-arm64
-	docker tag amazon/amazon-ecs-local-container-endpoints:latest amazon/amazon-ecs-local-container-endpoints:$(VERSION)-arm64
+	docker tag amazon/amazon-ecs-local-container-endpoints:latest-arm64 amazon/amazon-ecs-local-container-endpoints:$(TAG)-arm64
+	docker tag amazon/amazon-ecs-local-container-endpoints:latest-arm64 amazon/amazon-ecs-local-container-endpoints:$(VERSION)-arm64
 
 .PHONY: integ
 integ: release
