@@ -33,8 +33,8 @@ TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
 local-build: $(LOCAL_BINARY)
 
 # build binaries for each architecture into their own subdirectories
-.PHONY: linux-build
-linux-build: $(AMD_BINARY) $(ARM_BINARY)
+.PHONY: linux-compile
+linux-compile: $(AMD_BINARY) $(ARM_BINARY)
 
 $(LOCAL_BINARY): $(SOURCES)
 	PATH=${PATH} golint ./local-container-endpoints/...
@@ -103,8 +103,8 @@ publish-amd:
 	docker push $(IMAGE_NAME):$(TAG)-amd64
 	docker push $(IMAGE_NAME):$(VERSION)-amd64
 
-.PHONY: publish-arn
-publish-arn:
+.PHONY: publish-arm
+publish-arm:
 	docker push $(IMAGE_NAME):latest-arm64
 	docker push $(IMAGE_NAME):$(TAG)-arm64
 	docker push $(IMAGE_NAME):$(VERSION)-arm64

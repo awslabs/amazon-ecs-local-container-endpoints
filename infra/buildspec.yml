@@ -1,0 +1,15 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    USERNAME: "com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials:username"
+    PASSWORD: "com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials:password"
+
+phases:
+  pre_build:
+    commands:
+      - echo "Building Image for Amazon ECS Local Container Endpoints..."
+      - docker login -u ${USERNAME} --password ${PASSWORD}
+  build:
+    commands:
+      - make publish
