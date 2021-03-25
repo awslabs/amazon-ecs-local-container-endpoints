@@ -19,10 +19,13 @@ GO_VERSION := 1.15
 SCRIPT_PATH := $(ROOT)/scripts/:${PATH}
 SOURCES := $(shell find . -name '*.go')
 BINARY_NAME := local-container-endpoints
-IMAGE_NAME := amazon/amazon-ecs-local-container-endpoints
+IMAGE_REPO_NAME := amazon/amazon-ecs-local-container-endpoints
 LOCAL_BINARY := bin/local/${BINARY_NAME}
-AMD_DIR := linux-amd64
-ARM_DIR := linux-arm64
+
+# AMD_DIR and ARM_DIR correspond to arch suffix tags in the codebuild project
+AMD_DIR := amd64
+ARM_DIR := arm64
+
 AMD_BINARY := bin/${AMD_DIR}/${BINARY_NAME}
 ARM_BINARY := bin/${ARM_DIR}/${BINARY_NAME}
 VERSION := $(shell cat VERSION)
@@ -36,10 +39,16 @@ generate: $(SOURCES)
 .PHONY: local-build
 local-build: $(LOCAL_BINARY)
 
-# build binaries for each architecture into their own subdirectories
-.PHONY: linux-compile
-linux-compile: $(AMD_BINARY) $(ARM_BINARY)
+.PHONY: build-local-image
+build-local-image:
+	docker run -v $(shell pwd):/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
+		--workdir=/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
+		--env GOPATH=/usr/src/app \
+		--env ECS_RELEASE=cleanbuild \
+		golang:$(GO_VERSION) make ${LOCAL_BINARY}
+	docker build --build-arg ARCH_DIR=local -t $(IMAGE_REPO_NAME):latest-local .
 
+# build binaries for each architecture into their own subdirectories
 $(LOCAL_BINARY): $(SOURCES)
 	PATH=${PATH} golint ./local-container-endpoints/...
 	./scripts/build_binary.sh ./bin/local
@@ -55,46 +64,24 @@ $(ARM_BINARY): $(SOURCES)
 	TARGET_GOOS=linux GOARCH=arm64 ./scripts/build_binary.sh ./bin/$(ARM_DIR)
 	@echo "Built local-container-endpoints for linux-arm64"
 
-# release uses each architecture-specific go binary to build images
-.PHONY: release
-release: release-amd release-arm
-
-.PHONY: release-amd
-release-amd:
+# Relies on ARCH_SUFFIX environment variable which is set in the build
+# environment (e.g. CodeBuild project). Value will either be amd64 or arm64.
+.PHONY: build-image
+build-image:
 	docker run -v $(shell pwd):/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
 		--workdir=/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
 		--env GOPATH=/usr/src/app \
 		--env ECS_RELEASE=cleanbuild \
-		golang:$(GO_VERSION) make $(AMD_BINARY)
-	docker build --build-arg ARCH_DIR=$(AMD_DIR) -t $(IMAGE_NAME):latest-amd64 .
-	docker tag $(IMAGE_NAME):latest-amd64 $(IMAGE_NAME):$(TAG)-amd64
-	docker tag $(IMAGE_NAME):latest-amd64 $(IMAGE_NAME):$(VERSION)-amd64
+		golang:$(GO_VERSION) make bin/${ARCH_SUFFIX}/${BINARY_NAME}
+	docker build --build-arg ARCH_DIR=$(ARCH_SUFFIX) -t $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX) .
+	docker tag $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX) $(IMAGE_REPO_NAME):$(TAG)-$(ARCH_SUFFIX)
+	docker tag $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX) $(IMAGE_REPO_NAME):$(VERSION)-$(ARCH_SUFFIX)
 
-.PHONY: release-arm
-release-arm:
-	docker run -v $(shell pwd):/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
-		--workdir=/usr/src/app/src/github.com/awslabs/amazon-ecs-local-container-endpoints \
-		--env GOPATH=/usr/src/app \
-		--env ECS_RELEASE=cleanbuild \
-		golang:$(GO_VERSION) make $(ARM_BINARY)
-	docker build --build-arg ARCH_DIR=$(ARM_DIR) -t $(IMAGE_NAME):latest-arm64 .
-	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(TAG)-arm64
-	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(VERSION)-arm64
-
-.PHONY: publish
-publish: release publish-amd publish-arm
-
-.PHONY: publish-amd
-publish-amd:
-	docker push $(IMAGE_NAME):latest-amd64
-	docker push $(IMAGE_NAME):$(TAG)-amd64
-	docker push $(IMAGE_NAME):$(VERSION)-amd64
-
-.PHONY: publish-arm
-publish-arm:
-	docker push $(IMAGE_NAME):latest-arm64
-	docker push $(IMAGE_NAME):$(TAG)-arm64
-	docker push $(IMAGE_NAME):$(VERSION)-arm64
+.PHONY: publish-dockerhub
+publish-dockerhub:
+	docker push $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX)
+	docker push $(IMAGE_REPO_NAME):$(TAG)-$(ARCH_SUFFIX)
+	docker push $(IMAGE_REPO_NAME):$(VERSION)-$(ARCH_SUFFIX)
 
 .PHONY: test
 test:

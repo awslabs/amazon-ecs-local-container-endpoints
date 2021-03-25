@@ -39,7 +39,7 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
       actions: [sourceAction],
     });
 
-    // Build stage
+    // Build stage containing build project for each architecture image
     const buildStage = pipeline.addStage({
       stageName: 'Build',
     });
@@ -51,11 +51,15 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
 
     // Create build action for each platform
     for (const platform of platforms) {
-      const project = new codebuild.PipelineProject(this, `BuildImage-${platform['arch']}`, {
-        buildSpec: codebuild.BuildSpec.fromSourceFilename('./infra/buildspec.yml'),
+      const arch = platform['arch'];
+      const project = new codebuild.PipelineProject(this, `BuildImage-${arch}`, {
+        buildSpec: codebuild.BuildSpec.fromSourceFilename('./buildspec.yml'),
         environment: {
           buildImage: platform['buildImage'],
-          privileged: true
+          privileged: true,
+          environmentVariables: {
+            ARCH_SUFFIX: { value: arch },
+          }
         }
       });
 
@@ -87,12 +91,17 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
       buildStage.addAction(buildAction);
     }
   }
+
+  // TODO Build stage for creating manifest
 }
 
 const app = new cdk.App();
 
 new EcsLocalContainerEndpointsImagePipeline(app, 'EcsLocalContainerEndpointsImagePipeline', {
-  env: { account: process.env['CDK_DEFAULT_ACCOUNT'], region: 'us-west-2' },
+  env: {
+    account: process.env['CDK_DEFAULT_ACCOUNT'],
+    region: 'us-west-2'
+  },
   tags: {
     project: "amazon-ecs-local-container-endpoints"
   }

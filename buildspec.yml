@@ -8,8 +8,13 @@ env:
 phases:
   pre_build:
     commands:
-      - echo "Building Image for Amazon ECS Local Container Endpoints..."
+      - echo "Logging into DockerHub..."
       - docker login -u ${USERNAME} --password ${PASSWORD}
   build:
+    # build and tag docker image. This will read ARCH_SUFFIX env var set in the
+    # Codebuild project.
     commands:
-      - make publish
+      - echo Build started on `date`
+      - echo Building Docker image...
+      - make build-image
+      - make publish-dockerhub
