@@ -27,7 +27,7 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
     const sourceOutput = new codepipeline.Artifact('SourceArtifact');
     const sourceAction = new actions.GitHubSourceAction({
       actionName: 'GitHubSource',
-      owner: 'awslabs',
+      owner: 'SoManyHs',
       repo: 'amazon-ecs-local-container-endpoints',
       oauthToken: githubAccessToken,
       branch: 'mainline',

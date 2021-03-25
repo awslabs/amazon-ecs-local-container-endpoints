@@ -19,7 +19,7 @@ GO_VERSION := 1.15
 SCRIPT_PATH := $(ROOT)/scripts/:${PATH}
 SOURCES := $(shell find . -name '*.go')
 BINARY_NAME := local-container-endpoints
-IMAGE_REPO_NAME := amazon/amazon-ecs-local-container-endpoints
+IMAGE_REPO_NAME := somanyhs/amazon-ecs-local-container-endpoints
 LOCAL_BINARY := bin/local/${BINARY_NAME}
 
 # AMD_DIR and ARM_DIR correspond to ARCH_SUFFIX env var set in each CodeBuild
