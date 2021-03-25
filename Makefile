@@ -29,6 +29,10 @@ VERSION := $(shell cat VERSION)
 AGENT_VERSION_COMPATIBILITY := $(shell cat AGENT_VERSION_COMPATIBILITY)
 TAG := $(VERSION)-agent$(AGENT_VERSION_COMPATIBILITY)-compatible
 
+.PHONY: generate
+generate: $(SOURCES)
+	PATH=$(SCRIPT_PATH) go generate ./...
+
 .PHONY: local-build
 local-build: $(LOCAL_BINARY)
 
@@ -40,18 +44,6 @@ $(LOCAL_BINARY): $(SOURCES)
 	PATH=${PATH} golint ./local-container-endpoints/...
 	./scripts/build_binary.sh ./bin/local
 	@echo "Built local-container-endpoints"
-
-.PHONY: generate
-generate: $(SOURCES)
-	PATH=$(SCRIPT_PATH) go generate ./...
-
-.PHONY: test
-test:
-	go test -mod=vendor -timeout=120s -v -cover ./local-container-endpoints/...
-
-.PHONY: functional-test
-functional-test:
-	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 $(AMD_BINARY): $(SOURCES)
 	@mkdir -p ./bin/$(AMD_DIR)
@@ -89,11 +81,6 @@ release-arm:
 	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(TAG)-arm64
 	docker tag $(IMAGE_NAME):latest-arm64 $(IMAGE_NAME):$(VERSION)-arm64
 
-.PHONY: integ
-integ: release
-	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
-	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
-
 .PHONY: publish
 publish: release publish-amd publish-arm
 
@@ -108,6 +95,19 @@ publish-arm:
 	docker push $(IMAGE_NAME):latest-arm64
 	docker push $(IMAGE_NAME):$(TAG)-arm64
 	docker push $(IMAGE_NAME):$(VERSION)-arm64
+
+.PHONY: test
+test:
+	go test -mod=vendor -timeout=120s -v -cover ./local-container-endpoints/...
+
+.PHONY: functional-test
+functional-test:
+	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
+
+.PHONY: integ
+integ: release
+	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
+	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
 
 .PHONY: clean
 clean:
