@@ -101,21 +101,10 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
       }));
 
       verifyProject.addToRolePolicy(new iam.PolicyStatement({
-        actions: ["ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetRepositoryPolicy",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages",
-          "ecr:DescribeImages",
-          "ecr:BatchGetImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PutImage",
+        actions: [
           "secretsmanager:GetSecretValue",
         ],
-        resources: ["*"]
+        resources: ["com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials"]
       }));
 
       const buildAction = new actions.CodeBuildAction({
