@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0
+* Feature - Add support for ARM64 binaries and docker images (#59)
+
 ## 1.3.0
 * Feature - Add support for V4 and generic metadata endpoints (#38)
 
