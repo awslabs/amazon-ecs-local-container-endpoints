@@ -14,13 +14,9 @@ phases:
       - echo "Logging into DockerHub..."
       - docker login -u ${USERNAME} --password ${PASSWORD}
   build:
-    # build and tag docker image. This will read ARCH_SUFFIX env var set in the
-    # Codebuild project.
     commands:
-      - echo Build started on `date`
-      - echo Building Docker image...
-      - make build-image
-      - make publish-dockerhub
+      - echo "Verifying Docker images..."
+      - make verify
   post_build:
     commands:
       - ok && echo Build completed on `date`

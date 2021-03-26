@@ -22,7 +22,8 @@ BINARY_NAME := local-container-endpoints
 IMAGE_REPO_NAME := amazon/amazon-ecs-local-container-endpoints
 LOCAL_BINARY := bin/local/${BINARY_NAME}
 
-# AMD_DIR and ARM_DIR correspond to arch suffix tags in the codebuild project
+# AMD_DIR and ARM_DIR correspond to ARCH_SUFFIX env var set in each CodeBuild
+# project which is used in the image tags.
 AMD_DIR := amd64
 ARM_DIR := arm64
 
@@ -48,7 +49,7 @@ build-local-image:
 		golang:$(GO_VERSION) make ${LOCAL_BINARY}
 	docker build --build-arg ARCH_DIR=local -t $(IMAGE_REPO_NAME):latest-local .
 
-# build binaries for each architecture into their own subdirectories
+# Build binaries for each architecture into their own subdirectories
 $(LOCAL_BINARY): $(SOURCES)
 	PATH=${PATH} golint ./local-container-endpoints/...
 	./scripts/build_binary.sh ./bin/local
@@ -95,6 +96,32 @@ functional-test:
 integ: build-local-image
 	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
 	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
+
+.PHONY: verify
+verify:
+	docker pull $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX)
+	docker run -d -p 8000:80 -v /var/run:/var/run -v $(HOME)/.aws/:/home/.aws/ -e "ECS_LOCAL_METADATA_PORT=80" -e "HOME=/home" -e "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI=${AWS_CONTAINER_CREDENTIALS_RELATIVE_URI}" --name endpoints $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX)
+	curl -s localhost:8000/creds
+	curl -s localhost:8000/v2/stats
+	curl -s localhost:8000/v2/metadata
+	curl -s localhost:8000/v3
+	curl -s localhost:8000/v4
+	docker stop endpoints && docker rm endpoints
+	docker pull $(IMAGE_REPO_NAME):$(TAG)-$(ARCH_SUFFIX)
+	docker run -d -p 8000:80 -v /var/run:/var/run -v $(HOME)/.aws/:/home/.aws/ -e "ECS_LOCAL_METADATA_PORT=80" -e "HOME=/home" -e "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI=${AWS_CONTAINER_CREDENTIALS_RELATIVE_URI}" --name endpoints $(IMAGE_REPO_NAME):$(TAG)-$(ARCH_SUFFIX)
+	curl -s localhost:8000/creds
+	curl -s localhost:8000/v2/stats
+	curl -s localhost:8000/v3
+	curl -s localhost:8000/v4
+	docker stop endpoints && docker rm endpoints
+	docker pull $(IMAGE_REPO_NAME):$(VERSION)-$(ARCH_SUFFIX)
+	docker run -d -p 8000:80 -v /var/run:/var/run -v $(HOME)/.aws/:/home/.aws/ -e "ECS_LOCAL_METADATA_PORT=80" -e "HOME=/home" -e "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI=${AWS_CONTAINER_CREDENTIALS_RELATIVE_URI}" --name endpoints $(IMAGE_REPO_NAME):$(VERSION)-$(ARCH_SUFFIX)
+	curl -s localhost:8000/creds
+	curl -s localhost:8000/v2/stats
+	curl -s localhost:8000/v2/metadata
+	curl -s localhost:8000/v3
+	curl -s localhost:8000/v4
+	docker stop endpoints && docker rm endpoints
 
 .PHONY: clean
 clean:

@@ -15,7 +15,7 @@ For example, on an Ubuntu machine, you can mount your machine's certificates fil
 
 ### Custom IAM and STS Endpoints
 
-Local Endpoionts can be configured to use custom IAM and STS endpoints. Simply define the `IAM_ENDPOINT` and `STS_ENDPOINT` environment variables in the Local Endpoints container.
+Local Endpoints can be configured to use custom IAM and STS endpoints. Simply define the `IAM_ENDPOINT` and `STS_ENDPOINT` environment variables in the Local Endpoints container.
 
 This may be useful in scenarios where your application container is configured to obtain credentials from ECS (see [Vend Credentials to Containers](features.md#vend-credentials-to-containers)), but you do not want to provide Local Endpoints with AWS credentials. Providing an IAM and STS simulator and configuring the Local Endpoints container with custom IAM and STS endpoints enables testing without an AWS account.
 
