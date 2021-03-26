@@ -19,3 +19,7 @@ out/
 .idea
 .idea/*
 .DS_Store
+
+infra/node_modules
+infra/*.js
+infra/*.d.ts

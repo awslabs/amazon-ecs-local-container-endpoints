@@ -1,0 +1,31 @@
+{
+  "name": "local-container-endpoints-pipeline",
+  "version": "1.0.0",
+  "description": "Pipeline for publishing Docker image for local container endpoints",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk"
+  },
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com",
+    "organization": true
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^12.15.0",
+    "typescript": "~3.8.3"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-codebuild": "*",
+    "@aws-cdk/aws-codepipeline": "*",
+    "@aws-cdk/aws-codepipeline-actions": "*",
+    "@aws-cdk/aws-ec2": "*",
+    "@aws-cdk/aws-ecr": "*",
+    "@aws-cdk/aws-ecs": "*",
+    "@aws-cdk/aws-iam": "*",
+    "@aws-cdk/core": "*"
+  }
+}

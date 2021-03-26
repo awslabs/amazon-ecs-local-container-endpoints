@@ -1,9 +1,10 @@
 ## Setting Up Networking
 
-ECS Local Container Endpoints supports 3 endpoints:
+ECS Local Container Endpoints supports 4 endpoints:
 * The [ECS Task IAM Roles endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html)
 * The [Task Metadata V2 Endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v2.html)
 * The [Task Metadata V3 Endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v3.html)
+* The [Task Metadata V4 Endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html)
 
 The Task Metadata V2 and Credentials endpoints require the Local Endpoints container to be able to receive requests made to the special IP Address, `169.254.170.2`.
 
@@ -36,5 +37,5 @@ docker run -d -p 51679:51679 \
 -v $HOME/.aws/:/home/.aws/ \
 -e "ECS_LOCAL_METADATA_PORT=51679" \
 --name ecs-local-endpoints \
-amazon/amazon-ecs-local-container-endpoints:latest
+amazon/amazon-ecs-local-container-endpoints:latest-amd64
 ```

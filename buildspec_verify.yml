@@ -1,0 +1,22 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    USERNAME: "com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials:username"
+    PASSWORD: "com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials:password"
+
+phases:
+  install:
+    commands:
+      - echo '#!/bin/bash' > /usr/local/bin/ok; echo 'if [[ "$CODEBUILD_BUILD_SUCCEEDING" == "0" ]]; then exit 1; else exit 0; fi' >> /usr/local/bin/ok; chmod +x /usr/local/bin/ok
+  pre_build:
+    commands:
+      - echo "Logging into DockerHub..."
+      - docker login -u ${USERNAME} --password ${PASSWORD}
+  build:
+    commands:
+      - echo "Verifying Docker images..."
+      - make verify
+  post_build:
+    commands:
+      - ok && echo Build completed on `date`
