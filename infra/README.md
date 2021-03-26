@@ -2,9 +2,11 @@
 
 This package uses the [AWS Cloud Development Kit (AWS)](https://github.com/awslabs/aws-cdk) to model AWS CodePipeline pipelines and to provision them with AWS CloudFormation.
 
-* pipeline.ts: Builds and publishes the base Docker image for the backend API service
+* pipeline.ts: Builds and publishes the base Docker image for amazon/amazon-ecs-local-container-endpoints.
 
-This creates as CodePipeline pipeline which consists of a souce stage that usees a GitHub webhook and a build stage that uses AWS CodeBuild to build and publish Docker images to DockerHub.
+This creates as CodePipeline pipeline which consists of a souce stage that uses
+a GitHub webhook, and build stages that uses AWS CodeBuild to build, publish
+and verify Docker images for both amd64 and arm64 architectures to DockerHub.
 
 ## GitHub Access Token
 The official pipeilne uses a team account (ecs-local-container-endpoints+release@amazon.com).
