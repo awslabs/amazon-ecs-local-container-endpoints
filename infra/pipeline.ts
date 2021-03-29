@@ -80,31 +80,23 @@ class EcsLocalContainerEndpointsImagePipeline extends cdk.Stack {
       });
 
       buildProject.addToRolePolicy(new iam.PolicyStatement({
-        actions: ["ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetRepositoryPolicy",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages",
-          "ecr:DescribeImages",
-          "ecr:BatchGetImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PutImage",
-          "ecr-public:*",
+        actions: [
           "secretsmanager:GetSecretValue",
           "sts:GetServiceBearerToken",
           "sts:AssumeRole",
         ],
-        resources: ["*"]
+        // resources: [`arn:aws:secretsmanager:us-west-2:${process.env['CDK_DEFAULT_ACCOUNT']}:secret:com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials-XIxFhP`]
+        resources: [`arn:aws:secretsmanager:us-west-2:${process.env['CDK_DEFAULT_ACCOUNT']}:secret:com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials-xwCejt`]
       }));
 
       verifyProject.addToRolePolicy(new iam.PolicyStatement({
         actions: [
           "secretsmanager:GetSecretValue",
+          "sts:GetServiceBearerToken",
+          "sts:AssumeRole",
         ],
-        resources: ["com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials"]
+        // resources: [`arn:aws:secretsmanager:us-west-2:${process.env['CDK_DEFAULT_ACCOUNT']}:secret:com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials-XIxFhP`]
+        resources: [`arn:aws:secretsmanager:us-west-2:${process.env['CDK_DEFAULT_ACCOUNT']}:secret:com.amazonaws.ec2.madison.dockerhub.amazon-ecs-local-container-endpoints.credentials-xwCejt`]
       }));
 
       const buildAction = new actions.CodeBuildAction({
