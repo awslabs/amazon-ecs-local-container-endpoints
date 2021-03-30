@@ -19,6 +19,8 @@ aws secretsmanager create-secret --region us-west-2 --name EcsDevXGitHubToken --
 
 ## Deploy
 
+Any changes to `pipeline.ts` will require a re-compilation and re-deploy.
+
 To deploy this pipeline, install the AWS CDK CLI: `npm i -g aws-cdk`
 
 Install and build everything: `npm install && npm run build`
@@ -31,3 +33,5 @@ cdk deploy --app 'node pipeline.js'
 ```
 
 See the pipelines in the CodePipeline console.
+
+**NOTE**: Any changes to `pipeline.ts` will require the stack to be re-build wiht `npm run build` and redeployed with `cdk deploy --app 'node pipeline.js'`
