@@ -17,9 +17,13 @@ phases:
     # build and tag docker image. This will read ARCH_SUFFIX env var set in the
     # Codebuild project.
     commands:
+      - echo Verifying git tag...
+      - ./scripts/check_tag.sh
       - echo Build started on `date`
       - echo Building Docker image...
       - make build-image
+      - echo Listing images...
+      - docker images
   post_build:
     commands:
       - ok && echo Build completed on `date`
