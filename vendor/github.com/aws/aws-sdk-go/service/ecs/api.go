@@ -2114,6 +2114,105 @@ func (c *ECS) DiscoverPollEndpointWithContext(ctx aws.Context, input *DiscoverPo
 	return out, req.Send()
 }
 
+const opExecuteCommand = "ExecuteCommand"
+
+// ExecuteCommandRequest generates a "aws/request.Request" representing the
+// client's request for the ExecuteCommand operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ExecuteCommand for more information on using the ExecuteCommand
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ExecuteCommandRequest method.
+//    req, resp := client.ExecuteCommandRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/ExecuteCommand
+func (c *ECS) ExecuteCommandRequest(input *ExecuteCommandInput) (req *request.Request, output *ExecuteCommandOutput) {
+	op := &request.Operation{
+		Name:       opExecuteCommand,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ExecuteCommandInput{}
+	}
+
+	output = &ExecuteCommandOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ExecuteCommand API operation for Amazon EC2 Container Service.
+//
+// Runs a command remotely on a container within a task.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Service's
+// API operation ExecuteCommand for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server issue.
+//
+//   * ClientException
+//   These errors are usually caused by a client action, such as using an action
+//   or resource on behalf of a user that doesn't have permissions to use the
+//   action or resource, or specifying an identifier that is not valid.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * AccessDeniedException
+//   You do not have authorization to perform the requested action.
+//
+//   * ClusterNotFoundException
+//   The specified cluster could not be found. You can view your available clusters
+//   with ListClusters. Amazon ECS clusters are Region-specific.
+//
+//   * TargetNotConnectedException
+//   The target container is not properly configured with the execute command
+//   agent or the container is no longer active or running.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/ExecuteCommand
+func (c *ECS) ExecuteCommand(input *ExecuteCommandInput) (*ExecuteCommandOutput, error) {
+	req, out := c.ExecuteCommandRequest(input)
+	return out, req.Send()
+}
+
+// ExecuteCommandWithContext is the same as ExecuteCommand with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ExecuteCommand for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECS) ExecuteCommandWithContext(ctx aws.Context, input *ExecuteCommandInput, opts ...request.Option) (*ExecuteCommandOutput, error) {
+	req, out := c.ExecuteCommandRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListAccountSettings = "ListAccountSettings"
 
 // ListAccountSettingsRequest generates a "aws/request.Request" representing the
@@ -2758,7 +2857,8 @@ func (c *ECS) ListServicesRequest(input *ListServicesInput) (req *request.Reques
 
 // ListServices API operation for Amazon EC2 Container Service.
 //
-// Lists the services that are running in a specified cluster.
+// Returns a list of services. You can filter the results by cluster, launch
+// type, and scheduling strategy.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3300,9 +3400,9 @@ func (c *ECS) ListTasksRequest(input *ListTasksInput) (req *request.Request, out
 
 // ListTasks API operation for Amazon EC2 Container Service.
 //
-// Returns a list of tasks for a specified cluster. You can filter the results
-// by family name, by a particular container instance, or by the desired status
-// of the task with the family, containerInstance, and desiredStatus parameters.
+// Returns a list of tasks. You can filter the results by cluster, task definition
+// family, container instance, launch type, what IAM principal started the task,
+// or by the desired status of the task.
 //
 // Recently stopped tasks might appear in the returned results. Currently, stopped
 // tasks appear in the returned results for at least one hour.
@@ -4935,6 +5035,98 @@ func (c *ECS) UpdateCapacityProviderWithContext(ctx aws.Context, input *UpdateCa
 	return out, req.Send()
 }
 
+const opUpdateCluster = "UpdateCluster"
+
+// UpdateClusterRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateCluster operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateCluster for more information on using the UpdateCluster
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateClusterRequest method.
+//    req, resp := client.UpdateClusterRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/UpdateCluster
+func (c *ECS) UpdateClusterRequest(input *UpdateClusterInput) (req *request.Request, output *UpdateClusterOutput) {
+	op := &request.Operation{
+		Name:       opUpdateCluster,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateClusterInput{}
+	}
+
+	output = &UpdateClusterOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateCluster API operation for Amazon EC2 Container Service.
+//
+// Updates the cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Service's
+// API operation UpdateCluster for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server issue.
+//
+//   * ClientException
+//   These errors are usually caused by a client action, such as using an action
+//   or resource on behalf of a user that doesn't have permissions to use the
+//   action or resource, or specifying an identifier that is not valid.
+//
+//   * ClusterNotFoundException
+//   The specified cluster could not be found. You can view your available clusters
+//   with ListClusters. Amazon ECS clusters are Region-specific.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecs-2014-11-13/UpdateCluster
+func (c *ECS) UpdateCluster(input *UpdateClusterInput) (*UpdateClusterOutput, error) {
+	req, out := c.UpdateClusterRequest(input)
+	return out, req.Send()
+}
+
+// UpdateClusterWithContext is the same as UpdateCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECS) UpdateClusterWithContext(ctx aws.Context, input *UpdateClusterInput, opts ...request.Option) (*UpdateClusterOutput, error) {
+	req, out := c.UpdateClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateClusterSettings = "UpdateClusterSettings"
 
 // UpdateClusterSettingsRequest generates a "aws/request.Request" representing the
@@ -5077,10 +5269,16 @@ func (c *ECS) UpdateContainerAgentRequest(input *UpdateContainerAgentInput) (req
 // differs depending on whether your container instance was launched with the
 // Amazon ECS-optimized AMI or another operating system.
 //
-// UpdateContainerAgent requires the Amazon ECS-optimized AMI or Amazon Linux
-// with the ecs-init service installed and running. For help updating the Amazon
-// ECS container agent on other operating systems, see Manually Updating the
-// Amazon ECS Container Agent (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-update.html#manually_update_agent)
+// The UpdateContainerAgent API isn't supported for container instances using
+// the Amazon ECS-optimized Amazon Linux 2 (arm64) AMI. To update the container
+// agent, you can update the ecs-init package which will update the agent. For
+// more information, see Updating the Amazon ECS container agent (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/agent-update-ecs-ami.html)
+// in the Amazon Elastic Container Service Developer Guide.
+//
+// The UpdateContainerAgent API requires an Amazon ECS-optimized AMI or Amazon
+// Linux AMI with the ecs-init service installed and running. For help updating
+// the Amazon ECS container agent on other operating systems, see Manually updating
+// the Amazon ECS container agent (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-agent-update.html#manually_update_agent)
 // in the Amazon Elastic Container Service Developer Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6101,16 +6299,6 @@ type AutoScalingGroupProviderUpdate struct {
 	_ struct{} `type:"structure"`
 
 	// The managed scaling settings for the Auto Scaling group capacity provider.
-	//
-	// When managed scaling is enabled, Amazon ECS manages the scale-in and scale-out
-	// actions of the Auto Scaling group. Amazon ECS manages a target tracking scaling
-	// policy using an Amazon ECS-managed CloudWatch metric with the specified targetCapacity
-	// value as the target value for the metric. For more information, see Using
-	// Managed Scaling (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/asg-capacity-providers.html#asg-capacity-providers-managed-scaling)
-	// in the Amazon Elastic Container Service Developer Guide.
-	//
-	// If managed scaling is disabled, the user must manage the scaling of the Auto
-	// Scaling group.
 	ManagedScaling *ManagedScaling `locationName:"managedScaling" type:"structure"`
 
 	// The managed termination protection setting to use for the Auto Scaling group
@@ -6412,13 +6600,30 @@ func (s *CapacityProvider) SetUpdateStatusReason(v string) *CapacityProvider {
 	return s
 }
 
-// The details of a capacity provider strategy.
+// The details of a capacity provider strategy. A capacity provider strategy
+// can be set when using the RunTask or CreateCluster APIs or as the default
+// capacity provider strategy for a cluster with the CreateCluster API.
+//
+// Only capacity providers that are already associated with a cluster and have
+// an ACTIVE or UPDATING status can be used in a capacity provider strategy.
+// The PutClusterCapacityProviders API is used to associate a capacity provider
+// with a cluster.
+//
+// If specifying a capacity provider that uses an Auto Scaling group, the capacity
+// provider must already be created. New Auto Scaling group capacity providers
+// can be created with the CreateCapacityProvider API operation.
+//
+// To use a AWS Fargate capacity provider, specify either the FARGATE or FARGATE_SPOT
+// capacity providers. The AWS Fargate capacity providers are available to all
+// accounts and only need to be associated with a cluster to be used in a capacity
+// provider strategy.
 type CapacityProviderStrategyItem struct {
 	_ struct{} `type:"structure"`
 
 	// The base value designates how many tasks, at a minimum, to run on the specified
 	// capacity provider. Only one capacity provider in a capacity provider strategy
-	// can have a base defined.
+	// can have a base defined. If no value is specified, the default value of 0
+	// is used.
 	Base *int64 `locationName:"base" type:"integer"`
 
 	// The short name of the capacity provider.
@@ -6427,14 +6632,23 @@ type CapacityProviderStrategyItem struct {
 	CapacityProvider *string `locationName:"capacityProvider" type:"string" required:"true"`
 
 	// The weight value designates the relative percentage of the total number of
-	// tasks launched that should use the specified capacity provider.
+	// tasks launched that should use the specified capacity provider. The weight
+	// value is taken into consideration after the base value, if defined, is satisfied.
 	//
-	// For example, if you have a strategy that contains two capacity providers
-	// and both have a weight of 1, then when the base is satisfied, the tasks will
-	// be split evenly across the two capacity providers. Using that same logic,
-	// if you specify a weight of 1 for capacityProviderA and a weight of 4 for
-	// capacityProviderB, then for every one task that is run using capacityProviderA,
-	// four tasks would use capacityProviderB.
+	// If no weight value is specified, the default value of 0 is used. When multiple
+	// capacity providers are specified within a capacity provider strategy, at
+	// least one of the capacity providers must have a weight value greater than
+	// zero and any capacity providers with a weight of 0 will not be used to place
+	// tasks. If you specify multiple capacity providers in a strategy that all
+	// have a weight of 0, any RunTask or CreateService actions using the capacity
+	// provider strategy will fail.
+	//
+	// An example scenario for using weights is defining a strategy that contains
+	// two capacity providers and both have a weight of 1, then when the base is
+	// satisfied, the tasks will be split evenly across the two capacity providers.
+	// Using that same logic, if you specify a weight of 1 for capacityProviderA
+	// and a weight of 4 for capacityProviderB, then for every one task that is
+	// run using capacityProviderA, four tasks would use capacityProviderB.
 	Weight *int64 `locationName:"weight" type:"integer"`
 }
 
@@ -6582,6 +6796,9 @@ type Cluster struct {
 	// A user-generated string that you use to identify your cluster.
 	ClusterName *string `locationName:"clusterName" type:"string"`
 
+	// The execute command configuration for the cluster.
+	Configuration *ClusterConfiguration `locationName:"configuration" type:"structure"`
+
 	// The default capacity provider strategy for the cluster. When services or
 	// tasks are run in the cluster with no launch type or capacity provider strategy
 	// specified, the default capacity provider strategy is used.
@@ -6727,6 +6944,12 @@ func (s *Cluster) SetClusterName(v string) *Cluster {
 	return s
 }
 
+// SetConfiguration sets the Configuration field's value.
+func (s *Cluster) SetConfiguration(v *ClusterConfiguration) *Cluster {
+	s.Configuration = v
+	return s
+}
+
 // SetDefaultCapacityProviderStrategy sets the DefaultCapacityProviderStrategy field's value.
 func (s *Cluster) SetDefaultCapacityProviderStrategy(v []*CapacityProviderStrategyItem) *Cluster {
 	s.DefaultCapacityProviderStrategy = v
@@ -6772,6 +6995,30 @@ func (s *Cluster) SetStatus(v string) *Cluster {
 // SetTags sets the Tags field's value.
 func (s *Cluster) SetTags(v []*Tag) *Cluster {
 	s.Tags = v
+	return s
+}
+
+// The execute command configuration for the cluster.
+type ClusterConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The details of the execute command configuration.
+	ExecuteCommandConfiguration *ExecuteCommandConfiguration `locationName:"executeCommandConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s ClusterConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClusterConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetExecuteCommandConfiguration sets the ExecuteCommandConfiguration field's value.
+func (s *ClusterConfiguration) SetExecuteCommandConfiguration(v *ExecuteCommandConfiguration) *ClusterConfiguration {
+	s.ExecuteCommandConfiguration = v
 	return s
 }
 
@@ -7077,6 +7324,9 @@ type Container struct {
 	// The last known status of the container.
 	LastStatus *string `locationName:"lastStatus" type:"string"`
 
+	// The details of any Amazon ECS managed agents associated with the container.
+	ManagedAgents []*ManagedAgent `locationName:"managedAgents" type:"list"`
+
 	// The hard limit (in MiB) of memory set for the container.
 	Memory *string `locationName:"memory" type:"string"`
 
@@ -7158,6 +7408,12 @@ func (s *Container) SetImageDigest(v string) *Container {
 // SetLastStatus sets the LastStatus field's value.
 func (s *Container) SetLastStatus(v string) *Container {
 	s.LastStatus = &v
+	return s
+}
+
+// SetManagedAgents sets the ManagedAgents field's value.
+func (s *Container) SetManagedAgents(v []*ManagedAgent) *Container {
+	s.ManagedAgents = v
 	return s
 }
 
@@ -7296,8 +7552,7 @@ type ContainerDefinition struct {
 	// This parameter maps to NetworkDisabled in the Create a container (https://docs.docker.com/engine/api/v1.35/#operation/ContainerCreate)
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/).
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	DisableNetworking *bool `locationName:"disableNetworking" type:"boolean"`
 
 	// A list of DNS search domains that are presented to the container. This parameter
@@ -7305,8 +7560,7 @@ type ContainerDefinition struct {
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --dns-search option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	DnsSearchDomains []*string `locationName:"dnsSearchDomains" type:"list"`
 
 	// A list of DNS servers that are presented to the container. This parameter
@@ -7314,8 +7568,7 @@ type ContainerDefinition struct {
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --dns option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	DnsServers []*string `locationName:"dnsServers" type:"list"`
 
 	// A key/value map of labels to add to the container. This parameter maps to
@@ -7482,15 +7735,14 @@ type ContainerDefinition struct {
 	// the need for port mappings. This parameter is only supported if the network
 	// mode of a task definition is bridge. The name:internalName construct is analogous
 	// to name:alias in Docker links. Up to 255 letters (uppercase and lowercase),
-	// numbers, and hyphens are allowed. For more information about linking Docker
-	// containers, go to Legacy container links (https://docs.docker.com/network/links/)
+	// numbers, underscores, and hyphens are allowed. For more information about
+	// linking Docker containers, go to Legacy container links (https://docs.docker.com/network/links/)
 	// in the Docker documentation. This parameter maps to Links in the Create a
 	// container (https://docs.docker.com/engine/api/v1.35/#operation/ContainerCreate)
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --link option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	//
 	// Containers that are collocated on a single container instance may be able
 	// to communicate with each other without requiring links or host port mappings.
@@ -7598,8 +7850,8 @@ type ContainerDefinition struct {
 	// The name of a container. If you are linking multiple containers together
 	// in a task definition, the name of one container can be entered in the links
 	// of another container to connect the containers. Up to 255 letters (uppercase
-	// and lowercase), numbers, and hyphens are allowed. This parameter maps to
-	// name in the Create a container (https://docs.docker.com/engine/api/v1.35/#operation/ContainerCreate)
+	// and lowercase), numbers, underscores, and hyphens are allowed. This parameter
+	// maps to name in the Create a container (https://docs.docker.com/engine/api/v1.35/#operation/ContainerCreate)
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --name option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	Name *string `locationName:"name" type:"string"`
@@ -7635,8 +7887,8 @@ type ContainerDefinition struct {
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --privileged option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	//
-	// This parameter is not supported for Windows containers or tasks using the
-	// Fargate launch type.
+	// This parameter is not supported for Windows containers or tasks run on AWS
+	// Fargate.
 	Privileged *bool `locationName:"privileged" type:"boolean"`
 
 	// When this parameter is true, a TTY is allocated. This parameter maps to Tty
@@ -7651,8 +7903,7 @@ type ContainerDefinition struct {
 	// of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/) and
 	// the --read-only option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	ReadonlyRootFilesystem *bool `locationName:"readonlyRootFilesystem" type:"boolean"`
 
 	// The private repository authentication credentials to use.
@@ -7739,14 +7990,20 @@ type ContainerDefinition struct {
 	// This parameter maps to Ulimits in the Create a container (https://docs.docker.com/engine/api/v1.35/#operation/ContainerCreate)
 	// section of the Docker Remote API (https://docs.docker.com/engine/api/v1.35/)
 	// and the --ulimit option to docker run (https://docs.docker.com/engine/reference/run/#security-configuration).
-	// Valid naming values are displayed in the Ulimit data type. This parameter
-	// requires version 1.18 of the Docker Remote API or greater on your container
-	// instance. To check the Docker Remote API version on your container instance,
-	// log in to your container instance and run the following command: sudo docker
-	// version --format '{{.Server.APIVersion}}'
+	// Valid naming values are displayed in the Ulimit data type.
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// Amazon ECS tasks hosted on Fargate use the default resource limit values
+	// set by the operating system with the exception of the nofile resource limit
+	// parameter which Fargate overrides. The nofile resource limit sets a restriction
+	// on the number of open files that a container can use. The default nofile
+	// soft limit is 1024 and hard limit is 4096.
+	//
+	// This parameter requires version 1.18 of the Docker Remote API or greater
+	// on your container instance. To check the Docker Remote API version on your
+	// container instance, log in to your container instance and run the following
+	// command: sudo docker version --format '{{.Server.APIVersion}}'
+	//
+	// This parameter is not supported for Windows containers.
 	Ulimits []*Ulimit `locationName:"ulimits" type:"list"`
 
 	// The user to use inside the container. This parameter maps to User in the
@@ -7773,8 +8030,7 @@ type ContainerDefinition struct {
 	//
 	//    * uid:group
 	//
-	// This parameter is not supported for Windows containers or tasks that use
-	// the awsvpc network mode.
+	// This parameter is not supported for Windows containers.
 	User *string `locationName:"user" type:"string"`
 
 	// Data volumes to mount from another container. This parameter maps to VolumesFrom
@@ -8800,11 +9056,15 @@ type CreateClusterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The short name of one or more capacity providers to associate with the cluster.
+	// A capacity provider must be associated with a cluster before it can be included
+	// as part of the default capacity provider strategy of the cluster or used
+	// in a capacity provider strategy when calling the CreateService or RunTask
+	// actions.
 	//
 	// If specifying a capacity provider that uses an Auto Scaling group, the capacity
 	// provider must already be created and not already associated with another
-	// cluster. New capacity providers can be created with the CreateCapacityProvider
-	// API operation.
+	// cluster. New Auto Scaling group capacity providers can be created with the
+	// CreateCapacityProvider API operation.
 	//
 	// To use a AWS Fargate capacity provider, specify either the FARGATE or FARGATE_SPOT
 	// capacity providers. The AWS Fargate capacity providers are available to all
@@ -8816,28 +9076,17 @@ type CreateClusterInput struct {
 
 	// The name of your cluster. If you do not specify a name for your cluster,
 	// you create a cluster named default. Up to 255 letters (uppercase and lowercase),
-	// numbers, and hyphens are allowed.
+	// numbers, underscores, and hyphens are allowed.
 	ClusterName *string `locationName:"clusterName" type:"string"`
 
-	// The capacity provider strategy to use by default for the cluster.
-	//
-	// When creating a service or running a task on a cluster, if no capacity provider
-	// or launch type is specified then the default capacity provider strategy for
-	// the cluster is used.
-	//
-	// A capacity provider strategy consists of one or more capacity providers along
-	// with the base and weight to assign to them. A capacity provider must be associated
-	// with the cluster to be used in a capacity provider strategy. The PutClusterCapacityProviders
-	// API is used to associate a capacity provider with a cluster. Only capacity
-	// providers with an ACTIVE or UPDATING status can be used.
-	//
-	// If specifying a capacity provider that uses an Auto Scaling group, the capacity
-	// provider must already be created. New capacity providers can be created with
-	// the CreateCapacityProvider API operation.
-	//
-	// To use a AWS Fargate capacity provider, specify either the FARGATE or FARGATE_SPOT
-	// capacity providers. The AWS Fargate capacity providers are available to all
-	// accounts and only need to be associated with a cluster to be used.
+	// The execute command configuration for the cluster.
+	Configuration *ClusterConfiguration `locationName:"configuration" type:"structure"`
+
+	// The capacity provider strategy to set as the default for the cluster. When
+	// a default capacity provider strategy is set for a cluster, when calling the
+	// RunTask or CreateService APIs wtih no capacity provider strategy or launch
+	// type specified, the default capacity provider strategy for the cluster is
+	// used.
 	//
 	// If a default capacity provider strategy is not defined for a cluster during
 	// creation, it can be defined later with the PutClusterCapacityProviders API
@@ -8931,6 +9180,12 @@ func (s *CreateClusterInput) SetClusterName(v string) *CreateClusterInput {
 	return s
 }
 
+// SetConfiguration sets the Configuration field's value.
+func (s *CreateClusterInput) SetConfiguration(v *ClusterConfiguration) *CreateClusterInput {
+	s.Configuration = v
+	return s
+}
+
 // SetDefaultCapacityProviderStrategy sets the DefaultCapacityProviderStrategy field's value.
 func (s *CreateClusterInput) SetDefaultCapacityProviderStrategy(v []*CapacityProviderStrategyItem) *CreateClusterInput {
 	s.DefaultCapacityProviderStrategy = v
@@ -8977,26 +9232,9 @@ type CreateServiceInput struct {
 
 	// The capacity provider strategy to use for the service.
 	//
-	// A capacity provider strategy consists of one or more capacity providers along
-	// with the base and weight to assign to them. A capacity provider must be associated
-	// with the cluster to be used in a capacity provider strategy. The PutClusterCapacityProviders
-	// API is used to associate a capacity provider with a cluster. Only capacity
-	// providers with an ACTIVE or UPDATING status can be used.
-	//
 	// If a capacityProviderStrategy is specified, the launchType parameter must
 	// be omitted. If no capacityProviderStrategy or launchType is specified, the
 	// defaultCapacityProviderStrategy for the cluster is used.
-	//
-	// If specifying a capacity provider that uses an Auto Scaling group, the capacity
-	// provider must already be created. New capacity providers can be created with
-	// the CreateCapacityProvider API operation.
-	//
-	// To use a AWS Fargate capacity provider, specify either the FARGATE or FARGATE_SPOT
-	// capacity providers. The AWS Fargate capacity providers are available to all
-	// accounts and only need to be associated with a cluster to be used.
-	//
-	// The PutClusterCapacityProviders API operation is used to update the list
-	// of available capacity providers for a cluster after the cluster is created.
 	CapacityProviderStrategy []*CapacityProviderStrategyItem `locationName:"capacityProviderStrategy" type:"list"`
 
 	// Unique, case-sensitive identifier that you provide to ensure the idempotency
@@ -9012,7 +9250,8 @@ type CreateServiceInput struct {
 	// deployment and the ordering of stopping and starting tasks.
 	DeploymentConfiguration *DeploymentConfiguration `locationName:"deploymentConfiguration" type:"structure"`
 
-	// The deployment controller to use for the service.
+	// The deployment controller to use for the service. If no deployment controller
+	// is specified, the default value of ECS is used.
 	DeploymentController *DeploymentController `locationName:"deploymentController" type:"structure"`
 
 	// The number of instantiations of the specified task definition to place and
@@ -9028,6 +9267,11 @@ type CreateServiceInput struct {
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
+	// Whether or not the execute command functionality is enabled for the service.
+	// If true, this enables execute command functionality on all containers in
+	// the service tasks.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
+
 	// The period of time, in seconds, that the Amazon ECS service scheduler should
 	// ignore unhealthy Elastic Load Balancing target health checks after a task
 	// has first started. This is only used when your service is configured to use
@@ -9042,12 +9286,26 @@ type CreateServiceInput struct {
 	// come up.
 	HealthCheckGracePeriodSeconds *int64 `locationName:"healthCheckGracePeriodSeconds" type:"integer"`
 
-	// The launch type on which to run your service. For more information, see Amazon
-	// ECS Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// The infrastructure on which to run your service. For more information, see
+	// Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	//
-	// If a launchType is specified, the capacityProviderStrategy parameter must
-	// be omitted.
+	// The FARGATE launch type runs your tasks on AWS Fargate On-Demand infrastructure.
+	//
+	// Fargate Spot infrastructure is available for use but a capacity provider
+	// strategy must be used. For more information, see AWS Fargate capacity providers
+	// (https://docs.aws.amazon.com/AmazonECS/latest/userguide/fargate-capacity-providers.html)
+	// in the Amazon ECS User Guide for AWS Fargate.
+	//
+	// The EC2 launch type runs your tasks on Amazon EC2 instances registered to
+	// your cluster.
+	//
+	// The EXTERNAL launch type runs your tasks on your on-premise server or virtual
+	// machine (VM) capacity registered to your cluster.
+	//
+	// A service can use either a launch type or a capacity provider strategy. If
+	// a launchType is specified, the capacityProviderStrategy parameter must be
+	// omitted.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
 	// A load balancer object representing the load balancers to use with your service.
@@ -9058,7 +9316,7 @@ type CreateServiceInput struct {
 	// using either an Application Load Balancer or Network Load Balancer, you must
 	// specify one or more target group ARNs to attach to the service. The service-linked
 	// role is required for services that make use of multiple target groups. For
-	// more information, see Using Service-Linked Roles for Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html)
+	// more information, see Using service-linked roles for Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	//
 	// If the service is using the CODE_DEPLOY deployment controller, the service
@@ -9102,7 +9360,7 @@ type CreateServiceInput struct {
 	// The network configuration for the service. This parameter is required for
 	// task definitions that use the awsvpc network mode to receive their own elastic
 	// network interface, and it is not supported for other network modes. For more
-	// information, see Task Networking (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html)
+	// information, see Task networking (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
 
@@ -9118,7 +9376,7 @@ type CreateServiceInput struct {
 	// The platform version that your tasks in the service are running on. A platform
 	// version is specified only for tasks using the Fargate launch type. If one
 	// isn't specified, the LATEST platform version is used by default. For more
-	// information, see AWS Fargate Platform Versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
+	// information, see AWS Fargate platform versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	PlatformVersion *string `locationName:"platformVersion" type:"string"`
 
@@ -9142,14 +9400,14 @@ type CreateServiceInput struct {
 	// network mode or if the service is configured to use service discovery, an
 	// external deployment controller, multiple target groups, or Elastic Inference
 	// accelerators in which case you should not specify a role here. For more information,
-	// see Using Service-Linked Roles for Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html)
+	// see Using service-linked roles for Amazon ECS (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using-service-linked-roles.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	//
 	// If your specified role has a path other than /, then you must either specify
 	// the full role ARN (this is recommended) or prefix the role name with the
 	// path. For example, if a role with the name bar has a path of /foo/ then you
 	// would specify /foo/bar as the role name. For more information, see Friendly
-	// Names and Paths (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-friendly-names)
+	// names and paths (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-friendly-names)
 	// in the IAM User Guide.
 	Role *string `locationName:"role" type:"string"`
 
@@ -9177,19 +9435,18 @@ type CreateServiceInput struct {
 	SchedulingStrategy *string `locationName:"schedulingStrategy" type:"string" enum:"SchedulingStrategy"`
 
 	// The name of your service. Up to 255 letters (uppercase and lowercase), numbers,
-	// and hyphens are allowed. Service names must be unique within a cluster, but
-	// you can have similarly named services in multiple clusters within a Region
-	// or across multiple Regions.
+	// underscores, and hyphens are allowed. Service names must be unique within
+	// a cluster, but you can have similarly named services in multiple clusters
+	// within a Region or across multiple Regions.
 	//
 	// ServiceName is a required field
 	ServiceName *string `locationName:"serviceName" type:"string" required:"true"`
 
-	// The details of the service discovery registries to assign to this service.
-	// For more information, see Service Discovery (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html).
+	// The details of the service discovery registry to associate with this service.
+	// For more information, see Service discovery (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html).
 	//
-	// Service discovery is supported for Fargate tasks if you are using platform
-	// version v1.1.0 or later. For more information, see AWS Fargate Platform Versions
-	// (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html).
+	// Each service may be associated with one service registry. Multiple service
+	// registries per service isn't supported.
 	ServiceRegistries []*ServiceRegistry `locationName:"serviceRegistries" type:"list"`
 
 	// The metadata that you apply to the service to help you categorize and organize
@@ -9326,6 +9583,12 @@ func (s *CreateServiceInput) SetDesiredCount(v int64) *CreateServiceInput {
 // SetEnableECSManagedTags sets the EnableECSManagedTags field's value.
 func (s *CreateServiceInput) SetEnableECSManagedTags(v bool) *CreateServiceInput {
 	s.EnableECSManagedTags = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *CreateServiceInput) SetEnableExecuteCommand(v bool) *CreateServiceInput {
+	s.EnableExecuteCommand = &v
 	return s
 }
 
@@ -9499,7 +9762,7 @@ type CreateTaskSetInput struct {
 	// or a Network Load Balancer.
 	LoadBalancers []*LoadBalancer `locationName:"loadBalancers" type:"list"`
 
-	// An object representing the network configuration for a task or service.
+	// An object representing the network configuration for a task set.
 	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
 
 	// The platform version that the tasks in the task set should use. A platform
@@ -9691,9 +9954,9 @@ type CreateTaskSetOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Information about a set of Amazon ECS tasks in either an AWS CodeDeploy or
-	// an EXTERNAL deployment. An Amazon ECS task set includes details such as the
-	// desired number of tasks, how many tasks are running, and whether the task
-	// set serves production traffic.
+	// an EXTERNAL deployment. A task set includes details such as the desired number
+	// of tasks, how many tasks are running, and whether the task set serves production
+	// traffic.
 	TaskSet *TaskSet `locationName:"taskSet" type:"structure"`
 }
 
@@ -9919,7 +10182,7 @@ func (s *DeleteCapacityProviderInput) SetCapacityProvider(v string) *DeleteCapac
 type DeleteCapacityProviderOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The details of a capacity provider.
+	// The details of the capacity provider.
 	CapacityProvider *CapacityProvider `locationName:"capacityProvider" type:"structure"`
 }
 
@@ -10164,10 +10427,7 @@ func (s *DeleteTaskSetInput) SetTaskSet(v string) *DeleteTaskSetInput {
 type DeleteTaskSetOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Information about a set of Amazon ECS tasks in either an AWS CodeDeploy or
-	// an EXTERNAL deployment. An Amazon ECS task set includes details such as the
-	// desired number of tasks, how many tasks are running, and whether the task
-	// set serves production traffic.
+	// Details about the task set.
 	TaskSet *TaskSet `locationName:"taskSet" type:"structure"`
 }
 
@@ -11820,12 +12080,12 @@ func (s *EFSVolumeConfiguration) SetTransitEncryptionPort(v int64) *EFSVolumeCon
 // in a container definition, they take precedence over the variables contained
 // within an environment file. If multiple environment files are specified that
 // contain the same variable, they are processed from the top down. It is recommended
-// to use unique variable names. For more information, see Specifying Environment
-// Variables (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/taskdef-envfiles.html)
+// to use unique variable names. For more information, see Specifying environment
+// variables (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/taskdef-envfiles.html)
 // in the Amazon Elastic Container Service Developer Guide.
 //
-// This field is not valid for containers in tasks using the Fargate launch
-// type.
+// This field is only valid for containers in Fargate tasks that use platform
+// version 1.4.0 or later.
 type EnvironmentFile struct {
 	_ struct{} `type:"structure"`
 
@@ -11876,6 +12136,331 @@ func (s *EnvironmentFile) SetType(v string) *EnvironmentFile {
 // SetValue sets the Value field's value.
 func (s *EnvironmentFile) SetValue(v string) *EnvironmentFile {
 	s.Value = &v
+	return s
+}
+
+// The amount of ephemeral storage to allocate for the task. This parameter
+// is used to expand the total amount of ephemeral storage available, beyond
+// the default amount, for tasks hosted on AWS Fargate. For more information,
+// see Fargate task storage (https://docs.aws.amazon.com/AmazonECS/latest/userguide/using_data_volumes.html)
+// in the Amazon ECS User Guide for AWS Fargate.
+//
+// This parameter is only supported for tasks hosted on AWS Fargate using platform
+// version 1.4.0 or later.
+type EphemeralStorage struct {
+	_ struct{} `type:"structure"`
+
+	// The total amount, in GiB, of ephemeral storage to set for the task. The minimum
+	// supported value is 21 GiB and the maximum supported value is 200 GiB.
+	//
+	// SizeInGiB is a required field
+	SizeInGiB *int64 `locationName:"sizeInGiB" type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s EphemeralStorage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EphemeralStorage) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EphemeralStorage) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EphemeralStorage"}
+	if s.SizeInGiB == nil {
+		invalidParams.Add(request.NewErrParamRequired("SizeInGiB"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSizeInGiB sets the SizeInGiB field's value.
+func (s *EphemeralStorage) SetSizeInGiB(v int64) *EphemeralStorage {
+	s.SizeInGiB = &v
+	return s
+}
+
+// The details of the execute command configuration.
+type ExecuteCommandConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Specify an AWS Key Management Service key ID to encrypt the data between
+	// the local client and the container.
+	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
+
+	// The log configuration for the results of the execute command actions. The
+	// logs can be sent to CloudWatch Logs or an Amazon S3 bucket. When logging=OVERRIDE
+	// is specified, a logConfiguration must be provided.
+	LogConfiguration *ExecuteCommandLogConfiguration `locationName:"logConfiguration" type:"structure"`
+
+	// The log setting to use for redirecting logs for your execute command results.
+	// The following log settings are available.
+	//
+	//    * NONE: The execute command session is not logged.
+	//
+	//    * DEFAULT: The awslogs configuration in the task definition is used. If
+	//    no logging parameter is specified, it defaults to this value. If no awslogs
+	//    log driver is configured in the task definition, the output won't be logged.
+	//
+	//    * OVERRIDE: Specify the logging details as a part of logConfiguration.
+	//    If the OVERRIDE logging option is specified, the logConfiguration is required.
+	Logging *string `locationName:"logging" type:"string" enum:"ExecuteCommandLogging"`
+}
+
+// String returns the string representation
+func (s ExecuteCommandConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExecuteCommandConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *ExecuteCommandConfiguration) SetKmsKeyId(v string) *ExecuteCommandConfiguration {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogConfiguration sets the LogConfiguration field's value.
+func (s *ExecuteCommandConfiguration) SetLogConfiguration(v *ExecuteCommandLogConfiguration) *ExecuteCommandConfiguration {
+	s.LogConfiguration = v
+	return s
+}
+
+// SetLogging sets the Logging field's value.
+func (s *ExecuteCommandConfiguration) SetLogging(v string) *ExecuteCommandConfiguration {
+	s.Logging = &v
+	return s
+}
+
+type ExecuteCommandInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) or short name of the cluster the task is running
+	// in. If you do not specify a cluster, the default cluster is assumed.
+	Cluster *string `locationName:"cluster" type:"string"`
+
+	// The command to run on the container.
+	//
+	// Command is a required field
+	Command *string `locationName:"command" type:"string" required:"true"`
+
+	// The name of the container to execute the command on. A container name only
+	// needs to be specified for tasks containing multiple containers.
+	Container *string `locationName:"container" type:"string"`
+
+	// Use this flag to run your command in interactive mode.
+	//
+	// Interactive is a required field
+	Interactive *bool `locationName:"interactive" type:"boolean" required:"true"`
+
+	// The Amazon Resource Name (ARN) or ID of the task the container is part of.
+	//
+	// Task is a required field
+	Task *string `locationName:"task" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ExecuteCommandInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExecuteCommandInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExecuteCommandInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExecuteCommandInput"}
+	if s.Command == nil {
+		invalidParams.Add(request.NewErrParamRequired("Command"))
+	}
+	if s.Interactive == nil {
+		invalidParams.Add(request.NewErrParamRequired("Interactive"))
+	}
+	if s.Task == nil {
+		invalidParams.Add(request.NewErrParamRequired("Task"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCluster sets the Cluster field's value.
+func (s *ExecuteCommandInput) SetCluster(v string) *ExecuteCommandInput {
+	s.Cluster = &v
+	return s
+}
+
+// SetCommand sets the Command field's value.
+func (s *ExecuteCommandInput) SetCommand(v string) *ExecuteCommandInput {
+	s.Command = &v
+	return s
+}
+
+// SetContainer sets the Container field's value.
+func (s *ExecuteCommandInput) SetContainer(v string) *ExecuteCommandInput {
+	s.Container = &v
+	return s
+}
+
+// SetInteractive sets the Interactive field's value.
+func (s *ExecuteCommandInput) SetInteractive(v bool) *ExecuteCommandInput {
+	s.Interactive = &v
+	return s
+}
+
+// SetTask sets the Task field's value.
+func (s *ExecuteCommandInput) SetTask(v string) *ExecuteCommandInput {
+	s.Task = &v
+	return s
+}
+
+// The log configuration for the results of the execute command actions. The
+// logs can be sent to CloudWatch Logs or an Amazon S3 bucket.
+type ExecuteCommandLogConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Whether or not to enable encryption on the CloudWatch logs. If not specified,
+	// encryption will be disabled.
+	CloudWatchEncryptionEnabled *bool `locationName:"cloudWatchEncryptionEnabled" type:"boolean"`
+
+	// The name of the CloudWatch log group to send logs to.
+	//
+	// The CloudWatch log group must already be created.
+	CloudWatchLogGroupName *string `locationName:"cloudWatchLogGroupName" type:"string"`
+
+	// The name of the S3 bucket to send logs to.
+	//
+	// The S3 bucket must already be created.
+	S3BucketName *string `locationName:"s3BucketName" type:"string"`
+
+	// Whether or not to enable encryption on the CloudWatch logs. If not specified,
+	// encryption will be disabled.
+	S3EncryptionEnabled *bool `locationName:"s3EncryptionEnabled" type:"boolean"`
+
+	// An optional folder in the S3 bucket to place logs in.
+	S3KeyPrefix *string `locationName:"s3KeyPrefix" type:"string"`
+}
+
+// String returns the string representation
+func (s ExecuteCommandLogConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExecuteCommandLogConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetCloudWatchEncryptionEnabled sets the CloudWatchEncryptionEnabled field's value.
+func (s *ExecuteCommandLogConfiguration) SetCloudWatchEncryptionEnabled(v bool) *ExecuteCommandLogConfiguration {
+	s.CloudWatchEncryptionEnabled = &v
+	return s
+}
+
+// SetCloudWatchLogGroupName sets the CloudWatchLogGroupName field's value.
+func (s *ExecuteCommandLogConfiguration) SetCloudWatchLogGroupName(v string) *ExecuteCommandLogConfiguration {
+	s.CloudWatchLogGroupName = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *ExecuteCommandLogConfiguration) SetS3BucketName(v string) *ExecuteCommandLogConfiguration {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3EncryptionEnabled sets the S3EncryptionEnabled field's value.
+func (s *ExecuteCommandLogConfiguration) SetS3EncryptionEnabled(v bool) *ExecuteCommandLogConfiguration {
+	s.S3EncryptionEnabled = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *ExecuteCommandLogConfiguration) SetS3KeyPrefix(v string) *ExecuteCommandLogConfiguration {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+type ExecuteCommandOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the cluster.
+	ClusterArn *string `locationName:"clusterArn" type:"string"`
+
+	// The Amazon Resource Name (ARN) of the container.
+	ContainerArn *string `locationName:"containerArn" type:"string"`
+
+	// The name of the container.
+	ContainerName *string `locationName:"containerName" type:"string"`
+
+	// Whether or not the execute command session is running in interactive mode.
+	// Amazon ECS only supports initiating interactive sessions, so you must specify
+	// true for this value.
+	Interactive *bool `locationName:"interactive" type:"boolean"`
+
+	// The details of the SSM session that was created for this instance of execute-command.
+	Session *Session `locationName:"session" type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the task.
+	TaskArn *string `locationName:"taskArn" type:"string"`
+}
+
+// String returns the string representation
+func (s ExecuteCommandOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExecuteCommandOutput) GoString() string {
+	return s.String()
+}
+
+// SetClusterArn sets the ClusterArn field's value.
+func (s *ExecuteCommandOutput) SetClusterArn(v string) *ExecuteCommandOutput {
+	s.ClusterArn = &v
+	return s
+}
+
+// SetContainerArn sets the ContainerArn field's value.
+func (s *ExecuteCommandOutput) SetContainerArn(v string) *ExecuteCommandOutput {
+	s.ContainerArn = &v
+	return s
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *ExecuteCommandOutput) SetContainerName(v string) *ExecuteCommandOutput {
+	s.ContainerName = &v
+	return s
+}
+
+// SetInteractive sets the Interactive field's value.
+func (s *ExecuteCommandOutput) SetInteractive(v bool) *ExecuteCommandOutput {
+	s.Interactive = &v
+	return s
+}
+
+// SetSession sets the Session field's value.
+func (s *ExecuteCommandOutput) SetSession(v *Session) *ExecuteCommandOutput {
+	s.Session = v
+	return s
+}
+
+// SetTaskArn sets the TaskArn field's value.
+func (s *ExecuteCommandOutput) SetTaskArn(v string) *ExecuteCommandOutput {
+	s.TaskArn = &v
 	return s
 }
 
@@ -12079,6 +12664,8 @@ type FirelensConfiguration struct {
 	// For more information, see Creating a Task Definition that Uses a FireLens
 	// Configuration (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_firelens.html#firelens-taskdef)
 	// in the Amazon Elastic Container Service Developer Guide.
+	//
+	// Tasks hosted on AWS Fargate only support the file configuration file type.
 	Options map[string]*string `locationName:"options" type:"map"`
 
 	// The log router to use. The valid values are fluentd or fluentbit.
@@ -12847,6 +13434,9 @@ type ListAccountSettingsInput struct {
 	// The ARN of the principal, which can be an IAM user, IAM role, or the root
 	// user. If this field is omitted, the account settings are listed only for
 	// the authenticated user.
+	//
+	// Federated users assume the account setting of the root user and can't have
+	// explicit account settings set for them.
 	PrincipalArn *string `locationName:"principalArn" type:"string"`
 
 	// The value of the account settings with which to filter results. You must
@@ -13267,12 +13857,12 @@ func (s *ListContainerInstancesOutput) SetNextToken(v string) *ListContainerInst
 type ListServicesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The short name or full Amazon Resource Name (ARN) of the cluster that hosts
-	// the services to list. If you do not specify a cluster, the default cluster
-	// is assumed.
+	// The short name or full Amazon Resource Name (ARN) of the cluster to use when
+	// filtering the ListServices results. If you do not specify a cluster, the
+	// default cluster is assumed.
 	Cluster *string `locationName:"cluster" type:"string"`
 
-	// The launch type for the services to list.
+	// The launch type to use when filtering the ListServices results.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
 	// The maximum number of service results returned by ListServices in paginated
@@ -13293,7 +13883,7 @@ type ListServicesInput struct {
 	// retrieve the next items in a list and not for other programmatic purposes.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
-	// The scheduling strategy for services to list.
+	// The scheduling strategy to use when filtering the ListServices results.
 	SchedulingStrategy *string `locationName:"schedulingStrategy" type:"string" enum:"SchedulingStrategy"`
 }
 
@@ -13664,17 +14254,17 @@ func (s *ListTaskDefinitionsOutput) SetTaskDefinitionArns(v []*string) *ListTask
 type ListTasksInput struct {
 	_ struct{} `type:"structure"`
 
-	// The short name or full Amazon Resource Name (ARN) of the cluster that hosts
-	// the tasks to list. If you do not specify a cluster, the default cluster is
-	// assumed.
+	// The short name or full Amazon Resource Name (ARN) of the cluster to use when
+	// filtering the ListTasks results. If you do not specify a cluster, the default
+	// cluster is assumed.
 	Cluster *string `locationName:"cluster" type:"string"`
 
-	// The container instance ID or full ARN of the container instance with which
-	// to filter the ListTasks results. Specifying a containerInstance limits the
+	// The container instance ID or full ARN of the container instance to use when
+	// filtering the ListTasks results. Specifying a containerInstance limits the
 	// results to tasks that belong to that container instance.
 	ContainerInstance *string `locationName:"containerInstance" type:"string"`
 
-	// The task desired status with which to filter the ListTasks results. Specifying
+	// The task desired status to use when filtering the ListTasks results. Specifying
 	// a desiredStatus of STOPPED limits the results to tasks that Amazon ECS has
 	// set the desired status to STOPPED. This can be useful for debugging tasks
 	// that are not starting properly or have died or finished. The default status
@@ -13686,11 +14276,12 @@ type ListTasksInput struct {
 	// a task to that value (only a task's lastStatus may have a value of PENDING).
 	DesiredStatus *string `locationName:"desiredStatus" type:"string" enum:"DesiredStatus"`
 
-	// The name of the family with which to filter the ListTasks results. Specifying
-	// a family limits the results to tasks that belong to that family.
+	// The name of the task definition family to use when filtering the ListTasks
+	// results. Specifying a family limits the results to tasks that belong to that
+	// family.
 	Family *string `locationName:"family" type:"string"`
 
-	// The launch type for services to list.
+	// The launch type to use when filtering the ListTasks results.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
 	// The maximum number of task results returned by ListTasks in paginated output.
@@ -13711,7 +14302,7 @@ type ListTasksInput struct {
 	// retrieve the next items in a list and not for other programmatic purposes.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
-	// The name of the service with which to filter the ListTasks results. Specifying
+	// The name of the service to use when filtering the ListTasks results. Specifying
 	// a serviceName limits the results to tasks that belong to that service.
 	ServiceName *string `locationName:"serviceName" type:"string"`
 
@@ -14028,6 +14619,134 @@ func (s *LogConfiguration) SetOptions(v map[string]*string) *LogConfiguration {
 // SetSecretOptions sets the SecretOptions field's value.
 func (s *LogConfiguration) SetSecretOptions(v []*Secret) *LogConfiguration {
 	s.SecretOptions = v
+	return s
+}
+
+// Details about the managed agent status for the container.
+type ManagedAgent struct {
+	_ struct{} `type:"structure"`
+
+	// The Unix timestamp for when the managed agent was last started.
+	LastStartedAt *time.Time `locationName:"lastStartedAt" type:"timestamp"`
+
+	// The last known status of the managed agent.
+	LastStatus *string `locationName:"lastStatus" type:"string"`
+
+	// The name of the managed agent. When the execute command feature is enabled,
+	// the managed agent name is ExecuteCommandAgent.
+	Name *string `locationName:"name" type:"string" enum:"ManagedAgentName"`
+
+	// The reason for why the managed agent is in the state it is in.
+	Reason *string `locationName:"reason" type:"string"`
+}
+
+// String returns the string representation
+func (s ManagedAgent) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedAgent) GoString() string {
+	return s.String()
+}
+
+// SetLastStartedAt sets the LastStartedAt field's value.
+func (s *ManagedAgent) SetLastStartedAt(v time.Time) *ManagedAgent {
+	s.LastStartedAt = &v
+	return s
+}
+
+// SetLastStatus sets the LastStatus field's value.
+func (s *ManagedAgent) SetLastStatus(v string) *ManagedAgent {
+	s.LastStatus = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ManagedAgent) SetName(v string) *ManagedAgent {
+	s.Name = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *ManagedAgent) SetReason(v string) *ManagedAgent {
+	s.Reason = &v
+	return s
+}
+
+// An object representing a change in state for a managed agent.
+type ManagedAgentStateChange struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the container associated with the managed agent.
+	//
+	// ContainerName is a required field
+	ContainerName *string `locationName:"containerName" type:"string" required:"true"`
+
+	// The name of the managed agent.
+	//
+	// ManagedAgentName is a required field
+	ManagedAgentName *string `locationName:"managedAgentName" type:"string" required:"true" enum:"ManagedAgentName"`
+
+	// The reason for the status of the managed agent.
+	Reason *string `locationName:"reason" type:"string"`
+
+	// The status of the managed agent.
+	//
+	// Status is a required field
+	Status *string `locationName:"status" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ManagedAgentStateChange) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedAgentStateChange) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ManagedAgentStateChange) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ManagedAgentStateChange"}
+	if s.ContainerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ContainerName"))
+	}
+	if s.ManagedAgentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ManagedAgentName"))
+	}
+	if s.Status == nil {
+		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetContainerName sets the ContainerName field's value.
+func (s *ManagedAgentStateChange) SetContainerName(v string) *ManagedAgentStateChange {
+	s.ContainerName = &v
+	return s
+}
+
+// SetManagedAgentName sets the ManagedAgentName field's value.
+func (s *ManagedAgentStateChange) SetManagedAgentName(v string) *ManagedAgentStateChange {
+	s.ManagedAgentName = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *ManagedAgentStateChange) SetReason(v string) *ManagedAgentStateChange {
+	s.Reason = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ManagedAgentStateChange) SetStatus(v string) *ManagedAgentStateChange {
+	s.Status = &v
 	return s
 }
 
@@ -14696,6 +15415,9 @@ func (s *PlatformUnknownException) RequestID() string {
 // exposed ports should be specified using containerPort. The hostPort can be
 // left blank or it must be the same value as the containerPort.
 //
+// You cannot expose the same container port for multiple protocols. An error
+// will be returned if this is attempted
+//
 // After a task reaches the RUNNING status, manual and automatic host and container
 // port assignments are visible in the networkBindings section of DescribeTasks
 // API responses.
@@ -14934,7 +15656,7 @@ func (s *PutAccountSettingDefaultInput) SetValue(v string) *PutAccountSettingDef
 type PutAccountSettingDefaultOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The current account setting for a resource.
+	// The current setting for a resource.
 	Setting *Setting `locationName:"setting" type:"structure"`
 }
 
@@ -14975,6 +15697,9 @@ type PutAccountSettingInput struct {
 	// IAM users, IAM roles, and the root user of the account unless an IAM user
 	// or role explicitly overrides these settings. If this field is omitted, the
 	// setting is changed only for the authenticated user.
+	//
+	// Federated users assume the account setting of the root user and can't have
+	// explicit account settings set for them.
 	PrincipalArn *string `locationName:"principalArn" type:"string"`
 
 	// The account setting value for the specified principal ARN. Accepted values
@@ -15242,10 +15967,7 @@ func (s *PutClusterCapacityProvidersInput) SetDefaultCapacityProviderStrategy(v 
 type PutClusterCapacityProvidersOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A regional grouping of one or more container instances on which you can run
-	// task requests. Each account receives a default cluster the first time you
-	// use the Amazon ECS service, but you may also create other clusters. Clusters
-	// may contain more than one instance type simultaneously.
+	// Details about the cluster.
 	Cluster *Cluster `locationName:"cluster" type:"structure"`
 }
 
@@ -15495,6 +16217,16 @@ type RegisterTaskDefinitionInput struct {
 	//    (30 GB) in increments of 1024 (1 GB)
 	Cpu *string `locationName:"cpu" type:"string"`
 
+	// The amount of ephemeral storage to allocate for the task. This parameter
+	// is used to expand the total amount of ephemeral storage available, beyond
+	// the default amount, for tasks hosted on AWS Fargate. For more information,
+	// see Fargate task storage (https://docs.aws.amazon.com/AmazonECS/latest/userguide/using_data_volumes.html)
+	// in the Amazon ECS User Guide for AWS Fargate.
+	//
+	// This parameter is only supported for tasks hosted on AWS Fargate using platform
+	// version 1.4.0 or later.
+	EphemeralStorage *EphemeralStorage `locationName:"ephemeralStorage" type:"structure"`
+
 	// The Amazon Resource Name (ARN) of the task execution role that grants the
 	// Amazon ECS container agent permission to make AWS API calls on your behalf.
 	// The task execution IAM role is required depending on the requirements of
@@ -15505,7 +16237,7 @@ type RegisterTaskDefinitionInput struct {
 	// You must specify a family for a task definition, which allows you to track
 	// multiple versions of the same task definition. The family is used as a name
 	// for your task definition. Up to 255 letters (uppercase and lowercase), numbers,
-	// and hyphens are allowed.
+	// underscores, and hyphens are allowed.
 	//
 	// Family is a required field
 	Family *string `locationName:"family" type:"string" required:"true"`
@@ -15540,8 +16272,8 @@ type RegisterTaskDefinitionInput struct {
 	//    * For tasks that use the task IPC mode, IPC namespace related systemControls
 	//    will apply to all containers within a task.
 	//
-	// This parameter is not supported for Windows containers or tasks using the
-	// Fargate launch type.
+	// This parameter is not supported for Windows containers or tasks run on AWS
+	// Fargate.
 	IpcMode *string `locationName:"ipcMode" type:"string" enum:"IpcMode"`
 
 	// The amount of memory (in MiB) used by the task. It can be expressed as an
@@ -15629,8 +16361,8 @@ type RegisterTaskDefinitionInput struct {
 	// undesired process namespace expose. For more information, see Docker security
 	// (https://docs.docker.com/engine/security/security/).
 	//
-	// This parameter is not supported for Windows containers or tasks using the
-	// Fargate launch type.
+	// This parameter is not supported for Windows containers or tasks run on AWS
+	// Fargate.
 	PidMode *string `locationName:"pidMode" type:"string" enum:"PidMode"`
 
 	// An array of placement constraint objects to use for the task. You can specify
@@ -15640,18 +16372,20 @@ type RegisterTaskDefinitionInput struct {
 
 	// The configuration details for the App Mesh proxy.
 	//
-	// For tasks using the EC2 launch type, the container instances require at least
-	// version 1.26.0 of the container agent and at least version 1.26.0-1 of the
-	// ecs-init package to enable a proxy configuration. If your container instances
-	// are launched from the Amazon ECS-optimized AMI version 20190301 or later,
-	// then they contain the required versions of the container agent and ecs-init.
-	// For more information, see Amazon ECS-optimized Linux AMI (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html)
+	// For tasks hosted on Amazon EC2 instances, the container instances require
+	// at least version 1.26.0 of the container agent and at least version 1.26.0-1
+	// of the ecs-init package to enable a proxy configuration. If your container
+	// instances are launched from the Amazon ECS-optimized AMI version 20190301
+	// or later, then they contain the required versions of the container agent
+	// and ecs-init. For more information, see Amazon ECS-optimized AMI versions
+	// (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-ami-versions.html)
+	// in the Amazon Elastic Container Service Developer Guide.
 	ProxyConfiguration *ProxyConfiguration `locationName:"proxyConfiguration" type:"structure"`
 
 	// The task launch type that Amazon ECS should validate the task definition
-	// against. This ensures that the task definition parameters are compatible
-	// with the specified launch type. If no value is specified, it defaults to
-	// EC2.
+	// against. A client exception is returned if the task definition doesn't validate
+	// against the compatibilities specified. If no value is specified, the parameter
+	// is omitted from the response.
 	RequiresCompatibilities []*string `locationName:"requiresCompatibilities" type:"list"`
 
 	// The metadata that you apply to the task definition to help you categorize
@@ -15723,6 +16457,11 @@ func (s *RegisterTaskDefinitionInput) Validate() error {
 			}
 		}
 	}
+	if s.EphemeralStorage != nil {
+		if err := s.EphemeralStorage.Validate(); err != nil {
+			invalidParams.AddNested("EphemeralStorage", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.InferenceAccelerators != nil {
 		for i, v := range s.InferenceAccelerators {
 			if v == nil {
@@ -15774,6 +16513,12 @@ func (s *RegisterTaskDefinitionInput) SetContainerDefinitions(v []*ContainerDefi
 // SetCpu sets the Cpu field's value.
 func (s *RegisterTaskDefinitionInput) SetCpu(v string) *RegisterTaskDefinitionInput {
 	s.Cpu = &v
+	return s
+}
+
+// SetEphemeralStorage sets the EphemeralStorage field's value.
+func (s *RegisterTaskDefinitionInput) SetEphemeralStorage(v *EphemeralStorage) *RegisterTaskDefinitionInput {
+	s.EphemeralStorage = v
 	return s
 }
 
@@ -16188,26 +16933,9 @@ type RunTaskInput struct {
 
 	// The capacity provider strategy to use for the task.
 	//
-	// A capacity provider strategy consists of one or more capacity providers along
-	// with the base and weight to assign to them. A capacity provider must be associated
-	// with the cluster to be used in a capacity provider strategy. The PutClusterCapacityProviders
-	// API is used to associate a capacity provider with a cluster. Only capacity
-	// providers with an ACTIVE or UPDATING status can be used.
-	//
 	// If a capacityProviderStrategy is specified, the launchType parameter must
 	// be omitted. If no capacityProviderStrategy or launchType is specified, the
 	// defaultCapacityProviderStrategy for the cluster is used.
-	//
-	// If specifying a capacity provider that uses an Auto Scaling group, the capacity
-	// provider must already be created. New capacity providers can be created with
-	// the CreateCapacityProvider API operation.
-	//
-	// To use a AWS Fargate capacity provider, specify either the FARGATE or FARGATE_SPOT
-	// capacity providers. The AWS Fargate capacity providers are available to all
-	// accounts and only need to be associated with a cluster to be used.
-	//
-	// The PutClusterCapacityProviders API operation is used to update the list
-	// of available capacity providers for a cluster after the cluster is created.
 	CapacityProviderStrategy []*CapacityProviderStrategyItem `locationName:"capacityProviderStrategy" type:"list"`
 
 	// The short name or full Amazon Resource Name (ARN) of the cluster on which
@@ -16224,16 +16952,34 @@ type RunTaskInput struct {
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
+	// Whether or not to enable the execute command functionality for the containers
+	// in this task. If true, this enables execute command functionality on all
+	// containers in the task.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
+
 	// The name of the task group to associate with the task. The default value
 	// is the family name of the task definition (for example, family:my-family-name).
 	Group *string `locationName:"group" type:"string"`
 
-	// The launch type on which to run your task. For more information, see Amazon
-	// ECS Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// The infrastructure on which to run your standalone task. For more information,
+	// see Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	//
-	// If a launchType is specified, the capacityProviderStrategy parameter must
-	// be omitted.
+	// The FARGATE launch type runs your tasks on AWS Fargate On-Demand infrastructure.
+	//
+	// Fargate Spot infrastructure is available for use but a capacity provider
+	// strategy must be used. For more information, see AWS Fargate capacity providers
+	// (https://docs.aws.amazon.com/AmazonECS/latest/userguide/fargate-capacity-providers.html)
+	// in the Amazon ECS User Guide for AWS Fargate.
+	//
+	// The EC2 launch type runs your tasks on Amazon EC2 instances registered to
+	// your cluster.
+	//
+	// The EXTERNAL launch type runs your tasks on your on-premise server or virtual
+	// machine (VM) capacity registered to your cluster.
+	//
+	// A task can use either a launch type or a capacity provider strategy. If a
+	// launchType is specified, the capacityProviderStrategy parameter must be omitted.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
 	// The network configuration for the task. This parameter is required for task
@@ -16403,6 +17149,12 @@ func (s *RunTaskInput) SetCount(v int64) *RunTaskInput {
 // SetEnableECSManagedTags sets the EnableECSManagedTags field's value.
 func (s *RunTaskInput) SetEnableECSManagedTags(v bool) *RunTaskInput {
 	s.EnableECSManagedTags = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *RunTaskInput) SetEnableExecuteCommand(v bool) *RunTaskInput {
+	s.EnableExecuteCommand = &v
 	return s
 }
 
@@ -16710,6 +17462,11 @@ type Service struct {
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
 
+	// Whether or not the execute command functionality is enabled for the service.
+	// If true, the execute command functionality is enabled for all containers
+	// in tasks as part of the service.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
+
 	// The event stream for your service. A maximum of 100 of the latest events
 	// are displayed.
 	Events []*ServiceEvent `locationName:"events" type:"list"`
@@ -16719,9 +17476,8 @@ type Service struct {
 	// started.
 	HealthCheckGracePeriodSeconds *int64 `locationName:"healthCheckGracePeriodSeconds" type:"integer"`
 
-	// The launch type on which your service is running. If no value is specified,
-	// it will default to EC2. Valid values include EC2 and FARGATE. For more information,
-	// see Amazon ECS Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// The infrastructure on which your service is running. For more information,
+	// see Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
@@ -16786,9 +17542,9 @@ type Service struct {
 	ServiceArn *string `locationName:"serviceArn" type:"string"`
 
 	// The name of your service. Up to 255 letters (uppercase and lowercase), numbers,
-	// and hyphens are allowed. Service names must be unique within a cluster, but
-	// you can have similarly named services in multiple clusters within a Region
-	// or across multiple Regions.
+	// underscores, and hyphens are allowed. Service names must be unique within
+	// a cluster, but you can have similarly named services in multiple clusters
+	// within a Region or across multiple Regions.
 	ServiceName *string `locationName:"serviceName" type:"string"`
 
 	// The details of the service discovery registries to assign to this service.
@@ -16899,6 +17655,12 @@ func (s *Service) SetDesiredCount(v int64) *Service {
 // SetEnableECSManagedTags sets the EnableECSManagedTags field's value.
 func (s *Service) SetEnableECSManagedTags(v bool) *Service {
 	s.EnableECSManagedTags = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *Service) SetEnableExecuteCommand(v bool) *Service {
+	s.EnableExecuteCommand = &v
 	return s
 }
 
@@ -17245,6 +18007,50 @@ func (s *ServiceRegistry) SetRegistryArn(v string) *ServiceRegistry {
 	return s
 }
 
+// The details of the execute command session.
+type Session struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the execute command session.
+	SessionId *string `locationName:"sessionId" type:"string"`
+
+	// A URL back to managed agent on the container that the SSM Session Manager
+	// client uses to send commands and receive output from the container.
+	StreamUrl *string `locationName:"streamUrl" type:"string"`
+
+	// An encrypted token value containing session and caller information. Used
+	// to authenticate the connection to the container.
+	TokenValue *string `locationName:"tokenValue" type:"string" sensitive:"true"`
+}
+
+// String returns the string representation
+func (s Session) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Session) GoString() string {
+	return s.String()
+}
+
+// SetSessionId sets the SessionId field's value.
+func (s *Session) SetSessionId(v string) *Session {
+	s.SessionId = &v
+	return s
+}
+
+// SetStreamUrl sets the StreamUrl field's value.
+func (s *Session) SetStreamUrl(v string) *Session {
+	s.StreamUrl = &v
+	return s
+}
+
+// SetTokenValue sets the TokenValue field's value.
+func (s *Session) SetTokenValue(v string) *Session {
+	s.TokenValue = &v
+	return s
+}
+
 // The current account setting for a resource.
 type Setting struct {
 	_ struct{} `type:"structure"`
@@ -17307,6 +18113,11 @@ type StartTaskInput struct {
 	// information, see Tagging Your Amazon ECS Resources (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-using-tags.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	EnableECSManagedTags *bool `locationName:"enableECSManagedTags" type:"boolean"`
+
+	// Whether or not the execute command functionality is enabled for the task.
+	// If true, this enables execute command functionality on all containers in
+	// the task.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
 
 	// The name of the task group to associate with the task. The default value
 	// is the family name of the task definition (for example, family:my-family-name).
@@ -17442,6 +18253,12 @@ func (s *StartTaskInput) SetContainerInstances(v []*string) *StartTaskInput {
 // SetEnableECSManagedTags sets the EnableECSManagedTags field's value.
 func (s *StartTaskInput) SetEnableECSManagedTags(v bool) *StartTaskInput {
 	s.EnableECSManagedTags = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *StartTaskInput) SetEnableExecuteCommand(v bool) *StartTaskInput {
+	s.EnableExecuteCommand = &v
 	return s
 }
 
@@ -17817,6 +18634,9 @@ type SubmitTaskStateChangeInput struct {
 	// The Unix timestamp for when the task execution stopped.
 	ExecutionStoppedAt *time.Time `locationName:"executionStoppedAt" type:"timestamp"`
 
+	// The details for the managed agent associated with the task.
+	ManagedAgents []*ManagedAgentStateChange `locationName:"managedAgents" type:"list"`
+
 	// The Unix timestamp for when the container image pull began.
 	PullStartedAt *time.Time `locationName:"pullStartedAt" type:"timestamp"`
 
@@ -17856,6 +18676,16 @@ func (s *SubmitTaskStateChangeInput) Validate() error {
 			}
 		}
 	}
+	if s.ManagedAgents != nil {
+		for i, v := range s.ManagedAgents {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ManagedAgents", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17884,6 +18714,12 @@ func (s *SubmitTaskStateChangeInput) SetContainers(v []*ContainerStateChange) *S
 // SetExecutionStoppedAt sets the ExecutionStoppedAt field's value.
 func (s *SubmitTaskStateChangeInput) SetExecutionStoppedAt(v time.Time) *SubmitTaskStateChangeInput {
 	s.ExecutionStoppedAt = &v
+	return s
+}
+
+// SetManagedAgents sets the ManagedAgents field's value.
+func (s *SubmitTaskStateChangeInput) SetManagedAgents(v []*ManagedAgentStateChange) *SubmitTaskStateChangeInput {
+	s.ManagedAgents = v
 	return s
 }
 
@@ -18163,6 +18999,63 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
+// The target container is not properly configured with the execute command
+// agent or the container is no longer active or running.
+type TargetNotConnectedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TargetNotConnectedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetNotConnectedException) GoString() string {
+	return s.String()
+}
+
+func newErrorTargetNotConnectedException(v protocol.ResponseMetadata) error {
+	return &TargetNotConnectedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TargetNotConnectedException) Code() string {
+	return "TargetNotConnectedException"
+}
+
+// Message returns the exception's message.
+func (s *TargetNotConnectedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TargetNotConnectedException) OrigErr() error {
+	return nil
+}
+
+func (s *TargetNotConnectedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TargetNotConnectedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TargetNotConnectedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The specified target could not be found. You can view your available container
 // instances with ListContainerInstances. Amazon ECS container instances are
 // cluster-specific and Region-specific.
@@ -18290,6 +19183,14 @@ type Task struct {
 	// (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html).
 	DesiredStatus *string `locationName:"desiredStatus" type:"string"`
 
+	// Whether or not execute command functionality is enabled for this task. If
+	// true, this enables execute command functionality on all containers in the
+	// task.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
+
+	// The ephemeral storage settings for the task.
+	EphemeralStorage *EphemeralStorage `locationName:"ephemeralStorage" type:"structure"`
+
 	// The Unix timestamp for when the task execution stopped.
 	ExecutionStoppedAt *time.Time `locationName:"executionStoppedAt" type:"timestamp"`
 
@@ -18316,8 +19217,8 @@ type Task struct {
 	// (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html).
 	LastStatus *string `locationName:"lastStatus" type:"string"`
 
-	// The launch type on which your task is running. For more information, see
-	// Amazon ECS Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// The infrastructure on which your task is running. For more information, see
+	// Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
@@ -18514,6 +19415,18 @@ func (s *Task) SetDesiredStatus(v string) *Task {
 	return s
 }
 
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *Task) SetEnableExecuteCommand(v bool) *Task {
+	s.EnableExecuteCommand = &v
+	return s
+}
+
+// SetEphemeralStorage sets the EphemeralStorage field's value.
+func (s *Task) SetEphemeralStorage(v *EphemeralStorage) *Task {
+	s.EphemeralStorage = v
+	return s
+}
+
 // SetExecutionStoppedAt sets the ExecutionStoppedAt field's value.
 func (s *Task) SetExecutionStoppedAt(v time.Time) *Task {
 	s.ExecutionStoppedAt = &v
@@ -18648,8 +19561,8 @@ func (s *Task) SetVersion(v int64) *Task {
 type TaskDefinition struct {
 	_ struct{} `type:"structure"`
 
-	// The launch type to use with your task. For more information, see Amazon ECS
-	// Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// The task launch types the task definition validated against during task definition
+	// registration. For more information, see Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	Compatibilities []*string `locationName:"compatibilities" type:"list"`
 
@@ -18683,6 +19596,9 @@ type TaskDefinition struct {
 
 	// The Unix timestamp for when the task definition was deregistered.
 	DeregisteredAt *time.Time `locationName:"deregisteredAt" type:"timestamp"`
+
+	// The ephemeral storage settings to use for tasks run with the task definition.
+	EphemeralStorage *EphemeralStorage `locationName:"ephemeralStorage" type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the task execution role that grants the
 	// Amazon ECS container agent permission to make AWS API calls on your behalf.
@@ -18731,21 +19647,21 @@ type TaskDefinition struct {
 	//    * For tasks that use the task IPC mode, IPC namespace related systemControls
 	//    will apply to all containers within a task.
 	//
-	// This parameter is not supported for Windows containers or tasks using the
-	// Fargate launch type.
+	// This parameter is not supported for Windows containers or tasks run on AWS
+	// Fargate.
 	IpcMode *string `locationName:"ipcMode" type:"string" enum:"IpcMode"`
 
 	// The amount (in MiB) of memory used by the task.
 	//
-	// If using the EC2 launch type, you must specify either a task-level memory
-	// value or a container-level memory value. This field is optional and any value
-	// can be used. If a task-level memory value is specified then the container-level
-	// memory value is optional. For more information regarding container-level
-	// memory and memory reservation, see ContainerDefinition (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html).
+	// If your tasks will be run on Amazon EC2 instances, you must specify either
+	// a task-level memory value or a container-level memory value. This field is
+	// optional and any value can be used. If a task-level memory value is specified
+	// then the container-level memory value is optional. For more information regarding
+	// container-level memory and memory reservation, see ContainerDefinition (https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html).
 	//
-	// If using the Fargate launch type, this field is required and you must use
-	// one of the following values, which determines your range of valid values
-	// for the cpu parameter:
+	// If your tasks will be run on AWS Fargate, this field is required and you
+	// must use one of the following values, which determines your range of valid
+	// values for the cpu parameter:
 	//
 	//    * 512 (0.5 GB), 1024 (1 GB), 2048 (2 GB) - Available cpu values: 256 (.25
 	//    vCPU)
@@ -18818,12 +19734,13 @@ type TaskDefinition struct {
 	// undesired process namespace expose. For more information, see Docker security
 	// (https://docs.docker.com/engine/security/security/).
 	//
-	// This parameter is not supported for Windows containers or tasks using the
-	// Fargate launch type.
+	// This parameter is not supported for Windows containers or tasks run on AWS
+	// Fargate.
 	PidMode *string `locationName:"pidMode" type:"string" enum:"PidMode"`
 
-	// An array of placement constraint objects to use for tasks. This field is
-	// not valid if you are using the Fargate launch type for your task.
+	// An array of placement constraint objects to use for tasks.
+	//
+	// This parameter is not supported for tasks run on AWS Fargate.
 	PlacementConstraints []*TaskDefinitionPlacementConstraint `locationName:"placementConstraints" type:"list"`
 
 	// The configuration details for the App Mesh proxy.
@@ -18843,12 +19760,20 @@ type TaskDefinition struct {
 	// The principal that registered the task definition.
 	RegisteredBy *string `locationName:"registeredBy" type:"string"`
 
-	// The container instance attributes required by your task. This field is not
-	// valid if you are using the Fargate launch type for your task.
+	// The container instance attributes required by your task. When an Amazon EC2
+	// instance is registered to your cluster, the Amazon ECS container agent assigns
+	// some standard attributes to the instance. You can apply custom attributes,
+	// specified as key-value pairs using the Amazon ECS console or the PutAttributes
+	// API. These attributes are used when considering task placement for tasks
+	// hosted on Amazon EC2 instances. For more information, see Attributes (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html#attributes)
+	// in the Amazon Elastic Container Service Developer Guide.
+	//
+	// This parameter is not supported for tasks run on AWS Fargate.
 	RequiresAttributes []*Attribute `locationName:"requiresAttributes" type:"list"`
 
-	// The launch type the task requires. If no value is specified, it will default
-	// to EC2. Valid values include EC2 and FARGATE.
+	// The task launch types the task definition was validated against. To determine
+	// which task launch types the task definition is validated for, see the TaskDefinition$compatibilities
+	// parameter.
 	RequiresCompatibilities []*string `locationName:"requiresCompatibilities" type:"list"`
 
 	// The revision of the task in a particular family. The revision is a version
@@ -18874,18 +19799,16 @@ type TaskDefinition struct {
 	// IAM roles for tasks on Windows require that the -EnableTaskIAMRole option
 	// is set when you launch the Amazon ECS-optimized Windows AMI. Your containers
 	// must also run some configuration code in order to take advantage of the feature.
-	// For more information, see Windows IAM Roles for Tasks (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/windows_task_IAM_roles.html)
+	// For more information, see Windows IAM roles for tasks (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/windows_task_IAM_roles.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	TaskRoleArn *string `locationName:"taskRoleArn" type:"string"`
 
-	// The list of volume definitions for the task.
-	//
-	// If your tasks are using the Fargate launch type, the host and sourcePath
-	// parameters are not supported.
-	//
-	// For more information about volume definition parameters and defaults, see
-	// Amazon ECS Task Definitions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html)
+	// The list of data volume definitions for the task. For more information, see
+	// Using data volumes in tasks (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_data_volumes.html)
 	// in the Amazon Elastic Container Service Developer Guide.
+	//
+	// The host and sourcePath parameters are not supported for tasks run on AWS
+	// Fargate.
 	Volumes []*Volume `locationName:"volumes" type:"list"`
 }
 
@@ -18920,6 +19843,12 @@ func (s *TaskDefinition) SetCpu(v string) *TaskDefinition {
 // SetDeregisteredAt sets the DeregisteredAt field's value.
 func (s *TaskDefinition) SetDeregisteredAt(v time.Time) *TaskDefinition {
 	s.DeregisteredAt = &v
+	return s
+}
+
+// SetEphemeralStorage sets the EphemeralStorage field's value.
+func (s *TaskDefinition) SetEphemeralStorage(v *EphemeralStorage) *TaskDefinition {
+	s.EphemeralStorage = v
 	return s
 }
 
@@ -19032,16 +19961,15 @@ func (s *TaskDefinition) SetVolumes(v []*Volume) *TaskDefinition {
 }
 
 // An object representing a constraint on task placement in the task definition.
-// For more information, see Task Placement Constraints (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html)
+// For more information, see Task placement constraints (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-constraints.html)
 // in the Amazon Elastic Container Service Developer Guide.
 //
-// If you are using the Fargate launch type, task placement constraints are
-// not supported.
+// Task placement constraints are not supported for tasks run on AWS Fargate.
 type TaskDefinitionPlacementConstraint struct {
 	_ struct{} `type:"structure"`
 
 	// A cluster query language expression to apply to the constraint. For more
-	// information, see Cluster Query Language (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html)
+	// information, see Cluster query language (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	Expression *string `locationName:"expression" type:"string"`
 
@@ -19082,6 +20010,12 @@ type TaskOverride struct {
 	// The cpu override for the task.
 	Cpu *string `locationName:"cpu" type:"string"`
 
+	// The ephemeral storage setting override for the task.
+	//
+	// This parameter is only supported for tasks hosted on AWS Fargate using platform
+	// version 1.4.0 or later.
+	EphemeralStorage *EphemeralStorage `locationName:"ephemeralStorage" type:"structure"`
+
 	// The Amazon Resource Name (ARN) of the task execution IAM role override for
 	// the task.
 	ExecutionRoleArn *string `locationName:"executionRoleArn" type:"string"`
@@ -19121,6 +20055,11 @@ func (s *TaskOverride) Validate() error {
 			}
 		}
 	}
+	if s.EphemeralStorage != nil {
+		if err := s.EphemeralStorage.Validate(); err != nil {
+			invalidParams.AddNested("EphemeralStorage", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -19137,6 +20076,12 @@ func (s *TaskOverride) SetContainerOverrides(v []*ContainerOverride) *TaskOverri
 // SetCpu sets the Cpu field's value.
 func (s *TaskOverride) SetCpu(v string) *TaskOverride {
 	s.Cpu = &v
+	return s
+}
+
+// SetEphemeralStorage sets the EphemeralStorage field's value.
+func (s *TaskOverride) SetEphemeralStorage(v *EphemeralStorage) *TaskOverride {
+	s.EphemeralStorage = v
 	return s
 }
 
@@ -19201,7 +20146,7 @@ type TaskSet struct {
 	Id *string `locationName:"id" type:"string"`
 
 	// The launch type the tasks in the task set are using. For more information,
-	// see Amazon ECS Launch Types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
+	// see Amazon ECS launch types (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	LaunchType *string `locationName:"launchType" type:"string" enum:"LaunchType"`
 
@@ -19217,10 +20162,9 @@ type TaskSet struct {
 	// time or when it is restarted after being in the STOPPED state.
 	PendingCount *int64 `locationName:"pendingCount" type:"integer"`
 
-	// The platform version on which the tasks in the task set are running. A platform
-	// version is only specified for tasks using the Fargate launch type. If one
-	// is not specified, the LATEST platform version is used by default. For more
-	// information, see AWS Fargate Platform Versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
+	// The AWS Fargate platform version on which the tasks in the task set are running.
+	// A platform version is only specified for tasks run on AWS Fargate. For more
+	// information, see AWS Fargate platform versions (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html)
 	// in the Amazon Elastic Container Service Developer Guide.
 	PlatformVersion *string `locationName:"platformVersion" type:"string"`
 
@@ -19236,7 +20180,7 @@ type TaskSet struct {
 	ServiceArn *string `locationName:"serviceArn" type:"string"`
 
 	// The details of the service discovery registries to assign to this task set.
-	// For more information, see Service Discovery (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html).
+	// For more information, see Service discovery (https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-discovery.html).
 	ServiceRegistries []*ServiceRegistry `locationName:"serviceRegistries" type:"list"`
 
 	// The stability status, which indicates whether the task set has reached a
@@ -19594,6 +20538,12 @@ func (s *Tmpfs) SetSize(v int64) *Tmpfs {
 }
 
 // The ulimit settings to pass to the container.
+//
+// Amazon ECS tasks hosted on Fargate use the default resource limit values
+// set by the operating system with the exception of the nofile resource limit
+// parameter which Fargate overrides. The nofile resource limit sets a restriction
+// on the number of open files that a container can use. The default nofile
+// soft limit is 1024 and hard limit is 4096.
 type Ulimit struct {
 	_ struct{} `type:"structure"`
 
@@ -19845,7 +20795,7 @@ func (s *UpdateCapacityProviderInput) SetName(v string) *UpdateCapacityProviderI
 type UpdateCapacityProviderOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The details of a capacity provider.
+	// Details about the capacity provider.
 	CapacityProvider *CapacityProvider `locationName:"capacityProvider" type:"structure"`
 }
 
@@ -19862,6 +20812,85 @@ func (s UpdateCapacityProviderOutput) GoString() string {
 // SetCapacityProvider sets the CapacityProvider field's value.
 func (s *UpdateCapacityProviderOutput) SetCapacityProvider(v *CapacityProvider) *UpdateCapacityProviderOutput {
 	s.CapacityProvider = v
+	return s
+}
+
+type UpdateClusterInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the cluster to modify the settings for.
+	//
+	// Cluster is a required field
+	Cluster *string `locationName:"cluster" type:"string" required:"true"`
+
+	// The execute command configuration for the cluster.
+	Configuration *ClusterConfiguration `locationName:"configuration" type:"structure"`
+
+	// The cluster settings for your cluster.
+	Settings []*ClusterSetting `locationName:"settings" type:"list"`
+}
+
+// String returns the string representation
+func (s UpdateClusterInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateClusterInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateClusterInput"}
+	if s.Cluster == nil {
+		invalidParams.Add(request.NewErrParamRequired("Cluster"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCluster sets the Cluster field's value.
+func (s *UpdateClusterInput) SetCluster(v string) *UpdateClusterInput {
+	s.Cluster = &v
+	return s
+}
+
+// SetConfiguration sets the Configuration field's value.
+func (s *UpdateClusterInput) SetConfiguration(v *ClusterConfiguration) *UpdateClusterInput {
+	s.Configuration = v
+	return s
+}
+
+// SetSettings sets the Settings field's value.
+func (s *UpdateClusterInput) SetSettings(v []*ClusterSetting) *UpdateClusterInput {
+	s.Settings = v
+	return s
+}
+
+type UpdateClusterOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Details about the cluster.
+	Cluster *Cluster `locationName:"cluster" type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateClusterOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateClusterOutput) GoString() string {
+	return s.String()
+}
+
+// SetCluster sets the Cluster field's value.
+func (s *UpdateClusterOutput) SetCluster(v *Cluster) *UpdateClusterOutput {
+	s.Cluster = v
 	return s
 }
 
@@ -19923,10 +20952,7 @@ func (s *UpdateClusterSettingsInput) SetSettings(v []*ClusterSetting) *UpdateClu
 type UpdateClusterSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A regional grouping of one or more container instances on which you can run
-	// task requests. Each account receives a default cluster the first time you
-	// use the Amazon ECS service, but you may also create other clusters. Clusters
-	// may contain more than one instance type simultaneously.
+	// Details about the cluster
 	Cluster *Cluster `locationName:"cluster" type:"structure"`
 }
 
@@ -20222,6 +21248,12 @@ type UpdateServiceInput struct {
 	// service.
 	DesiredCount *int64 `locationName:"desiredCount" type:"integer"`
 
+	// If true, this enables execute command functionality on all task containers.
+	//
+	// If you do not want to override the value that was set when the service was
+	// created, you can set this to null when performing this action.
+	EnableExecuteCommand *bool `locationName:"enableExecuteCommand" type:"boolean"`
+
 	// Whether to force a new deployment of the service. Deployments are not forced
 	// by default. You can use this option to trigger a new deployment with no service
 	// definition changes. For example, you can update a service's tasks to use
@@ -20240,7 +21272,7 @@ type UpdateServiceInput struct {
 	// and stopping them before they have time to come up.
 	HealthCheckGracePeriodSeconds *int64 `locationName:"healthCheckGracePeriodSeconds" type:"integer"`
 
-	// An object representing the network configuration for a task or service.
+	// An object representing the network configuration for the service.
 	NetworkConfiguration *NetworkConfiguration `locationName:"networkConfiguration" type:"structure"`
 
 	// An array of task placement constraint objects to update the service to use.
@@ -20346,6 +21378,12 @@ func (s *UpdateServiceInput) SetDeploymentConfiguration(v *DeploymentConfigurati
 // SetDesiredCount sets the DesiredCount field's value.
 func (s *UpdateServiceInput) SetDesiredCount(v int64) *UpdateServiceInput {
 	s.DesiredCount = &v
+	return s
+}
+
+// SetEnableExecuteCommand sets the EnableExecuteCommand field's value.
+func (s *UpdateServiceInput) SetEnableExecuteCommand(v bool) *UpdateServiceInput {
+	s.EnableExecuteCommand = &v
 	return s
 }
 
@@ -20492,10 +21530,7 @@ func (s *UpdateServicePrimaryTaskSetInput) SetService(v string) *UpdateServicePr
 type UpdateServicePrimaryTaskSetOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Information about a set of Amazon ECS tasks in either an AWS CodeDeploy or
-	// an EXTERNAL deployment. An Amazon ECS task set includes details such as the
-	// desired number of tasks, how many tasks are running, and whether the task
-	// set serves production traffic.
+	// Details about the task set.
 	TaskSet *TaskSet `locationName:"taskSet" type:"structure"`
 }
 
@@ -20601,10 +21636,7 @@ func (s *UpdateTaskSetInput) SetTaskSet(v string) *UpdateTaskSetInput {
 type UpdateTaskSetOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Information about a set of Amazon ECS tasks in either an AWS CodeDeploy or
-	// an EXTERNAL deployment. An Amazon ECS task set includes details such as the
-	// desired number of tasks, how many tasks are running, and whether the task
-	// set serves production traffic.
+	// Details about the task set.
 	TaskSet *TaskSet `locationName:"taskSet" type:"structure"`
 }
 
@@ -20678,10 +21710,12 @@ func (s *VersionInfo) SetDockerVersion(v string) *VersionInfo {
 type Volume struct {
 	_ struct{} `type:"structure"`
 
-	// This parameter is specified when you are using Docker volumes. Docker volumes
-	// are only supported when you are using the EC2 launch type. Windows containers
-	// only support the use of the local driver. To use bind mounts, specify the
-	// host parameter instead.
+	// This parameter is specified when you are using Docker volumes.
+	//
+	// Windows containers only support the use of the local driver. To use bind
+	// mounts, specify the host parameter instead.
+	//
+	// Docker volumes are not supported by tasks run on AWS Fargate.
 	DockerVolumeConfiguration *DockerVolumeConfiguration `locationName:"dockerVolumeConfiguration" type:"structure"`
 
 	// This parameter is specified when you are using an Amazon Elastic File System
@@ -20706,8 +21740,8 @@ type Volume struct {
 	Host *HostVolumeProperties `locationName:"host" type:"structure"`
 
 	// The name of the volume. Up to 255 letters (uppercase and lowercase), numbers,
-	// and hyphens are allowed. This name is referenced in the sourceVolume parameter
-	// of container definition mountPoints.
+	// underscores, and hyphens are allowed. This name is referenced in the sourceVolume
+	// parameter of container definition mountPoints.
 	Name *string `locationName:"name" type:"string"`
 }
 
@@ -20919,6 +21953,9 @@ const (
 	// ClusterFieldAttachments is a ClusterField enum value
 	ClusterFieldAttachments = "ATTACHMENTS"
 
+	// ClusterFieldConfigurations is a ClusterField enum value
+	ClusterFieldConfigurations = "CONFIGURATIONS"
+
 	// ClusterFieldSettings is a ClusterField enum value
 	ClusterFieldSettings = "SETTINGS"
 
@@ -20933,6 +21970,7 @@ const (
 func ClusterField_Values() []string {
 	return []string{
 		ClusterFieldAttachments,
+		ClusterFieldConfigurations,
 		ClusterFieldSettings,
 		ClusterFieldStatistics,
 		ClusterFieldTags,
@@ -20957,6 +21995,9 @@ const (
 
 	// CompatibilityFargate is a Compatibility enum value
 	CompatibilityFargate = "FARGATE"
+
+	// CompatibilityExternal is a Compatibility enum value
+	CompatibilityExternal = "EXTERNAL"
 )
 
 // Compatibility_Values returns all elements of the Compatibility enum
@@ -20964,6 +22005,7 @@ func Compatibility_Values() []string {
 	return []string{
 		CompatibilityEc2,
 		CompatibilityFargate,
+		CompatibilityExternal,
 	}
 }
 
@@ -21172,6 +22214,26 @@ func EnvironmentFileType_Values() []string {
 }
 
 const (
+	// ExecuteCommandLoggingNone is a ExecuteCommandLogging enum value
+	ExecuteCommandLoggingNone = "NONE"
+
+	// ExecuteCommandLoggingDefault is a ExecuteCommandLogging enum value
+	ExecuteCommandLoggingDefault = "DEFAULT"
+
+	// ExecuteCommandLoggingOverride is a ExecuteCommandLogging enum value
+	ExecuteCommandLoggingOverride = "OVERRIDE"
+)
+
+// ExecuteCommandLogging_Values returns all elements of the ExecuteCommandLogging enum
+func ExecuteCommandLogging_Values() []string {
+	return []string{
+		ExecuteCommandLoggingNone,
+		ExecuteCommandLoggingDefault,
+		ExecuteCommandLoggingOverride,
+	}
+}
+
+const (
 	// FirelensConfigurationTypeFluentd is a FirelensConfigurationType enum value
 	FirelensConfigurationTypeFluentd = "fluentd"
 
@@ -21233,6 +22295,9 @@ const (
 
 	// LaunchTypeFargate is a LaunchType enum value
 	LaunchTypeFargate = "FARGATE"
+
+	// LaunchTypeExternal is a LaunchType enum value
+	LaunchTypeExternal = "EXTERNAL"
 )
 
 // LaunchType_Values returns all elements of the LaunchType enum
@@ -21240,6 +22305,7 @@ func LaunchType_Values() []string {
 	return []string{
 		LaunchTypeEc2,
 		LaunchTypeFargate,
+		LaunchTypeExternal,
 	}
 }
 
@@ -21280,6 +22346,18 @@ func LogDriver_Values() []string {
 		LogDriverAwslogs,
 		LogDriverSplunk,
 		LogDriverAwsfirelens,
+	}
+}
+
+const (
+	// ManagedAgentNameExecuteCommandAgent is a ManagedAgentName enum value
+	ManagedAgentNameExecuteCommandAgent = "ExecuteCommandAgent"
+)
+
+// ManagedAgentName_Values returns all elements of the ManagedAgentName enum
+func ManagedAgentName_Values() []string {
+	return []string{
+		ManagedAgentNameExecuteCommandAgent,
 	}
 }
 
