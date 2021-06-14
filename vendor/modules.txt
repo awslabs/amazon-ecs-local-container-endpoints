@@ -71,7 +71,7 @@ github.com/aws/amazon-ecs-agent/agent/utils/retry
 github.com/aws/amazon-ecs-agent/agent/utils/sync
 github.com/aws/amazon-ecs-agent/agent/utils/ttime
 github.com/aws/amazon-ecs-agent/agent/version
-# github.com/aws/aws-sdk-go v1.37.10
+# github.com/aws/aws-sdk-go v1.38.60
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
