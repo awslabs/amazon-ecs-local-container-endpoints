@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -23,20 +23,23 @@ import (
 	"time"
 
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient"
-	"github.com/aws/amazon-ecs-agent/agent/utils"
 	"github.com/cihub/seelog"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 )
 
-func parseCheckpoint(dataDir string) bool {
-	var checkPoint bool
+func parseCheckpoint(dataDir string) BooleanDefaultFalse {
+	checkPoint := parseBooleanDefaultFalseConfig("ECS_CHECKPOINT")
 	if dataDir != "" {
 		// if we have a directory to checkpoint to, default it to be on
-		checkPoint = utils.ParseBool(os.Getenv("ECS_CHECKPOINT"), true)
+		if checkPoint.Value == NotSet {
+			checkPoint.Value = ExplicitlyEnabled
+		}
 	} else {
 		// if the directory is not set, default to checkpointing off for
 		// backwards compatibility
-		checkPoint = utils.ParseBool(os.Getenv("ECS_CHECKPOINT"), false)
+		if checkPoint.Value == NotSet {
+			checkPoint.Value = ExplicitlyDisabled
+		}
 	}
 	return checkPoint
 }
@@ -91,6 +94,19 @@ func parseContainerStartTimeout() time.Duration {
 	return containerStartTimeout
 }
 
+func parseContainerCreateTimeout() time.Duration {
+	var containerCreateTimeout time.Duration
+	parsedCreateTimeout := parseEnvVariableDuration("ECS_CONTAINER_CREATE_TIMEOUT")
+	if parsedCreateTimeout >= minimumContainerCreateTimeout {
+		containerCreateTimeout = parsedCreateTimeout
+		// do the parsedCreateTimeout != 0 check for the same reason as in getDockerStopTimeout()
+	} else if parsedCreateTimeout != 0 {
+		containerCreateTimeout = minimumContainerCreateTimeout
+		seelog.Warnf("Discarded invalid value for container create timeout, parsed as: %v", parsedCreateTimeout)
+	}
+	return containerCreateTimeout
+}
+
 func parseImagePullInactivityTimeout() time.Duration {
 	var imagePullInactivityTimeout time.Duration
 	parsedImagePullInactivityTimeout := parseEnvVariableDuration("ECS_IMAGE_PULL_INACTIVITY_TIMEOUT")
@@ -118,6 +134,20 @@ func parseAvailableLoggingDrivers() []dockerclient.LoggingDriver {
 	}
 
 	return availableLoggingDrivers
+}
+
+func parseVolumePluginCapabilities() []string {
+	capsFromEnv := os.Getenv("ECS_VOLUME_PLUGIN_CAPABILITIES")
+	if capsFromEnv == "" {
+		return []string{}
+	}
+	capsDecoder := json.NewDecoder(strings.NewReader(capsFromEnv))
+	var caps []string
+	err := capsDecoder.Decode(&caps)
+	if err != nil {
+		seelog.Warnf("Invalid format for \"ECS_VOLUME_PLUGIN_CAPABILITIES\", expected a json list of string. error: %v", err)
+	}
+	return caps
 }
 
 func parseNumImagesToDeletePerCycle() int {
@@ -187,20 +217,46 @@ func parseAdditionalLocalRoutes(errs []error) ([]cnitypes.IPNet, []error) {
 	return additionalLocalRoutes, errs
 }
 
-func parseTaskCPUMemLimitEnabled() Conditional {
-	var taskCPUMemLimitEnabled Conditional
-	taskCPUMemLimitConfigString := os.Getenv("ECS_ENABLE_TASK_CPU_MEM_LIMIT")
-
-	// We only want to set taskCPUMemLimit if it is explicitly set to true or false.
-	// We can do this by checking against the ParseBool default
-	if taskCPUMemLimitConfigString != "" {
-		if utils.ParseBool(taskCPUMemLimitConfigString, false) {
-			taskCPUMemLimitEnabled = ExplicitlyEnabled
-		} else {
-			taskCPUMemLimitEnabled = ExplicitlyDisabled
-		}
+func parseBooleanDefaultFalseConfig(envVarName string) BooleanDefaultFalse {
+	boolDefaultFalseCofig := BooleanDefaultFalse{Value: NotSet}
+	configString := strings.TrimSpace(os.Getenv(envVarName))
+	if configString == "" {
+		// if intentionally not set, do not add warning log
+		return boolDefaultFalseCofig
 	}
-	return taskCPUMemLimitEnabled
+
+	res, err := strconv.ParseBool(configString)
+	if err == nil {
+		if res {
+			boolDefaultFalseCofig.Value = ExplicitlyEnabled
+		} else {
+			boolDefaultFalseCofig.Value = ExplicitlyDisabled
+		}
+	} else {
+		seelog.Warnf("Invalid format for \"%s\", expected a boolean. err %v", envVarName, err)
+	}
+	return boolDefaultFalseCofig
+}
+
+func parseBooleanDefaultTrueConfig(envVarName string) BooleanDefaultTrue {
+	boolDefaultTrueCofig := BooleanDefaultTrue{Value: NotSet}
+	configString := strings.TrimSpace(os.Getenv(envVarName))
+	if configString == "" {
+		// if intentionally not set, do not add warning log
+		return boolDefaultTrueCofig
+	}
+
+	res, err := strconv.ParseBool(configString)
+	if err == nil {
+		if res {
+			boolDefaultTrueCofig.Value = ExplicitlyEnabled
+		} else {
+			boolDefaultTrueCofig.Value = ExplicitlyDisabled
+		}
+	} else {
+		seelog.Warnf("Invalid format for \"%s\", expected a boolean. err %v", envVarName, err)
+	}
+	return boolDefaultTrueCofig
 }
 
 func parseTaskMetadataThrottles() (int, int) {
@@ -295,15 +351,23 @@ func parseImageCleanupExclusionList(envVar string) []string {
 	var imageCleanupExclusionList []string
 	if imageEnv == "" {
 		seelog.Debugf("Environment variable empty: %s", imageEnv)
+		return nil
 	} else {
 		imageCleanupExclusionList = strings.Split(imageEnv, ",")
 	}
 
-	// append known cached internal images to imageCleanupExclusionLis
-	imageCleanupExclusionList = append(imageCleanupExclusionList, CachedImageNameAgentContainer, CachedImageNamePauseContainer)
-
-	for _, image := range imageCleanupExclusionList {
-		seelog.Infof("Image excluded from cleanup: %s", image)
-	}
 	return imageCleanupExclusionList
+}
+
+func parseCgroupCPUPeriod() time.Duration {
+	duration := parseEnvVariableDuration("ECS_CGROUP_CPU_PERIOD")
+
+	if duration >= minimumCgroupCPUPeriod && duration <= maximumCgroupCPUPeriod {
+		return duration
+	} else if duration != 0 {
+		seelog.Warnf("CPU Period duration value: %v for Environment Variable ECS_CGROUP_CPU_PERIOD is not within [%v, %v], using default value instead",
+			duration, minimumCgroupCPUPeriod, maximumCgroupCPUPeriod)
+	}
+
+	return defaultCgroupCPUPeriod
 }
