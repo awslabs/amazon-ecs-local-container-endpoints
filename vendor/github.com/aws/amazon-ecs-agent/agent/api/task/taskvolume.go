@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,14 +16,21 @@ package task
 import (
 	"encoding/json"
 
+	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/fsxwindowsfileserver"
+	taskresourcetypes "github.com/aws/amazon-ecs-agent/agent/taskresource/types"
 	taskresourcevolume "github.com/aws/amazon-ecs-agent/agent/taskresource/volume"
+
 	"github.com/cihub/seelog"
 	"github.com/pkg/errors"
 )
 
 const (
-	HostVolumeType   = "host"
-	DockerVolumeType = "docker"
+	HostVolumeType                 = "host"
+	DockerVolumeType               = "docker"
+	EFSVolumeType                  = "efs"
+	FSxWindowsFileServerVolumeType = "fsxWindowsFileServer"
 )
 
 // TaskVolume is a definition of all the volumes available for containers to
@@ -64,12 +71,16 @@ func (tv *TaskVolume) UnmarshalJSON(b []byte) error {
 		return tv.unmarshalHostVolume(intermediate["host"])
 	case DockerVolumeType:
 		return tv.unmarshalDockerVolume(intermediate["dockerVolumeConfiguration"])
+	case EFSVolumeType:
+		return tv.unmarshalEFSVolume(intermediate["efsVolumeConfiguration"])
+	case FSxWindowsFileServerVolumeType:
+		return tv.unmarshalFSxWindowsFileServerVolume(intermediate["fsxWindowsFileServerVolumeConfiguration"])
 	default:
-		return errors.Errorf("invalid Volume: type must be docker or host, got %q", tv.Type)
+		return errors.Errorf("unrecognized volume type: %q", tv.Type)
 	}
 }
 
-// MarshalJSON overrides the logic for JSON-encoding a  TaskVolume object
+// MarshalJSON overrides the logic for JSON-encoding a TaskVolume object
 func (tv *TaskVolume) MarshalJSON() ([]byte, error) {
 	result := make(map[string]interface{})
 
@@ -85,6 +96,10 @@ func (tv *TaskVolume) MarshalJSON() ([]byte, error) {
 		result["dockerVolumeConfiguration"] = tv.Volume
 	case HostVolumeType:
 		result["host"] = tv.Volume
+	case EFSVolumeType:
+		result["efsVolumeConfiguration"] = tv.Volume
+	case FSxWindowsFileServerVolumeType:
+		result["fsxWindowsFileServerVolumeConfiguration"] = tv.Volume
 	default:
 		return nil, errors.Errorf("unrecognized volume type: %q", tv.Type)
 	}
@@ -103,6 +118,34 @@ func (tv *TaskVolume) unmarshalDockerVolume(data json.RawMessage) error {
 	}
 
 	tv.Volume = &dockerVolumeConfig
+	return nil
+}
+
+func (tv *TaskVolume) unmarshalEFSVolume(data json.RawMessage) error {
+	if data == nil {
+		return errors.New("invalid volume: empty volume configuration")
+	}
+	var efsVolumeConfig taskresourcevolume.EFSVolumeConfig
+	err := json.Unmarshal(data, &efsVolumeConfig)
+	if err != nil {
+		return err
+	}
+
+	tv.Volume = &efsVolumeConfig
+	return nil
+}
+
+func (tv *TaskVolume) unmarshalFSxWindowsFileServerVolume(data json.RawMessage) error {
+	if data == nil {
+		return errors.New("invalid volume: empty volume configuration")
+	}
+	var fsxWindowsFileServerVolumeConfig fsxwindowsfileserver.FSxWindowsFileServerVolumeConfig
+	err := json.Unmarshal(data, &fsxWindowsFileServerVolumeConfig)
+	if err != nil {
+		return err
+	}
+
+	tv.Volume = &fsxWindowsFileServerVolumeConfig
 	return nil
 }
 
@@ -128,4 +171,34 @@ func (tv *TaskVolume) unmarshalHostVolume(data json.RawMessage) error {
 		tv.Volume = &hostvolume
 	}
 	return nil
+}
+
+// getEFSVolumeDriverName returns the driver name for creating the EFS volume.
+func getEFSVolumeDriverName(cfg *config.Config) string {
+	if taskresourcevolume.UseECSVolumePlugin(cfg) {
+		return taskresourcevolume.ECSVolumePlugin
+	}
+	return taskresourcevolume.DockerLocalDriverName
+}
+
+// getDockerVolumeResource retrieves docker volume resource from task resource map.
+func (task *Task) getDockerVolumeResource() ([]taskresource.TaskResource, bool) {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	res, ok := task.ResourcesMapUnsafe[taskresourcetypes.DockerVolumeKey]
+	return res, ok
+}
+
+// SetPausePIDInVolumeResources sets the pause container pid field in each volume resource.
+func (task *Task) SetPausePIDInVolumeResources(pid string) {
+	resources, ok := task.getDockerVolumeResource()
+	if !ok {
+		return
+	}
+
+	for _, res := range resources {
+		volRes := res.(*taskresourcevolume.VolumeResource)
+		volRes.SetPauseContainerPID(pid)
+	}
 }

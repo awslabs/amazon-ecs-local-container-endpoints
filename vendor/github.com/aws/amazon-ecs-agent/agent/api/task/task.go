@@ -1,10 +1,10 @@
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
 // License is located at
 //
-//	http://aws.amazon.com/apache2.0/
+//     http://aws.amazon.com/apache2.0/
 //
 // or in the "license" file accompanying this file. This file is distributed
 // on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -24,6 +24,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/utils/ttime"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/go-connections/nat"
+
 	"github.com/aws/amazon-ecs-agent/agent/acs/model/ecsacs"
 	apiappmesh "github.com/aws/amazon-ecs-agent/agent/api/appmesh"
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
@@ -39,19 +45,17 @@ import (
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/asmauth"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/asmsecret"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/envFiles"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/firelens"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/ssmsecret"
 	resourcestatus "github.com/aws/amazon-ecs-agent/agent/taskresource/status"
 	resourcetype "github.com/aws/amazon-ecs-agent/agent/taskresource/types"
 	taskresourcevolume "github.com/aws/amazon-ecs-agent/agent/taskresource/volume"
 	"github.com/aws/amazon-ecs-agent/agent/utils"
-	"github.com/aws/amazon-ecs-agent/agent/utils/ttime"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/private/protocol/json/jsonutil"
 	"github.com/cihub/seelog"
-	"github.com/docker/docker/api/types"
+	"github.com/containernetworking/cni/libcni"
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 )
 
@@ -73,10 +77,12 @@ const (
 	NvidiaVisibleDevicesEnvVar = "NVIDIA_VISIBLE_DEVICES"
 	GPUAssociationType         = "gpu"
 
+	// neuronRuntime is the name of the neuron docker runtime.
+	neuronRuntime = "neuron"
+
 	ContainerOrderingCreateCondition = "CREATE"
 	ContainerOrderingStartCondition  = "START"
 
-	arnResourceSections  = 2
 	arnResourceDelimiter = "/"
 	// networkModeNone specifies the string used to define the `none` docker networking mode
 	networkModeNone = "none"
@@ -87,7 +93,6 @@ const (
 	// awslogsCredsEndpointOpt is the awslogs option that is used to pass in an
 	// http endpoint for authentication
 	awslogsCredsEndpointOpt = "awslogs-credentials-endpoint"
-
 	// These contants identify the docker flag options
 	pidModeHost     = "host"
 	pidModeTask     = "task"
@@ -95,6 +100,51 @@ const (
 	ipcModeTask     = "task"
 	ipcModeSharable = "shareable"
 	ipcModeNone     = "none"
+
+	// firelensConfigBindFormatFluentd and firelensConfigBindFormatFluentbit specify the format of the firelens
+	// config file bind mount for fluentd and fluentbit firelens container respectively.
+	// First placeholder is host data dir, second placeholder is taskID.
+	firelensConfigBindFormatFluentd   = "%s/data/firelens/%s/config/fluent.conf:/fluentd/etc/fluent.conf"
+	firelensConfigBindFormatFluentbit = "%s/data/firelens/%s/config/fluent.conf:/fluent-bit/etc/fluent-bit.conf"
+
+	// firelensS3ConfigBindFormat specifies the format of the bind mount for the firelens config file downloaded from S3.
+	// First placeholder is host data dir, second placeholder is taskID, third placeholder is the s3 config path inside
+	// the firelens container.
+	firelensS3ConfigBindFormat = "%s/data/firelens/%s/config/external.conf:%s"
+
+	// firelensSocketBindFormat specifies the format for firelens container's socket directory bind mount.
+	// First placeholder is host data dir, second placeholder is taskID.
+	firelensSocketBindFormat = "%s/data/firelens/%s/socket/:/var/run/"
+	// firelensDriverName is the log driver name for containers that want to use the firelens container to send logs.
+	firelensDriverName = "awsfirelens"
+
+	// firelensConfigVarFmt specifies the format for firelens config variable name. The first placeholder
+	// is option name. The second placeholder is the index of the container in the task's container list, appended
+	// for the purpose of avoiding config vars from different containers within a task collide (note: can't append
+	// container name here because it may contain hyphen which will break the config var resolution (see PR 2164 for
+	// details), and can't append container ID either because we need the config var in PostUnmarshalTask, which is
+	// before all the containers being created).
+	firelensConfigVarFmt = "%s_%d"
+	// firelensConfigVarPlaceholderFmtFluentd and firelensConfigVarPlaceholderFmtFluentbit specify the config var
+	// placeholder format expected by fluentd and fluentbit respectively.
+	firelensConfigVarPlaceholderFmtFluentd   = "\"#{ENV['%s']}\""
+	firelensConfigVarPlaceholderFmtFluentbit = "${%s}"
+
+	// awsExecutionEnvKey is the key of the env specifying the execution environment.
+	awsExecutionEnvKey = "AWS_EXECUTION_ENV"
+	// ec2ExecutionEnv specifies the ec2 execution environment.
+	ec2ExecutionEnv = "AWS_ECS_EC2"
+
+	// specifies bridge type mode for a task
+	BridgeNetworkMode = "bridge"
+
+	// specifies awsvpc type mode for a task
+	AWSVPCNetworkMode = "awsvpc"
+
+	// disableIPv6SysctlKey specifies the setting that controls whether ipv6 is disabled.
+	disableIPv6SysctlKey = "net.ipv6.conf.all.disable_ipv6"
+	// sysctlValueOff specifies the value to use to turn off a sysctl setting.
+	sysctlValueOff = "0"
 )
 
 // TaskOverrides are the overrides applied to a task
@@ -175,10 +225,13 @@ type Task struct {
 	// credentialsID is used to set the CredentialsId field for the
 	// IAMRoleCredentials object associated with the task. This id can be
 	// used to look up the credentials for task in the credentials manager
-	credentialsID string
+	credentialsID                string
+	credentialsRelativeURIUnsafe string
 
-	// ENI is the elastic network interface specified by this task
-	ENI *apieni.ENI
+	// ENIs is the list of Elastic Network Interfaces assigned to this task. The
+	// TaskENIs type is helpful when decoding state files which might have stored
+	// ENIs as a single ENI object instead of a list.
+	ENIs TaskENIs `json:"ENI"`
 
 	// AppMesh is the service mesh specified by the task
 	AppMesh *apiappmesh.AppMesh
@@ -206,6 +259,14 @@ type Task struct {
 	// NvidiaRuntime is the runtime to pass Nvidia GPU devices to containers
 	NvidiaRuntime string `json:"NvidiaRuntime,omitempty"`
 
+	// LocalIPAddressUnsafe stores the local IP address allocated to the bridge that connects the task network
+	// namespace and the host network namespace, for tasks in awsvpc network mode (tasks in other network mode won't
+	// have a value for this). This field should be accessed via GetLocalIPAddress and SetLocalIPAddress.
+	LocalIPAddressUnsafe string `json:"LocalIPAddress,omitempty"`
+
+	// LaunchType is the launch type of this task.
+	LaunchType string `json:"LaunchType,omitempty"`
+
 	// lock is for protecting all fields in the task struct
 	lock sync.RWMutex
 }
@@ -218,8 +279,7 @@ func TaskFromACS(acsTask *ecsacs.Task, envelope *ecsacs.PayloadMessage) (*Task, 
 		return nil, err
 	}
 	task := &Task{}
-	err = json.Unmarshal(data, task)
-	if err != nil {
+	if err := json.Unmarshal(data, task); err != nil {
 		return nil, err
 	}
 	if task.GetDesiredStatus() == apitaskstatus.TaskRunning && envelope.SeqNum != nil {
@@ -235,9 +295,26 @@ func TaskFromACS(acsTask *ecsacs.Task, envelope *ecsacs.PayloadMessage) (*Task, 
 		}
 		container.TransitionDependenciesMap = make(map[apicontainerstatus.ContainerStatus]apicontainer.TransitionDependencySet)
 	}
-	// initialize resources map for task
+
+	//initialize resources map for task
 	task.ResourcesMapUnsafe = make(map[string][]taskresource.TaskResource)
 	return task, nil
+}
+
+func (task *Task) initializeVolumes(cfg *config.Config, dockerClient dockerapi.DockerClient, ctx context.Context) error {
+	err := task.initializeDockerLocalVolumes(dockerClient, ctx)
+	if err != nil {
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	err = task.initializeDockerVolumes(cfg.SharedVolumeMatchFullConfig.Enabled(), dockerClient, ctx)
+	if err != nil {
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	err = task.initializeEFSVolumes(cfg, dockerClient, ctx)
+	if err != nil {
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	return nil
 }
 
 // PostUnmarshalTask is run after a task has been unmarshalled, but before it has been
@@ -245,30 +322,94 @@ func TaskFromACS(acsTask *ecsacs.Task, envelope *ecsacs.PayloadMessage) (*Task, 
 // able to handle such an occurrence appropriately (e.g. behave idempotently).
 func (task *Task) PostUnmarshalTask(cfg *config.Config,
 	credentialsManager credentials.Manager, resourceFields *taskresource.ResourceFields,
-	dockerClient dockerapi.DockerClient, ctx context.Context) error {
+	dockerClient dockerapi.DockerClient, ctx context.Context, options ...Option) error {
 	// TODO, add rudimentary plugin support and call any plugins that want to
 	// hook into this
 	task.adjustForPlatform(cfg)
 	if task.MemoryCPULimitsEnabled {
-		err := task.initializeCgroupResourceSpec(cfg.CgroupPath, resourceFields)
-		if err != nil {
+		if err := task.initializeCgroupResourceSpec(cfg.CgroupPath, cfg.CgroupCPUPeriod, resourceFields); err != nil {
 			seelog.Errorf("Task [%s]: could not intialize resource: %v", task.Arn, err)
 			return apierrors.NewResourceInitError(task.Arn, err)
 		}
 	}
 
-	err := task.initializeContainerOrderingForVolumes()
-	if err != nil {
+	if err := task.initializeContainerOrderingForVolumes(); err != nil {
 		seelog.Errorf("Task [%s]: could not initialize volumes dependency for container: %v", task.Arn, err)
 		return apierrors.NewResourceInitError(task.Arn, err)
 	}
 
-	err = task.initializeContainerOrderingForLinks()
-	if err != nil {
+	if err := task.initializeContainerOrderingForLinks(); err != nil {
 		seelog.Errorf("Task [%s]: could not initialize links dependency for container: %v", task.Arn, err)
 		return apierrors.NewResourceInitError(task.Arn, err)
 	}
 
+	task.initSecretResources(credentialsManager, resourceFields)
+
+	task.initializeCredentialsEndpoint(credentialsManager)
+
+	// NOTE: initializeVolumes needs to be after initializeCredentialsEndpoint, because EFS volume might
+	// need the credentials endpoint constructed by it.
+	if err := task.initializeVolumes(cfg, dockerClient, ctx); err != nil {
+		return err
+	}
+
+	if err := task.addGPUResource(cfg); err != nil {
+		seelog.Errorf("Task [%s]: could not initialize GPU associations: %v", task.Arn, err)
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+
+	task.initializeContainersV3MetadataEndpoint(utils.NewDynamicUUIDProvider())
+	task.initializeContainersV4MetadataEndpoint(utils.NewDynamicUUIDProvider())
+	if err := task.addNetworkResourceProvisioningDependency(cfg); err != nil {
+		seelog.Errorf("Task [%s]: could not provision network resource: %v", task.Arn, err)
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	// Adds necessary Pause containers for sharing PID or IPC namespaces
+	task.addNamespaceSharingProvisioningDependency(cfg)
+
+	if err := task.applyFirelensSetup(cfg, resourceFields, credentialsManager); err != nil {
+		return err
+	}
+
+	if task.requiresCredentialSpecResource() {
+		if err := task.initializeCredentialSpecResource(cfg, credentialsManager, resourceFields); err != nil {
+			seelog.Errorf("Task [%s]: could not initialize credentialspec resource: %v", task.Arn, err)
+			return apierrors.NewResourceInitError(task.Arn, err)
+		}
+	}
+
+	if err := task.initializeEnvfilesResource(cfg, credentialsManager); err != nil {
+		seelog.Errorf("Task [%s]: could not initialize environment files resource: %v", task.Arn, err)
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	task.populateTaskARN()
+
+	// fsxWindowsFileserver is the product type -- it is technically "agnostic" ie it should apply to both Windows and Linux tasks
+	if task.requiresFSxWindowsFileServerResource() {
+		if err := task.initializeFSxWindowsFileServerResource(cfg, credentialsManager, resourceFields); err != nil {
+			seelog.Errorf("Task [%s]: could not initialize FSx for Windows File Server resource: %v", task.Arn, err)
+			return apierrors.NewResourceInitError(task.Arn, err)
+		}
+	}
+
+	for _, opt := range options {
+		if err := opt(task); err != nil {
+			seelog.Errorf("Task [%s]: could not apply task option: %v", task.Arn, err)
+			return err
+		}
+	}
+	return nil
+}
+
+// populateTaskARN populates the arn of the task to the containers.
+func (task *Task) populateTaskARN() {
+	for _, c := range task.Containers {
+		c.SetTaskARN(task.Arn)
+	}
+}
+
+func (task *Task) initSecretResources(credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields) {
 	if task.requiresASMDockerAuthData() {
 		task.initializeASMAuthResource(credentialsManager, resourceFields)
 	}
@@ -280,51 +421,44 @@ func (task *Task) PostUnmarshalTask(cfg *config.Config,
 	if task.requiresASMSecret() {
 		task.initializeASMSecretResource(credentialsManager, resourceFields)
 	}
+}
 
-	err = task.initializeDockerLocalVolumes(dockerClient, ctx)
-	if err != nil {
-		return apierrors.NewResourceInitError(task.Arn, err)
-	}
-	err = task.initializeDockerVolumes(cfg.SharedVolumeMatchFullConfig, dockerClient, ctx)
-	if err != nil {
-		return apierrors.NewResourceInitError(task.Arn, err)
-	}
-	if cfg.GPUSupportEnabled {
-		err = task.addGPUResource()
-		if err != nil {
-			seelog.Errorf("Task [%s]: could not initialize GPU associations: %v", task.Arn, err)
+func (task *Task) applyFirelensSetup(cfg *config.Config, resourceFields *taskresource.ResourceFields,
+	credentialsManager credentials.Manager) error {
+	firelensContainer := task.GetFirelensContainer()
+	if firelensContainer != nil {
+		if err := task.initializeFirelensResource(cfg, resourceFields, firelensContainer, credentialsManager); err != nil {
 			return apierrors.NewResourceInitError(task.Arn, err)
 		}
-		task.NvidiaRuntime = cfg.NvidiaRuntime
+		if err := task.addFirelensContainerDependency(); err != nil {
+			return errors.New("unable to add firelens container dependency")
+		}
 	}
-	task.initializeCredentialsEndpoint(credentialsManager)
-	task.initializeContainersV3MetadataEndpoint(utils.NewDynamicUUIDProvider())
-	task.addNetworkResourceProvisioningDependency(cfg)
-	// Adds necessary Pause containers for sharing PID or IPC namespaces
-	task.addNamespaceSharingProvisioningDependency(cfg)
 
 	return nil
 }
 
-func (task *Task) addGPUResource() error {
-	for _, association := range task.Associations {
-		// One GPU can be associated with only one container
-		// That is why validating if association.Containers is of length 1
-		if association.Type == GPUAssociationType {
-			if len(association.Containers) == 1 {
+func (task *Task) addGPUResource(cfg *config.Config) error {
+	if cfg.GPUSupportEnabled {
+		for _, association := range task.Associations {
+			// One GPU can be associated with only one container
+			// That is why validating if association.Containers is of length 1
+			if association.Type == GPUAssociationType {
+				if len(association.Containers) != 1 {
+					return fmt.Errorf("could not associate multiple containers to GPU %s", association.Name)
+				}
+
 				container, ok := task.ContainerByName(association.Containers[0])
 				if !ok {
 					return fmt.Errorf("could not find container with name %s for associating GPU %s",
 						association.Containers[0], association.Name)
-				} else {
-					container.GPUIDs = append(container.GPUIDs, association.Name)
 				}
-			} else {
-				return fmt.Errorf("could not associate multiple containers to GPU %s", association.Name)
+				container.GPUIDs = append(container.GPUIDs, association.Name)
 			}
 		}
+		task.populateGPUEnvironmentVariables()
+		task.NvidiaRuntime = cfg.NvidiaRuntime
 	}
-	task.populateGPUEnvironmentVariables()
 	return nil
 }
 
@@ -367,7 +501,6 @@ func (task *Task) initializeDockerLocalVolumes(dockerClient dockerapi.DockerClie
 					resourcestatus.ResourceStatus(taskresourcevolume.VolumeCreated),
 					apicontainerstatus.ContainerPulled)
 				requiredLocalVolumes = append(requiredLocalVolumes, mountPoint.SourceVolume)
-
 			}
 		}
 	}
@@ -382,7 +515,7 @@ func (task *Task) initializeDockerLocalVolumes(dockerClient dockerapi.DockerClie
 		vol, _ := task.HostVolumeByName(volumeName)
 		// BUG(samuelkarp) On Windows, volumes with names that differ only by case will collide
 		scope := taskresourcevolume.TaskScope
-		localVolume, err := taskresourcevolume.NewVolumeResource(ctx, volumeName,
+		localVolume, err := taskresourcevolume.NewVolumeResource(ctx, volumeName, HostVolumeType,
 			vol.Source(), scope, false,
 			taskresourcevolume.DockerLocalVolumeDriver,
 			make(map[string]string), make(map[string]string), dockerClient)
@@ -415,18 +548,72 @@ func (task *Task) initializeDockerVolumes(sharedVolumeMatchFullConfig bool, dock
 		}
 		// Agent needs to create task-scoped volume
 		if dockerVolume.Scope == taskresourcevolume.TaskScope {
-			err := task.addTaskScopedVolumes(ctx, dockerClient, &task.Volumes[i])
-			if err != nil {
+			if err := task.addTaskScopedVolumes(ctx, dockerClient, &task.Volumes[i]); err != nil {
 				return err
 			}
 		} else {
 			// Agent needs to create shared volume if that's auto provisioned
-			err := task.addSharedVolumes(sharedVolumeMatchFullConfig, ctx, dockerClient, &task.Volumes[i])
-			if err != nil {
+			if err := task.addSharedVolumes(sharedVolumeMatchFullConfig, ctx, dockerClient, &task.Volumes[i]); err != nil {
 				return err
 			}
 		}
 	}
+	return nil
+}
+
+// initializeEFSVolumes inspects the volume definitions in the task definition.
+// If it finds EFS volumes in the task definition, then it converts it to a docker
+// volume definition.
+func (task *Task) initializeEFSVolumes(cfg *config.Config, dockerClient dockerapi.DockerClient, ctx context.Context) error {
+	for i, vol := range task.Volumes {
+		// No need to do this for non-efs volume, eg: host bind/empty volume
+		if vol.Type != EFSVolumeType {
+			continue
+		}
+
+		efsvol, ok := vol.Volume.(*taskresourcevolume.EFSVolumeConfig)
+		if !ok {
+			return errors.New("task volume: volume configuration does not match the type 'efs'")
+		}
+
+		err := task.addEFSVolumes(ctx, cfg, dockerClient, &task.Volumes[i], efsvol)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// addEFSVolumes converts the EFS task definition into an internal docker 'local' volume
+// mounted with NFS struct and updates container dependency
+func (task *Task) addEFSVolumes(
+	ctx context.Context,
+	cfg *config.Config,
+	dockerClient dockerapi.DockerClient,
+	vol *TaskVolume,
+	efsvol *taskresourcevolume.EFSVolumeConfig,
+) error {
+	driverOpts := taskresourcevolume.GetDriverOptions(cfg, efsvol, task.GetCredentialsRelativeURI())
+	driverName := getEFSVolumeDriverName(cfg)
+	volumeResource, err := taskresourcevolume.NewVolumeResource(
+		ctx,
+		vol.Name,
+		EFSVolumeType,
+		task.volumeName(vol.Name),
+		"task",
+		false,
+		driverName,
+		driverOpts,
+		map[string]string{},
+		dockerClient,
+	)
+	if err != nil {
+		return err
+	}
+
+	vol.Volume = &volumeResource.VolumeConfig
+	task.AddResource(resourcetype.DockerVolumeKey, volumeResource)
+	task.updateContainerVolumeDependency(vol.Name)
 	return nil
 }
 
@@ -438,6 +625,7 @@ func (task *Task) addTaskScopedVolumes(ctx context.Context, dockerClient dockera
 	volumeResource, err := taskresourcevolume.NewVolumeResource(
 		ctx,
 		vol.Name,
+		DockerVolumeType,
 		task.volumeName(vol.Name),
 		volumeConfig.Scope, volumeConfig.Autoprovision,
 		volumeConfig.Driver, volumeConfig.DriverOpts,
@@ -482,6 +670,7 @@ func (task *Task) addSharedVolumes(SharedVolumeMatchFullConfig bool, ctx context
 		volumeResource, err := taskresourcevolume.NewVolumeResource(
 			ctx,
 			vol.Name,
+			DockerVolumeType,
 			vol.Name,
 			volumeConfig.Scope, volumeConfig.Autoprovision,
 			volumeConfig.Driver, volumeConfig.DriverOpts,
@@ -555,13 +744,14 @@ func (task *Task) initializeCredentialsEndpoint(credentialsManager credentials.M
 	for _, container := range task.Containers {
 		// container.Environment map would not be initialized if there are
 		// no environment variables to be set or overridden in the container
-		// config. Check if that's the case and initilialize if needed
+		// config. Check if that's the case and initialize if needed
 		if container.Environment == nil {
 			container.Environment = make(map[string]string)
 		}
 		container.Environment[awsSDKCredentialsRelativeURIPathEnvironmentVariableName] = credentialsEndpointRelativeURI
 	}
 
+	task.SetCredentialsRelativeURI(credentialsEndpointRelativeURI)
 }
 
 // initializeContainersV3MetadataEndpoint generates an v3 endpoint id for each container, constructs the
@@ -574,6 +764,20 @@ func (task *Task) initializeContainersV3MetadataEndpoint(uuidProvider utils.UUID
 		}
 
 		container.InjectV3MetadataEndpoint()
+	}
+}
+
+// initializeContainersV4MetadataEndpoint generates an v4 endpoint id which we reuse the v3 container id
+// (they are the same) for each container, constructs the v4 metadata endpoint,
+// and injects it as an environment variable
+func (task *Task) initializeContainersV4MetadataEndpoint(uuidProvider utils.UUIDProvider) {
+	for _, container := range task.Containers {
+		v3EndpointID := container.GetV3EndpointID()
+		if v3EndpointID == "" { // if container's v3 endpoint has not been set
+			container.SetV3EndpointID(uuidProvider.New())
+		}
+
+		container.InjectV4MetadataEndpoint()
 	}
 }
 
@@ -638,7 +842,28 @@ func (task *Task) initializeSSMSecretResource(credentialsManager credentials.Man
 				resourcestatus.ResourceStatus(ssmsecret.SSMSecretCreated),
 				apicontainerstatus.ContainerCreated)
 		}
+
+		// Firelens container needs to depends on secret if other containers use secret log options.
+		if container.GetFirelensConfig() != nil && task.firelensDependsOnSecretResource(apicontainer.SecretProviderSSM) {
+			container.BuildResourceDependency(ssmSecretResource.GetName(),
+				resourcestatus.ResourceStatus(ssmsecret.SSMSecretCreated),
+				apicontainerstatus.ContainerCreated)
+		}
 	}
+}
+
+// firelensDependsOnSecret checks whether the firelens container needs to depends on a secret resource of
+// a certain provider type.
+func (task *Task) firelensDependsOnSecretResource(secretProvider string) bool {
+	isLogDriverSecretWithGivenProvider := func(s apicontainer.Secret) bool {
+		return s.Provider == secretProvider && s.Target == apicontainer.SecretTargetLogDriver
+	}
+	for _, container := range task.Containers {
+		if container.GetLogDriver() == firelensDriverName && container.HasSecret(isLogDriverSecretWithGivenProvider) {
+			return true
+		}
+	}
+	return false
 }
 
 // getAllSSMSecretRequirements stores all secrets in a map whose key is region and value is all
@@ -685,6 +910,13 @@ func (task *Task) initializeASMSecretResource(credentialsManager credentials.Man
 				resourcestatus.ResourceStatus(asmsecret.ASMSecretCreated),
 				apicontainerstatus.ContainerCreated)
 		}
+
+		// Firelens container needs to depends on secret if other containers use secret log options.
+		if container.GetFirelensConfig() != nil && task.firelensDependsOnSecretResource(apicontainer.SecretProviderASM) {
+			container.BuildResourceDependency(asmSecretResource.GetName(),
+				resourcestatus.ResourceStatus(asmsecret.ASMSecretCreated),
+				apicontainerstatus.ContainerCreated)
+		}
 	}
 }
 
@@ -705,64 +937,285 @@ func (task *Task) getAllASMSecretRequirements() map[string]apicontainer.Secret {
 	return reqs
 }
 
-// BuildCNIConfig constructs the cni configuration from eni
-func (task *Task) BuildCNIConfig() (*ecscni.Config, error) {
-	if !task.isNetworkModeVPC() {
-		return nil, errors.New("task config: task has no ENIs associated with it, unable to generate cni config")
-	}
-
-	cfg := &ecscni.Config{}
-	convertENIToCNIConfig(task.GetTaskENI(), cfg)
-	if task.GetAppMesh() != nil {
-		convertAppMeshToCNIConfig(task.GetAppMesh(), cfg)
-	}
-
-	return cfg, nil
-}
-
-// convertENIToCNIConfig converts input eni config into cni config
-func convertENIToCNIConfig(eni *apieni.ENI, cfg *ecscni.Config) {
-	cfg.ENIID = eni.ID
-	cfg.ID = eni.MacAddress
-	cfg.ENIMACAddress = eni.MacAddress
-	cfg.SubnetGatewayIPV4Address = eni.GetSubnetGatewayIPV4Address()
-	for _, ipv4 := range eni.IPV4Addresses {
-		if ipv4.Primary {
-			cfg.ENIIPV4Address = ipv4.Address
-			break
+// GetFirelensContainer returns the firelens container in the task, if there is one.
+func (task *Task) GetFirelensContainer() *apicontainer.Container {
+	for _, container := range task.Containers {
+		if container.GetFirelensConfig() != nil { // This is a firelens container.
+			return container
 		}
 	}
-	// If there is ipv6 assigned to eni then set it
-	if len(eni.IPV6Addresses) > 0 {
-		cfg.ENIIPV6Address = eni.IPV6Addresses[0].Address
-	}
+	return nil
 }
 
-// convertAppMeshToCNIConfig converts input app mesh config into cni config
-func convertAppMeshToCNIConfig(appMesh *apiappmesh.AppMesh, cfg *ecscni.Config) {
-	cfg.AppMeshCNIEnabled = true
-	cfg.IgnoredUID = appMesh.IgnoredUID
-	cfg.IgnoredGID = appMesh.IgnoredGID
-	cfg.ProxyIngressPort = appMesh.ProxyIngressPort
-	cfg.ProxyEgressPort = appMesh.ProxyEgressPort
-	cfg.AppPorts = appMesh.AppPorts
-	cfg.EgressIgnoredIPs = appMesh.EgressIgnoredIPs
-	cfg.EgressIgnoredPorts = appMesh.EgressIgnoredPorts
-
-}
-
-// isNetworkModeVPC checks if the task is configured to use task-networking feature
-func (task *Task) isNetworkModeVPC() bool {
-	if task.GetTaskENI() == nil {
-		return false
+// initializeFirelensResource initializes the firelens task resource and adds it as a dependency of the
+// firelens container.
+func (task *Task) initializeFirelensResource(config *config.Config, resourceFields *taskresource.ResourceFields,
+	firelensContainer *apicontainer.Container, credentialsManager credentials.Manager) error {
+	if firelensContainer.GetFirelensConfig() == nil {
+		return errors.New("firelens container config doesn't exist")
 	}
 
-	return true
+	containerToLogOptions := make(map[string]map[string]string)
+	// Collect plain text log options.
+	if err := task.collectFirelensLogOptions(containerToLogOptions); err != nil {
+		return errors.Wrap(err, "unable to initialize firelens resource")
+	}
+
+	// Collect secret log options.
+	if err := task.collectFirelensLogEnvOptions(containerToLogOptions, firelensContainer.FirelensConfig.Type); err != nil {
+		return errors.Wrap(err, "unable to initialize firelens resource")
+	}
+
+	for _, container := range task.Containers {
+		firelensConfig := container.GetFirelensConfig()
+		if firelensConfig != nil {
+			var ec2InstanceID string
+			if container.Environment != nil && container.Environment[awsExecutionEnvKey] == ec2ExecutionEnv {
+				ec2InstanceID = resourceFields.EC2InstanceID
+			}
+
+			var networkMode string
+			if task.IsNetworkModeAWSVPC() {
+				networkMode = AWSVPCNetworkMode
+			} else if container.GetNetworkModeFromHostConfig() == "" || container.GetNetworkModeFromHostConfig() == BridgeNetworkMode {
+				networkMode = BridgeNetworkMode
+			} else {
+				networkMode = container.GetNetworkModeFromHostConfig()
+			}
+			firelensResource, err := firelens.NewFirelensResource(config.Cluster, task.Arn, task.Family+":"+task.Version,
+				ec2InstanceID, config.DataDir, firelensConfig.Type, config.AWSRegion, networkMode, firelensConfig.Options, containerToLogOptions,
+				credentialsManager, task.ExecutionCredentialsID)
+			if err != nil {
+				return errors.Wrap(err, "unable to initialize firelens resource")
+			}
+			task.AddResource(firelens.ResourceName, firelensResource)
+			container.BuildResourceDependency(firelensResource.GetName(), resourcestatus.ResourceCreated,
+				apicontainerstatus.ContainerCreated)
+			return nil
+		}
+	}
+
+	return errors.New("unable to initialize firelens resource because there's no firelens container")
 }
 
-func (task *Task) addNetworkResourceProvisioningDependency(cfg *config.Config) {
-	if !task.isNetworkModeVPC() {
-		return
+// addFirelensContainerDependency adds a START dependency between each container using awsfirelens log driver
+// and the firelens container.
+func (task *Task) addFirelensContainerDependency() error {
+	var firelensContainer *apicontainer.Container
+	for _, container := range task.Containers {
+		if container.GetFirelensConfig() != nil {
+			firelensContainer = container
+		}
+	}
+
+	if firelensContainer == nil {
+		return errors.New("unable to add firelens container dependency because there's no firelens container")
+	}
+
+	if firelensContainer.HasContainerDependencies() {
+		// If firelens container has any container dependency, we don't add internal container dependency that depends
+		// on it in order to be safe (otherwise we need to deal with circular dependency).
+		seelog.Warnf("Not adding container dependency to let firelens container %s start first, because it has dependency on other containers.", firelensContainer.Name)
+		return nil
+	}
+
+	for _, container := range task.Containers {
+		containerHostConfig := container.GetHostConfig()
+		if containerHostConfig == nil {
+			continue
+		}
+
+		// Firelens container itself could be using awsfirelens log driver. Don't add container dependency in this case.
+		if container.Name == firelensContainer.Name {
+			continue
+		}
+
+		hostConfig := &dockercontainer.HostConfig{}
+		if err := json.Unmarshal([]byte(*containerHostConfig), hostConfig); err != nil {
+			return errors.Wrapf(err, "unable to decode host config of container %s", container.Name)
+		}
+
+		if hostConfig.LogConfig.Type == firelensDriverName {
+			// If there's no dependency between the app container and the firelens container, make firelens container
+			// start first to be the default behavior by adding a START container depdendency.
+			if !container.DependsOnContainer(firelensContainer.Name) {
+				seelog.Infof("Adding a START container dependency on firelens container %s for container %s",
+					firelensContainer.Name, container.Name)
+				container.AddContainerDependency(firelensContainer.Name, ContainerOrderingStartCondition)
+			}
+		}
+	}
+
+	return nil
+}
+
+// collectFirelensLogOptions collects the log options for all the containers that use the firelens container
+// as the log driver.
+// containerToLogOptions is a nested map. Top level key is the container name. Second level is a map storing
+// the log option key and value of the container.
+func (task *Task) collectFirelensLogOptions(containerToLogOptions map[string]map[string]string) error {
+	for _, container := range task.Containers {
+		if container.DockerConfig.HostConfig == nil {
+			continue
+		}
+
+		hostConfig := &dockercontainer.HostConfig{}
+		if err := json.Unmarshal([]byte(*container.DockerConfig.HostConfig), hostConfig); err != nil {
+			return errors.Wrapf(err, "unable to decode host config of container %s", container.Name)
+		}
+
+		if hostConfig.LogConfig.Type == firelensDriverName {
+			if containerToLogOptions[container.Name] == nil {
+				containerToLogOptions[container.Name] = make(map[string]string)
+			}
+			for k, v := range hostConfig.LogConfig.Config {
+				containerToLogOptions[container.Name][k] = v
+			}
+		}
+	}
+
+	return nil
+}
+
+// collectFirelensLogEnvOptions collects all the log secret options. Each secret log option will have a value
+// of a config file variable (e.g. "${config_var_name}") and we will pass the secret value as env to the firelens
+// container and it will resolve the config file variable from the env.
+// Each config variable name has a format of log-option-key_container-name. We need the container name because options
+// from different containers using awsfirelens log driver in a task will be presented in the same firelens config file.
+func (task *Task) collectFirelensLogEnvOptions(containerToLogOptions map[string]map[string]string, firelensConfigType string) error {
+	placeholderFmt := ""
+	switch firelensConfigType {
+	case firelens.FirelensConfigTypeFluentd:
+		placeholderFmt = firelensConfigVarPlaceholderFmtFluentd
+	case firelens.FirelensConfigTypeFluentbit:
+		placeholderFmt = firelensConfigVarPlaceholderFmtFluentbit
+	default:
+		return errors.Errorf("unsupported firelens config type %s", firelensConfigType)
+	}
+
+	for _, container := range task.Containers {
+		for _, secret := range container.Secrets {
+			if secret.Target == apicontainer.SecretTargetLogDriver {
+				if containerToLogOptions[container.Name] == nil {
+					containerToLogOptions[container.Name] = make(map[string]string)
+				}
+
+				idx := task.GetContainerIndex(container.Name)
+				if idx < 0 {
+					return errors.Errorf("can't find container %s in task %s", container.Name, task.Arn)
+				}
+				containerToLogOptions[container.Name][secret.Name] = fmt.Sprintf(placeholderFmt,
+					fmt.Sprintf(firelensConfigVarFmt, secret.Name, idx))
+			}
+		}
+	}
+	return nil
+}
+
+// AddFirelensContainerBindMounts adds config file bind mount and socket directory bind mount to the firelens
+// container's host config.
+func (task *Task) AddFirelensContainerBindMounts(firelensConfig *apicontainer.FirelensConfig, hostConfig *dockercontainer.HostConfig,
+	config *config.Config) *apierrors.HostConfigError {
+	taskID, err := task.GetID()
+	if err != nil {
+		return &apierrors.HostConfigError{Msg: err.Error()}
+	}
+
+	var configBind, s3ConfigBind, socketBind string
+	switch firelensConfig.Type {
+	case firelens.FirelensConfigTypeFluentd:
+		configBind = fmt.Sprintf(firelensConfigBindFormatFluentd, config.DataDirOnHost, taskID)
+		s3ConfigBind = fmt.Sprintf(firelensS3ConfigBindFormat, config.DataDirOnHost, taskID, firelens.S3ConfigPathFluentd)
+	case firelens.FirelensConfigTypeFluentbit:
+		configBind = fmt.Sprintf(firelensConfigBindFormatFluentbit, config.DataDirOnHost, taskID)
+		s3ConfigBind = fmt.Sprintf(firelensS3ConfigBindFormat, config.DataDirOnHost, taskID, firelens.S3ConfigPathFluentbit)
+	default:
+		return &apierrors.HostConfigError{Msg: fmt.Sprintf("encounter invalid firelens configuration type %s",
+			firelensConfig.Type)}
+	}
+	socketBind = fmt.Sprintf(firelensSocketBindFormat, config.DataDirOnHost, taskID)
+
+	hostConfig.Binds = append(hostConfig.Binds, configBind, socketBind)
+
+	// Add the s3 config bind mount if firelens container is using a config file from S3.
+	if firelensConfig.Options != nil && firelensConfig.Options[firelens.ExternalConfigTypeOption] == firelens.ExternalConfigTypeS3 {
+		hostConfig.Binds = append(hostConfig.Binds, s3ConfigBind)
+	}
+	return nil
+}
+
+// BuildCNIConfig builds a list of CNI network configurations for the task.
+// If includeIPAMConfig is set to true, the list also includes the bridge IPAM configuration.
+func (task *Task) BuildCNIConfig(includeIPAMConfig bool, cniConfig *ecscni.Config) (*ecscni.Config, error) {
+	if !task.IsNetworkModeAWSVPC() {
+		return nil, errors.New("task config: task network mode is not AWSVPC")
+	}
+
+	var netconf *libcni.NetworkConfig
+	var ifName string
+	var err error
+
+	// Build a CNI network configuration for each ENI.
+	for _, eni := range task.ENIs {
+		switch eni.InterfaceAssociationProtocol {
+		// If the association protocol is set to "default" or unset (to preserve backwards
+		// compatibility), consider it a "standard" ENI attachment.
+		case "", apieni.DefaultInterfaceAssociationProtocol:
+			cniConfig.ID = eni.MacAddress
+			ifName, netconf, err = ecscni.NewENINetworkConfig(eni, cniConfig)
+		case apieni.VLANInterfaceAssociationProtocol:
+			cniConfig.ID = eni.MacAddress
+			ifName, netconf, err = ecscni.NewBranchENINetworkConfig(eni, cniConfig)
+		default:
+			err = errors.Errorf("task config: unknown interface association type: %s",
+				eni.InterfaceAssociationProtocol)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+			IfName:           ifName,
+			CNINetworkConfig: netconf,
+		})
+	}
+
+	// Build the bridge CNI network configuration.
+	// All AWSVPC tasks have a bridge network.
+	ifName, netconf, err = ecscni.NewBridgeNetworkConfig(cniConfig, includeIPAMConfig)
+	if err != nil {
+		return nil, err
+	}
+	cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+		IfName:           ifName,
+		CNINetworkConfig: netconf,
+	})
+
+	// Build a CNI network configuration for AppMesh if enabled.
+	appMeshConfig := task.GetAppMesh()
+	if appMeshConfig != nil {
+		ifName, netconf, err = ecscni.NewAppMeshConfig(appMeshConfig, cniConfig)
+		if err != nil {
+			return nil, err
+		}
+		cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+			IfName:           ifName,
+			CNINetworkConfig: netconf,
+		})
+	}
+
+	return cniConfig, nil
+}
+
+// IsNetworkModeAWSVPC checks if the task is configured to use the AWSVPC task networking feature.
+func (task *Task) IsNetworkModeAWSVPC() bool {
+	return len(task.ENIs) > 0
+}
+
+func (task *Task) addNetworkResourceProvisioningDependency(cfg *config.Config) error {
+	if !task.IsNetworkModeAWSVPC() {
+		return nil
 	}
 	pauseContainer := apicontainer.NewContainerWithSteadyState(apicontainerstatus.ContainerResourcesProvisioned)
 	pauseContainer.TransitionDependenciesMap = make(map[apicontainerstatus.ContainerStatus]apicontainer.TransitionDependencySet)
@@ -770,6 +1223,46 @@ func (task *Task) addNetworkResourceProvisioningDependency(cfg *config.Config) {
 	pauseContainer.Image = fmt.Sprintf("%s:%s", cfg.PauseContainerImageName, cfg.PauseContainerTag)
 	pauseContainer.Essential = true
 	pauseContainer.Type = apicontainer.ContainerCNIPause
+
+	// Set pauseContainer user the same as proxy container user when image name is not DefaultPauseContainerImageName
+	if task.GetAppMesh() != nil && cfg.PauseContainerImageName != config.DefaultPauseContainerImageName {
+		appMeshConfig := task.GetAppMesh()
+
+		// Validation is done when registering task to make sure there is one container name matching
+		for _, container := range task.Containers {
+			if container.Name != appMeshConfig.ContainerName {
+				continue
+			}
+
+			if container.DockerConfig.Config == nil {
+				return errors.Errorf("user needs to be specified for proxy container")
+			}
+			containerConfig := &dockercontainer.Config{}
+			if err := json.Unmarshal([]byte(aws.StringValue(container.DockerConfig.Config)), &containerConfig); err != nil {
+				return errors.Errorf("unable to decode given docker config: %s", err.Error())
+			}
+
+			if containerConfig.User == "" {
+				return errors.Errorf("user needs to be specified for proxy container")
+			}
+
+			pauseConfig := dockercontainer.Config{
+				User:  containerConfig.User,
+				Image: fmt.Sprintf("%s:%s", cfg.PauseContainerImageName, cfg.PauseContainerTag),
+			}
+
+			bytes, err := json.Marshal(pauseConfig)
+			if err != nil {
+				return errors.Errorf("Error json marshaling pause config: %s", err)
+			}
+			serializedConfig := string(bytes)
+			pauseContainer.DockerConfig = apicontainer.DockerConfig{
+				Config: &serializedConfig,
+			}
+			break
+		}
+	}
+
 	task.Containers = append(task.Containers, pauseContainer)
 
 	for _, container := range task.Containers {
@@ -779,6 +1272,14 @@ func (task *Task) addNetworkResourceProvisioningDependency(cfg *config.Config) {
 		container.BuildContainerDependency(NetworkPauseContainerName, apicontainerstatus.ContainerResourcesProvisioned, apicontainerstatus.ContainerPulled)
 		pauseContainer.BuildContainerDependency(container.Name, apicontainerstatus.ContainerStopped, apicontainerstatus.ContainerStopped)
 	}
+
+	for _, resource := range task.GetResources() {
+		if resource.DependOnTaskNetwork() {
+			seelog.Debugf("Task [%s]: adding network pause container dependency to resource [%s]", task.Arn, resource.GetName())
+			resource.BuildContainerDependency(NetworkPauseContainerName, apicontainerstatus.ContainerResourcesProvisioned, resourcestatus.ResourceStatus(taskresourcevolume.VolumeCreated))
+		}
+	}
+	return nil
 }
 
 func (task *Task) addNamespaceSharingProvisioningDependency(cfg *config.Config) {
@@ -829,7 +1330,7 @@ func (task *Task) HostVolumeByName(name string) (taskresourcevolume.Volume, bool
 // volume feature.
 func (task *Task) UpdateMountPoints(cont *apicontainer.Container, vols []types.MountPoint) {
 	for _, mountPoint := range cont.MountPoints {
-		containerPath := getCanonicalPath(mountPoint.ContainerPath)
+		containerPath := utils.GetCanonicalPath(mountPoint.ContainerPath)
 		for _, vol := range vols {
 			if strings.Compare(vol.Destination, containerPath) == 0 ||
 				// /path/ -> /path or \path\ -> \path
@@ -850,7 +1351,7 @@ func (task *Task) UpdateMountPoints(cont *apicontainer.Container, vols []types.M
 // there was no change
 // Invariant: task known status is the minimum of container known status
 func (task *Task) updateTaskKnownStatus() (newStatus apitaskstatus.TaskStatus) {
-	seelog.Debugf("Updating task's known status, task: %s", task.String())
+	seelog.Debugf("api/task: Updating task's known status, task: %s", task.String())
 	// Set to a large 'impossible' status that can't be the min
 	containerEarliestKnownStatus := apicontainerstatus.ContainerZombie
 	var earliestKnownStatusContainer *apicontainer.Container
@@ -871,7 +1372,7 @@ func (task *Task) updateTaskKnownStatus() (newStatus apitaskstatus.TaskStatus) {
 			containerEarliestKnownStatus.String(), task)
 		return apitaskstatus.TaskStatusNone
 	}
-	seelog.Debugf("Container with earliest known container is [%s] for task: %s",
+	seelog.Debugf("api/task: Container with earliest known container is [%s] for task: %s",
 		earliestKnownStatusContainer.String(), task.String())
 	// If the essential container is stopped while other containers may be running
 	// don't update the task status until the other containers are stopped.
@@ -887,7 +1388,7 @@ func (task *Task) updateTaskKnownStatus() (newStatus apitaskstatus.TaskStatus) {
 	// statuses and compute the min of this
 	earliestKnownTaskStatus := task.getEarliestKnownTaskStatusForContainers()
 	if task.GetKnownStatus() < earliestKnownTaskStatus {
-		seelog.Debugf("Updating task's known status to: %s, task: %s",
+		seelog.Infof("api/task: Updating task's known status to: %s, task: %s",
 			earliestKnownTaskStatus.String(), task.String())
 		task.SetKnownStatus(earliestKnownTaskStatus)
 		return task.GetKnownStatus()
@@ -940,8 +1441,7 @@ func (task *Task) dockerConfig(container *apicontainer.Container, apiVersion doc
 	}
 
 	if container.DockerConfig.Config != nil {
-		err := json.Unmarshal([]byte(aws.StringValue(container.DockerConfig.Config)), &containerConfig)
-		if err != nil {
+		if err := json.Unmarshal([]byte(aws.StringValue(container.DockerConfig.Config)), &containerConfig); err != nil {
 			return nil, &apierrors.DockerClientConfigError{Msg: "Unable decode given docker config: " + err.Error()}
 		}
 	}
@@ -973,8 +1473,8 @@ func (task *Task) dockerExposedPorts(container *apicontainer.Container) nat.Port
 }
 
 // DockerHostConfig construct the configuration recognized by docker
-func (task *Task) DockerHostConfig(container *apicontainer.Container, dockerContainerMap map[string]*apicontainer.DockerContainer, apiVersion dockerclient.DockerVersion) (*dockercontainer.HostConfig, *apierrors.HostConfigError) {
-	return task.dockerHostConfig(container, dockerContainerMap, apiVersion)
+func (task *Task) DockerHostConfig(container *apicontainer.Container, dockerContainerMap map[string]*apicontainer.DockerContainer, apiVersion dockerclient.DockerVersion, cfg *config.Config) (*dockercontainer.HostConfig, *apierrors.HostConfigError) {
+	return task.dockerHostConfig(container, dockerContainerMap, apiVersion, cfg)
 }
 
 // ApplyExecutionRoleLogsAuth will check whether the task has execution role
@@ -995,11 +1495,14 @@ func (task *Task) ApplyExecutionRoleLogsAuth(hostConfig *dockercontainer.HostCon
 		return &apierrors.HostConfigError{Msg: "Unable to get execution role credentials for task"}
 	}
 	credentialsEndpointRelativeURI := executionRoleCredentials.IAMRoleCredentials.GenerateCredentialsEndpointRelativeURI()
+	if hostConfig.LogConfig.Config == nil {
+		hostConfig.LogConfig.Config = map[string]string{}
+	}
 	hostConfig.LogConfig.Config[awslogsCredsEndpointOpt] = credentialsEndpointRelativeURI
 	return nil
 }
 
-func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerContainerMap map[string]*apicontainer.DockerContainer, apiVersion dockerclient.DockerVersion) (*dockercontainer.HostConfig, *apierrors.HostConfigError) {
+func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerContainerMap map[string]*apicontainer.DockerContainer, apiVersion dockerclient.DockerVersion, cfg *config.Config) (*dockercontainer.HostConfig, *apierrors.HostConfigError) {
 	dockerLinkArr, err := task.dockerLinks(container, dockerContainerMap)
 	if err != nil {
 		return nil, &apierrors.HostConfigError{Msg: err.Error()}
@@ -1028,12 +1531,8 @@ func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerCont
 		Resources:    resources,
 	}
 
-	if task.isGPUEnabled() && task.shouldRequireNvidiaRuntime(container) {
-		if task.NvidiaRuntime == "" {
-			return nil, &apierrors.HostConfigError{Msg: "Runtime is not set for GPU containers"}
-		}
-		seelog.Debugf("Setting runtime as %s for container %s", task.NvidiaRuntime, container.Name)
-		hostConfig.Runtime = task.NvidiaRuntime
+	if err := task.overrideContainerRuntime(container, hostConfig, cfg); err != nil {
+		return nil, err
 	}
 
 	if container.DockerConfig.HostConfig != nil {
@@ -1043,8 +1542,7 @@ func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerCont
 		}
 	}
 
-	err = task.platformHostConfigOverride(hostConfig)
-	if err != nil {
+	if err := task.platformHostConfigOverride(hostConfig); err != nil {
 		return nil, &apierrors.HostConfigError{Msg: err.Error()}
 	}
 
@@ -1057,6 +1555,11 @@ func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerCont
 			// apply ExtraHosts to HostConfig for pause container
 			if hosts := task.generateENIExtraHosts(); hosts != nil {
 				hostConfig.ExtraHosts = append(hostConfig.ExtraHosts, hosts...)
+			}
+
+			if task.shouldEnableIPv6() {
+				// By default, the disable ipv6 setting is turned on, so need to turn it off to enable it.
+				enableIPv6SysctlSetting(hostConfig)
 			}
 
 			// Override the DNS settings for the pause container if ENI has custom
@@ -1076,6 +1579,24 @@ func (task *Task) dockerHostConfig(container *apicontainer.Container, dockerCont
 	}
 
 	return hostConfig, nil
+}
+
+// overrideContainerRuntime overrides the runtime for the container in host config if needed.
+func (task *Task) overrideContainerRuntime(container *apicontainer.Container, hostCfg *dockercontainer.HostConfig,
+	cfg *config.Config) *apierrors.HostConfigError {
+	if task.isGPUEnabled() && task.shouldRequireNvidiaRuntime(container) {
+		if task.NvidiaRuntime == "" {
+			return &apierrors.HostConfigError{Msg: "Runtime is not set for GPU containers"}
+		}
+		seelog.Debugf("Setting runtime as %s for container %s", task.NvidiaRuntime, container.Name)
+		hostCfg.Runtime = task.NvidiaRuntime
+	}
+
+	if cfg.InferentiaSupportEnabled && container.RequireNeuronRuntime() {
+		seelog.Debugf("Setting runtime as %s for container %s", neuronRuntime, container.Name)
+		hostCfg.Runtime = neuronRuntime
+	}
+	return nil
 }
 
 // Requires an *apicontainer.Container and returns the Resources for the HostConfig struct
@@ -1115,7 +1636,7 @@ func (task *Task) shouldOverrideNetworkMode(container *apicontainer.Container, d
 	// when using non docker daemon supported network modes, its existence
 	// indicates the need to configure the network mode outside of supported
 	// network drivers
-	if task.GetTaskENI() == nil {
+	if !task.IsNetworkModeAWSVPC() {
 		return false, ""
 	}
 
@@ -1147,7 +1668,7 @@ func (task *Task) shouldOverrideNetworkMode(container *apicontainer.Container, d
 // This should only be done for the pause container as other containers inherit
 // /etc/resolv.conf of this container (they share the network namespace)
 func (task *Task) overrideDNS(hostConfig *dockercontainer.HostConfig) *dockercontainer.HostConfig {
-	eni := task.GetTaskENI()
+	eni := task.GetPrimaryENI()
 	if eni == nil {
 		return hostConfig
 	}
@@ -1162,7 +1683,7 @@ func (task *Task) overrideDNS(hostConfig *dockercontainer.HostConfig) *dockercon
 // container's docker config. At the time of implmentation, we are only using it
 // to configure the pause container for awsvpc tasks
 func (task *Task) applyENIHostname(dockerConfig *dockercontainer.Config) *dockercontainer.Config {
-	eni := task.GetTaskENI()
+	eni := task.GetPrimaryENI()
 	if eni == nil {
 		return dockerConfig
 	}
@@ -1179,7 +1700,7 @@ func (task *Task) applyENIHostname(dockerConfig *dockercontainer.Config) *docker
 // generateENIExtraHosts returns a slice of strings of the form "hostname:ip"
 // that is generated using the hostname and ip addresses allocated to the ENI
 func (task *Task) generateENIExtraHosts() []string {
-	eni := task.GetTaskENI()
+	eni := task.GetPrimaryENI()
 	if eni == nil {
 		return nil
 	}
@@ -1196,6 +1717,14 @@ func (task *Task) generateENIExtraHosts() []string {
 		extraHosts = append(extraHosts, host)
 	}
 	return extraHosts
+}
+
+func (task *Task) shouldEnableIPv6() bool {
+	eni := task.GetPrimaryENI()
+	if eni == nil {
+		return false
+	}
+	return len(eni.GetIPV6Addresses()) > 0
 }
 
 // shouldOverridePIDMode returns true if the PIDMode of the container needs
@@ -1229,7 +1758,7 @@ func (task *Task) shouldOverridePIDMode(container *apicontainer.Container, docke
 		}
 		return true, dockerMappingContainerPrefix + pauseDockerID.DockerID
 
-	// If PIDMode is not Host or Task, then no need to override
+		// If PIDMode is not Host or Task, then no need to override
 	default:
 		return false, ""
 	}
@@ -1259,7 +1788,7 @@ func (task *Task) shouldOverrideIPCMode(container *apicontainer.Container, docke
 	case "":
 		return false, ""
 
-	// IPCMode is none - container will have own private namespace with /dev/shm not mounted
+		// IPCMode is none - container will have own private namespace with /dev/shm not mounted
 	case ipcModeNone:
 		return true, ipcModeNone
 
@@ -1295,7 +1824,7 @@ func (task *Task) initializeContainerOrderingForVolumes() error {
 					return fmt.Errorf("could not find container with name %s", volume.SourceContainer)
 				}
 				dependOn := apicontainer.DependsOn{ContainerName: volume.SourceContainer, Condition: ContainerOrderingCreateCondition}
-				container.DependsOn = append(container.DependsOn, dependOn)
+				container.SetDependsOn(append(container.GetDependsOn(), dependOn))
 			}
 		}
 	}
@@ -1315,7 +1844,7 @@ func (task *Task) initializeContainerOrderingForLinks() error {
 					return fmt.Errorf("could not find container with name %s", linkName)
 				}
 				dependOn := apicontainer.DependsOn{ContainerName: linkName, Condition: ContainerOrderingStartCondition}
-				container.DependsOn = append(container.DependsOn, dependOn)
+				container.SetDependsOn(append(container.GetDependsOn(), dependOn))
 			}
 		}
 	}
@@ -1440,7 +1969,7 @@ func (task *Task) updateTaskDesiredStatusUnsafe() {
 	// Otherwise, the task's desired status is unchanged (typically running, but no need to change)
 	for _, cont := range task.Containers {
 		if cont.Essential && (cont.KnownTerminal() || cont.DesiredTerminal()) {
-			seelog.Debugf("Updating task desired status to stopped because of container: [%s]; task: [%s]",
+			seelog.Infof("api/task: Updating task desired status to stopped because of container: [%s]; task: [%s]",
 				cont.Name, task.stringUnsafe())
 			task.DesiredStatusUnsafe = apitaskstatus.TaskStopped
 		}
@@ -1530,6 +2059,22 @@ func (task *Task) GetCredentialsID() string {
 	return task.credentialsID
 }
 
+// SetCredentialsRelativeURI sets the credentials relative uri for the task
+func (task *Task) SetCredentialsRelativeURI(uri string) {
+	task.lock.Lock()
+	defer task.lock.Unlock()
+
+	task.credentialsRelativeURIUnsafe = uri
+}
+
+// GetCredentialsRelativeURI returns the credentials relative uri for the task
+func (task *Task) GetCredentialsRelativeURI() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.credentialsRelativeURIUnsafe
+}
+
 // SetExecutionRoleCredentialsID sets the ID for the task execution role credentials
 func (task *Task) SetExecutionRoleCredentialsID(id string) {
 	task.lock.Lock()
@@ -1578,20 +2123,36 @@ func (task *Task) SetSentStatus(status apitaskstatus.TaskStatus) {
 	task.SentStatusUnsafe = status
 }
 
-// SetTaskENI sets the eni information of the task
-func (task *Task) SetTaskENI(eni *apieni.ENI) {
+// AddTaskENI adds ENI information to the task.
+func (task *Task) AddTaskENI(eni *apieni.ENI) {
 	task.lock.Lock()
 	defer task.lock.Unlock()
 
-	task.ENI = eni
+	if task.ENIs == nil {
+		task.ENIs = make([]*apieni.ENI, 0)
+	}
+	task.ENIs = append(task.ENIs, eni)
 }
 
-// GetTaskENI returns the eni of task, for now task can only have one enis
-func (task *Task) GetTaskENI() *apieni.ENI {
+// GetTaskENIs returns the list of ENIs for the task.
+func (task *Task) GetTaskENIs() []*apieni.ENI {
+	// TODO: what's the point of locking if we are returning a pointer?
 	task.lock.RLock()
 	defer task.lock.RUnlock()
 
-	return task.ENI
+	return task.ENIs
+}
+
+// GetPrimaryENI returns the primary ENI of the task. Since ACS can potentially send
+// multiple ENIs to the agent, the first ENI in the list is considered as the primary ENI.
+func (task *Task) GetPrimaryENI() *apieni.ENI {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	if len(task.ENIs) == 0 {
+		return nil
+	}
+	return task.ENIs[0]
 }
 
 // SetAppMesh sets the app mesh config of the task
@@ -1686,25 +2247,15 @@ func (task *Task) GetExecutionStoppedAt() time.Time {
 
 // String returns a human readable string representation of this object
 func (task *Task) String() string {
-	task.lock.Lock()
-	defer task.lock.Unlock()
 	return task.stringUnsafe()
 }
 
 // stringUnsafe returns a human readable string representation of this object
 func (task *Task) stringUnsafe() string {
-	res := fmt.Sprintf("%s:%s %s, TaskStatus: (%s->%s)",
+	return fmt.Sprintf("%s:%s %s, TaskStatus: (%s->%s) N Containers: %d, N ENIs %d",
 		task.Family, task.Version, task.Arn,
-		task.KnownStatusUnsafe.String(), task.DesiredStatusUnsafe.String())
-	res += " Containers: ["
-	for _, container := range task.Containers {
-		res += fmt.Sprintf("%s (%s->%s),", container.Name, container.GetKnownStatus().String(), container.GetDesiredStatus().String())
-	}
-
-	if task.ENI != nil {
-		res += fmt.Sprintf(" ENI: [%s]", task.ENI.String())
-	}
-	return res + "]"
+		task.KnownStatusUnsafe.String(), task.DesiredStatusUnsafe.String(),
+		len(task.Containers), len(task.ENIs))
 }
 
 // GetID is used to retrieve the taskID from taskARN
@@ -1723,14 +2274,8 @@ func (task *Task) GetID() (string, error) {
 		return "", errors.Errorf("task get-id: malformed task resource: %s", resource)
 	}
 
-	resourceSplit := strings.SplitN(resource, arnResourceDelimiter, arnResourceSections)
-	if len(resourceSplit) != arnResourceSections {
-		return "", errors.Errorf(
-			"task get-id: invalid task resource split: %s, expected=%d, actual=%d",
-			resource, arnResourceSections, len(resourceSplit))
-	}
-
-	return resourceSplit[1], nil
+	resourceSplit := strings.Split(resource, arnResourceDelimiter)
+	return resourceSplit[len(resourceSplit)-1], nil
 }
 
 // RecordExecutionStoppedAt checks if this is an essential container stopped
@@ -1834,8 +2379,8 @@ func (task *Task) getSSMSecretsResource() ([]taskresource.TaskResource, bool) {
 	return res, ok
 }
 
-// PopulateSecretsAsEnv appends the container's env var map with secrets
-func (task *Task) PopulateSecretsAsEnv(container *apicontainer.Container) *apierrors.DockerClientConfigError {
+// PopulateSecrets appends secrets to container's env var map and hostconfig section
+func (task *Task) PopulateSecrets(hostConfig *dockercontainer.HostConfig, container *apicontainer.Container) *apierrors.DockerClientConfigError {
 	var ssmRes *ssmsecret.SSMSecretResource
 	var asmRes *asmsecret.ASMSecretResource
 
@@ -1855,26 +2400,143 @@ func (task *Task) PopulateSecretsAsEnv(container *apicontainer.Container) *apier
 		asmRes = resource[0].(*asmsecret.ASMSecretResource)
 	}
 
+	populateContainerSecrets(hostConfig, container, ssmRes, asmRes)
+	return nil
+}
+
+func populateContainerSecrets(hostConfig *dockercontainer.HostConfig, container *apicontainer.Container,
+	ssmRes *ssmsecret.SSMSecretResource, asmRes *asmsecret.ASMSecretResource) {
 	envVars := make(map[string]string)
 
+	logDriverTokenName := ""
+	logDriverTokenSecretValue := ""
+
 	for _, secret := range container.Secrets {
-		if secret.Provider == apicontainer.SecretProviderSSM && secret.Type == apicontainer.SecretTypeEnv {
+		secretVal := ""
+
+		if secret.Provider == apicontainer.SecretProviderSSM {
 			k := secret.GetSecretResourceCacheKey()
 			if secretValue, ok := ssmRes.GetCachedSecretValue(k); ok {
-				envVars[secret.Name] = secretValue
+				secretVal = secretValue
 			}
 		}
 
-		if secret.Provider == apicontainer.SecretProviderASM && secret.Type == apicontainer.SecretTypeEnv {
+		if secret.Provider == apicontainer.SecretProviderASM {
 			k := secret.GetSecretResourceCacheKey()
 			if secretValue, ok := asmRes.GetCachedSecretValue(k); ok {
-				envVars[secret.Name] = secretValue
+				secretVal = secretValue
+			}
+		}
+
+		if secret.Type == apicontainer.SecretTypeEnv {
+			envVars[secret.Name] = secretVal
+			continue
+		}
+
+		if secret.Target == apicontainer.SecretTargetLogDriver {
+			// Log driver secrets for container using awsfirelens log driver won't be saved in log config and passed to
+			// Docker here. They will only be used to configure the firelens container.
+			if container.GetLogDriver() == firelensDriverName {
+				continue
+			}
+
+			logDriverTokenName = secret.Name
+			logDriverTokenSecretValue = secretVal
+
+			// Check if all the name and secret value for the log driver do exist
+			// And add the secret value for this log driver into container's HostConfig
+			if hostConfig.LogConfig.Type != "" && logDriverTokenName != "" && logDriverTokenSecretValue != "" {
+				if hostConfig.LogConfig.Config == nil {
+					hostConfig.LogConfig.Config = map[string]string{}
+				}
+				hostConfig.LogConfig.Config[logDriverTokenName] = logDriverTokenSecretValue
 			}
 		}
 	}
 
 	container.MergeEnvironmentVariables(envVars)
+}
+
+// PopulateSecretLogOptionsToFirelensContainer collects secret log option values for awsfirelens log driver from task
+// resource and specified then as envs of firelens container. Firelens container will use the envs to resolve config
+// file variables constructed for secret log options when loading the config file.
+func (task *Task) PopulateSecretLogOptionsToFirelensContainer(firelensContainer *apicontainer.Container) *apierrors.DockerClientConfigError {
+	firelensENVs := make(map[string]string)
+
+	var ssmRes *ssmsecret.SSMSecretResource
+	var asmRes *asmsecret.ASMSecretResource
+
+	resource, ok := task.getSSMSecretsResource()
+	if ok {
+		ssmRes = resource[0].(*ssmsecret.SSMSecretResource)
+	}
+
+	resource, ok = task.getASMSecretsResource()
+	if ok {
+		asmRes = resource[0].(*asmsecret.ASMSecretResource)
+	}
+
+	for _, container := range task.Containers {
+		if container.GetLogDriver() != firelensDriverName {
+			continue
+		}
+
+		logDriverSecretData, err := collectLogDriverSecretData(container.Secrets, ssmRes, asmRes)
+		if err != nil {
+			return &apierrors.DockerClientConfigError{
+				Msg: fmt.Sprintf("unable to generate config to create firelens container: %v", err),
+			}
+		}
+
+		idx := task.GetContainerIndex(container.Name)
+		if idx < 0 {
+			return &apierrors.DockerClientConfigError{
+				Msg: fmt.Sprintf("unable to generate config to create firelens container because container %s is not found in task", container.Name),
+			}
+		}
+		for key, value := range logDriverSecretData {
+			envKey := fmt.Sprintf(firelensConfigVarFmt, key, idx)
+			firelensENVs[envKey] = value
+		}
+	}
+
+	firelensContainer.MergeEnvironmentVariables(firelensENVs)
 	return nil
+}
+
+// collectLogDriverSecretData collects all the secret values for log driver secrets.
+func collectLogDriverSecretData(secrets []apicontainer.Secret, ssmRes *ssmsecret.SSMSecretResource,
+	asmRes *asmsecret.ASMSecretResource) (map[string]string, error) {
+	secretData := make(map[string]string)
+	for _, secret := range secrets {
+		if secret.Target != apicontainer.SecretTargetLogDriver {
+			continue
+		}
+
+		secretVal := ""
+		cacheKey := secret.GetSecretResourceCacheKey()
+		if secret.Provider == apicontainer.SecretProviderSSM {
+			if ssmRes == nil {
+				return nil, errors.Errorf("missing secret value for secret %s", secret.Name)
+			}
+
+			if secretValue, ok := ssmRes.GetCachedSecretValue(cacheKey); ok {
+				secretVal = secretValue
+			}
+		} else if secret.Provider == apicontainer.SecretProviderASM {
+			if asmRes == nil {
+				return nil, errors.Errorf("missing secret value for secret %s", secret.Name)
+			}
+
+			if secretValue, ok := asmRes.GetCachedSecretValue(cacheKey); ok {
+				secretVal = secretValue
+			}
+		}
+
+		secretData[secret.Name] = secretVal
+	}
+
+	return secretData, nil
 }
 
 // getASMSecretsResource retrieves asmsecret resource from resource map
@@ -1948,4 +2610,100 @@ func (task *Task) AssociationByTypeAndName(associationType, associationName stri
 	}
 
 	return nil, false
+}
+
+// GetContainerIndex returns the index of the container in the container list. This doesn't count internal container.
+func (task *Task) GetContainerIndex(containerName string) int {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	idx := 0
+	for _, container := range task.Containers {
+		if container.IsInternal() {
+			continue
+		}
+		if container.Name == containerName {
+			return idx
+		}
+		idx++
+	}
+	return -1
+}
+
+func (task *Task) initializeEnvfilesResource(config *config.Config, credentialsManager credentials.Manager) error {
+
+	for _, container := range task.Containers {
+		if container.ShouldCreateWithEnvFiles() {
+			envfileResource, err := envFiles.NewEnvironmentFileResource(config.Cluster, task.Arn, config.AWSRegion, config.DataDir,
+				container.Name, container.EnvironmentFiles, credentialsManager, task.ExecutionCredentialsID)
+			if err != nil {
+				return errors.Wrapf(err, "unable to initialize envfiles resource for container %s", container.Name)
+			}
+			task.AddResource(envFiles.ResourceName, envfileResource)
+			container.BuildResourceDependency(envfileResource.GetName(), resourcestatus.ResourceCreated, apicontainerstatus.ContainerCreated)
+		}
+	}
+
+	return nil
+}
+
+func (task *Task) getEnvfilesResource(containerName string) (taskresource.TaskResource, bool) {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	resources, ok := task.ResourcesMapUnsafe[envFiles.ResourceName]
+	if !ok {
+		return nil, false
+	}
+
+	for _, resource := range resources {
+		envfileResource := resource.(*envFiles.EnvironmentFileResource)
+		if envfileResource.GetContainerName() == containerName {
+			return envfileResource, true
+		}
+	}
+
+	// was not able to retrieve envfile resource for specified container name
+	return nil, false
+}
+
+// MergeEnvVarsFromEnvfiles should be called when creating a container -
+// this method reads the environment variables specified in the environment files
+// that was downloaded to disk and merges it with existing environment variables
+func (task *Task) MergeEnvVarsFromEnvfiles(container *apicontainer.Container) *apierrors.ResourceInitError {
+	var envfileResource *envFiles.EnvironmentFileResource
+	resource, ok := task.getEnvfilesResource(container.Name)
+	if !ok {
+		err := errors.New(fmt.Sprintf("task environment files: unable to retrieve environment files resource for container %s", container.Name))
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+	envfileResource = resource.(*envFiles.EnvironmentFileResource)
+
+	envVarsList, err := envfileResource.ReadEnvVarsFromEnvfiles()
+	if err != nil {
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+
+	err = container.MergeEnvironmentVariablesFromEnvfiles(envVarsList)
+	if err != nil {
+		return apierrors.NewResourceInitError(task.Arn, err)
+	}
+
+	return nil
+}
+
+// GetLocalIPAddress returns the local IP address of the task.
+func (task *Task) GetLocalIPAddress() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.LocalIPAddressUnsafe
+}
+
+// SetLocalIPAddress sets the local IP address of the task.
+func (task *Task) SetLocalIPAddress(addr string) {
+	task.lock.Lock()
+	defer task.lock.Unlock()
+
+	task.LocalIPAddressUnsafe = addr
 }

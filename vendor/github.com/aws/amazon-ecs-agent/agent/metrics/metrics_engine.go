@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -14,7 +14,6 @@
 package metrics
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -29,7 +28,6 @@ type APIType int32
 type MetricsEngine struct {
 	collection     bool
 	cfg            *config.Config
-	ctx            context.Context
 	Registry       *prometheus.Registry
 	managedMetrics map[APIType]MetricsClient
 }
@@ -89,7 +87,7 @@ func NewMetricsEngine(cfg *config.Config, registry *prometheus.Registry) *Metric
 		Registry:       registry,
 		managedMetrics: make(map[APIType]MetricsClient),
 	}
-	for managedAPI, _ := range managedAPIs {
+	for managedAPI := range managedAPIs {
 		aClient := NewMetricsClient(managedAPI, metricsEngine.Registry)
 		metricsEngine.managedMetrics[managedAPI] = aClient
 	}

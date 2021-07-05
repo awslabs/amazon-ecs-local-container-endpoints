@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -21,6 +21,14 @@ const (
 	// TaskEvent is used to define the task state transition events emitted by
 	// the engine
 	TaskEvent
+
+	// AttachmentEvent is used to define the attachment state transition events
+	// emitted by ENI watcher
+	AttachmentEvent
+
+	// ManagedAgentEvent is used to define the managed agent state transition events
+	// emitted by the engine
+	ManagedAgentEvent
 )
 
 // Event defines the type of state change event
@@ -29,7 +37,6 @@ type EventType int32
 // Event is used to abstract away the two transition event types
 // passed up through a single channel from the the engine
 type Event interface {
-
 	// GetEventType implementations should return one the enums defined above to
 	// identify the type of event being emitted
 	GetEventType() EventType

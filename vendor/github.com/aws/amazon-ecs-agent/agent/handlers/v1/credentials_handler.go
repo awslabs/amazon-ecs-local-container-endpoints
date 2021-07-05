@@ -1,4 +1,4 @@
-// Copyright 2017-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -70,7 +70,10 @@ func CredentialsHandler(credentialsManager credentials.Manager, auditLogger audi
 func CredentialsHandlerImpl(w http.ResponseWriter, r *http.Request, auditLogger audit.AuditLogger, credentialsManager credentials.Manager, credentialsID string, errPrefix string) {
 	responseJSON, arn, roleType, errorMessage, err := processCredentialsRequest(credentialsManager, r, credentialsID, errPrefix)
 	if err != nil {
-		errResponseJSON, _ := json.Marshal(errorMessage)
+		errResponseJSON, err := json.Marshal(errorMessage)
+		if e := handlersutils.WriteResponseIfMarshalError(w, err); e != nil {
+			return
+		}
 		writeCredentialsRequestResponse(w, r, errorMessage.HTTPErrorCode, audit.GetCredentialsEventType(roleType), arn, auditLogger, errResponseJSON)
 		return
 	}
@@ -81,8 +84,8 @@ func CredentialsHandlerImpl(w http.ResponseWriter, r *http.Request, auditLogger 
 // processCredentialsRequest returns the response json containing credentials for the credentials id in the request
 func processCredentialsRequest(credentialsManager credentials.Manager, r *http.Request, credentialsID string, errPrefix string) ([]byte, string, string, *handlersutils.ErrorMessage, error) {
 	if credentialsID == "" {
-		errText := errPrefix + "No ID in the request"
-		seelog.Infof("%s. Request IP Address: %s", errText, r.RemoteAddr)
+		errText := errPrefix + "No Credential ID in the request"
+		seelog.Errorf("Error processing credential request: %s", errText)
 		msg := &handlersutils.ErrorMessage{
 			Code:          ErrNoIDInRequest,
 			Message:       errText,
@@ -93,8 +96,8 @@ func processCredentialsRequest(credentialsManager credentials.Manager, r *http.R
 
 	credentials, ok := credentialsManager.GetTaskCredentials(credentialsID)
 	if !ok {
-		errText := errPrefix + "ID not found"
-		seelog.Infof("%s. Request IP Address: %s", errText, r.RemoteAddr)
+		errText := errPrefix + "Credentials not found"
+		seelog.Errorf("Error processing credential request: %s", errText)
 		msg := &handlersutils.ErrorMessage{
 			Code:          ErrInvalidIDInRequest,
 			Message:       errText,
@@ -103,10 +106,14 @@ func processCredentialsRequest(credentialsManager credentials.Manager, r *http.R
 		return nil, "", "", msg, errors.New(errText)
 	}
 
+	seelog.Infof("Processing credential request, credentialType=%s taskARN=%s",
+		credentials.IAMRoleCredentials.RoleType, credentials.ARN)
+
 	if utils.ZeroOrNil(credentials.ARN) && utils.ZeroOrNil(credentials.IAMRoleCredentials) {
 		// This can happen when the agent is restarted and is reconciling its state.
 		errText := errPrefix + "Credentials uninitialized for ID"
-		seelog.Infof("%s. Request IP Address: %s", errText, r.RemoteAddr)
+		seelog.Errorf("Error processing credential request credentialType=%s taskARN=%s: %s",
+			credentials.IAMRoleCredentials.RoleType, credentials.ARN, errText)
 		msg := &handlersutils.ErrorMessage{
 			Code:          ErrCredentialsUninitialized,
 			Message:       errText,
@@ -118,7 +125,8 @@ func processCredentialsRequest(credentialsManager credentials.Manager, r *http.R
 	credentialsJSON, err := json.Marshal(credentials.IAMRoleCredentials)
 	if err != nil {
 		errText := errPrefix + "Error marshaling credentials"
-		seelog.Errorf("%s. Request IP Address: %s", errText, r.RemoteAddr)
+		seelog.Errorf("Error processing credential request credentialType=%s taskARN=%s: %s",
+			credentials.IAMRoleCredentials.RoleType, credentials.ARN, errText)
 		msg := &handlersutils.ErrorMessage{
 			Code:          ErrInternalServer,
 			Message:       "Internal server error",

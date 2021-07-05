@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -21,6 +21,7 @@ import (
 	"github.com/aws/amazon-ecs-agent/agent/credentials"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient/dockerapi"
 	"github.com/aws/amazon-ecs-agent/agent/engine/dockerstate"
+	"github.com/aws/amazon-ecs-agent/agent/engine/execcmd"
 	"github.com/aws/amazon-ecs-agent/agent/eventstream"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
 )
@@ -31,11 +32,12 @@ func NewTaskEngine(cfg *config.Config, client dockerapi.DockerClient,
 	containerChangeEventStream *eventstream.EventStream,
 	imageManager ImageManager, state dockerstate.TaskEngineState,
 	metadataManager containermetadata.Manager,
-	resourceFields *taskresource.ResourceFields) TaskEngine {
+	resourceFields *taskresource.ResourceFields,
+	execCmdMgr execcmd.Manager) TaskEngine {
 
 	taskEngine := NewDockerTaskEngine(cfg, client, credentialsManager,
 		containerChangeEventStream, imageManager,
-		state, metadataManager, resourceFields)
+		state, metadataManager, resourceFields, execCmdMgr)
 
 	return taskEngine
 }

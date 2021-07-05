@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -21,15 +21,6 @@ import (
 	log "github.com/cihub/seelog"
 	docker "github.com/docker/docker/client"
 	"github.com/pkg/errors"
-)
-
-const (
-	// minAPIVersionKey is the docker.Env key for min API version
-	// This is supported in Docker API versions >=1.25
-	// https://docs.docker.com/engine/api/version-history/#v125-api-changes
-	minAPIVersionKey = "MinAPIVersion"
-	// apiVersionKey is the docker.Env key for API version
-	apiVersionKey = "ApiVersion"
 )
 
 // Factory provides a collection of docker remote clients that include a
@@ -88,7 +79,7 @@ func (f *factory) GetDefaultClient() (sdkclient.Client, error) {
 
 func (f *factory) FindSupportedAPIVersions() []dockerclient.DockerVersion {
 	var supportedVersions []dockerclient.DockerVersion
-	for _, testVersion := range getAgentVersions() {
+	for _, testVersion := range getAgentSupportedDockerVersions() {
 		_, err := f.GetClient(testVersion)
 		if err != nil {
 			continue

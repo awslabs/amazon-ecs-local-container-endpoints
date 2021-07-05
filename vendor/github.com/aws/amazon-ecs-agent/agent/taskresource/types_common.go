@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,6 +16,7 @@ package taskresource
 import (
 	asmfactory "github.com/aws/amazon-ecs-agent/agent/asm/factory"
 	"github.com/aws/amazon-ecs-agent/agent/credentials"
+	fsxfactory "github.com/aws/amazon-ecs-agent/agent/fsx/factory"
 	ssmfactory "github.com/aws/amazon-ecs-agent/agent/ssm/factory"
 	"github.com/aws/amazon-ecs-agent/agent/utils/ioutilwrapper"
 )
@@ -24,5 +25,7 @@ type ResourceFieldsCommon struct {
 	IOUtil             ioutilwrapper.IOUtil
 	ASMClientCreator   asmfactory.ClientCreator
 	SSMClientCreator   ssmfactory.SSMClientCreator
+	FSxClientCreator   fsxfactory.FSxClientCreator
 	CredentialsManager credentials.Manager
+	EC2InstanceID      string
 }

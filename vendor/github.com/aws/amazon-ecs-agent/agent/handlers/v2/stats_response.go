@@ -1,4 +1,4 @@
-// Copyright 2017-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -24,7 +24,7 @@ import (
 // NewTaskStatsResponse returns a new task stats response object
 func NewTaskStatsResponse(taskARN string,
 	state dockerstate.TaskEngineState,
-	statsEngine stats.Engine) (map[string]*types.Stats, error) {
+	statsEngine stats.Engine) (map[string]*types.StatsJSON, error) {
 
 	containerMap, ok := state.ContainerMapByArn(taskARN)
 	if !ok {
@@ -33,10 +33,10 @@ func NewTaskStatsResponse(taskARN string,
 			taskARN)
 	}
 
-	resp := make(map[string]*types.Stats)
+	resp := make(map[string]*types.StatsJSON)
 	for _, dockerContainer := range containerMap {
 		containerID := dockerContainer.DockerID
-		dockerStats, err := statsEngine.ContainerDockerStats(taskARN, containerID)
+		dockerStats, _, err := statsEngine.ContainerDockerStats(taskARN, containerID)
 		if err != nil {
 			seelog.Warnf("V2 task stats response: Unable to get stats for container '%s' for task '%s': %v",
 				containerID, taskARN, err)

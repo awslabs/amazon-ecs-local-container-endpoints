@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -17,25 +17,32 @@ import "time"
 
 // Timelimits for docker operations enforced above docker
 const (
-	// PullImageTimeout is the timeout for the PullImage API
-	PullImageTimeout = 2 * time.Hour
 	// ListImagesTimeout is the timeout for the ListImages API
 	ListImagesTimeout = 10 * time.Minute
 	// LoadImageTimeout is the timeout for the LoadImage API. It's set
 	// to much lower value than pullImageTimeout as it involves loading
-	// image from either a file or STDIN
-	// calls involved.
-	// TODO: Benchmark and re-evaluate this value
-	LoadImageTimeout = 10 * time.Minute
+	// image from either a file or STDIN calls involved.
+	// This value is set based on benchmarking the time of loading the pause container image,
+	// since it's currently only used to load that image. If this is to be used to load any
+	// other image in the future, additional benchmarking will be required.
+	// Per benchmark, 2 min is roughly 4x of the worst case (29s) across 400 image loads on
+	// al1/al2/al2gpu/al2arm with smallest instance type available (t2.nano/a1.medium) and
+	// burst balance = 0.
+	LoadImageTimeout = 2 * time.Minute
 	// RemoveImageTimeout is the timeout for the RemoveImage API.
 	RemoveImageTimeout = 3 * time.Minute
-
-	// CreateContainerTimeout is the timeout for the CreateContainer API.
-	CreateContainerTimeout = 4 * time.Minute
 	// ListContainersTimeout is the timeout for the ListContainers API.
 	ListContainersTimeout = 10 * time.Minute
 	// InspectContainerTimeout is the timeout for the InspectContainer API.
 	InspectContainerTimeout = 30 * time.Second
+	// TopContainerTimeout is the timeout for the TopContainer API.
+	TopContainerTimeout = 30 * time.Second
+	// ContainerExecCreateTimeout is the timeout for the ContainerExecCreate API.
+	ContainerExecCreateTimeout = 1 * time.Minute
+	// ContainerExecStartTimeout is the timeout for the ContainerExecStart API.
+	ContainerExecStartTimeout = 1 * time.Minute
+	// ContainerExecInspectTimeout is the timeout for the ContainerExecInspect API.
+	ContainerExecInspectTimeout = 1 * time.Minute
 	// StopContainerTimeout is the timeout for the StopContainer API.
 	StopContainerTimeout = 30 * time.Second
 	// RemoveContainerTimeout is the timeout for the RemoveContainer API.
@@ -52,8 +59,11 @@ const (
 	ListPluginsTimeout = 1 * time.Minute
 
 	// StatsInactivityTimeout controls the amount of time we hold open a
-	// connection to the Docker daemon waiting for stats data
-	StatsInactivityTimeout = 5 * time.Second
+	// connection to the Docker daemon waiting for stats data.
+	// We set this a few seconds below our stats publishling interval (20s)
+	// so that we can disconnect and warn the user when metrics reporting
+	// may be impacted. This is usually caused by a over-stressed docker daemon.
+	StatsInactivityTimeout = 18 * time.Second
 
 	// DockerPullBeginTimeout is the timeout from when a 'pull' is called to when
 	// we expect to see output on the pull progress stream. This is to work
@@ -62,4 +72,7 @@ const (
 
 	// VersionTimeout is the timeout for the Version API
 	VersionTimeout = 10 * time.Second
+
+	// InfoTimeout is the timeout for the Info API
+	InfoTimeout = 10 * time.Second
 )

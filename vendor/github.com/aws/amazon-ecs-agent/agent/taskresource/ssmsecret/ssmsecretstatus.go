@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -67,8 +67,8 @@ func (as *SSMSecretStatus) UnmarshalJSON(b []byte) error {
 		return errors.New("resource status unmarshal: status must be a string or null; Got " + string(b))
 	}
 
-	strStatus := string(b[1 : len(b)-1])
-	stat, ok := ssmSecretStatusMap[strStatus]
+	strStatus := b[1 : len(b)-1]
+	stat, ok := ssmSecretStatusMap[string(strStatus)]
 	if !ok {
 		*as = SSMSecretStatusNone
 		return errors.New("resource status unmarshal: unrecognized status")

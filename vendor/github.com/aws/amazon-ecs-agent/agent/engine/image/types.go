@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -69,6 +69,13 @@ func (imageState *ImageState) AddImageName(imageName string) {
 	}
 }
 
+// GetImageID returns id of image
+func (imageState *ImageState) GetImageID() string {
+	imageState.lock.RLock()
+	defer imageState.lock.RUnlock()
+	return imageState.Image.ImageID
+}
+
 // GetImageNamesCount returns number of image names
 func (imageState *ImageState) GetImageNamesCount() int {
 	imageState.lock.RLock()
@@ -88,14 +95,16 @@ func (imageState *ImageState) UpdateImageState(container *apicontainer.Container
 }
 
 // RemoveImageName removes image name from image state
-func (imageState *ImageState) RemoveImageName(containerImageName string) {
+func (imageState *ImageState) RemoveImageName(containerImageName string) bool {
 	imageState.lock.Lock()
 	defer imageState.lock.Unlock()
 	for i, imageName := range imageState.Image.Names {
 		if imageName == containerImageName {
 			imageState.Image.Names = append(imageState.Image.Names[:i], imageState.Image.Names[i+1:]...)
+			return true
 		}
 	}
+	return false
 }
 
 // HasImageName returns true if image state contains the containerImageName

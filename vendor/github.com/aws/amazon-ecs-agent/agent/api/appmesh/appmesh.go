@@ -1,4 +1,4 @@
-// Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -36,6 +36,8 @@ const (
 
 // AppMesh contains information of app mesh config
 type AppMesh struct {
+	// ContainerName is the proxy container name
+	ContainerName string
 	// IgnoredUID is egress traffic from the processes owned by the UID will be ignored
 	IgnoredUID string
 	// IgnoredGID specifies egress traffic from the processes owned by the GID will be ignored
@@ -60,6 +62,7 @@ func AppMeshFromACS(proxyConfig *ecsacs.ProxyConfiguration) (*AppMesh, error) {
 	}
 
 	return &AppMesh{
+		ContainerName:      aws.StringValue(proxyConfig.ContainerName),
 		IgnoredUID:         aws.StringValue(proxyConfig.Properties[ignoredUID]),
 		IgnoredGID:         aws.StringValue(proxyConfig.Properties[ignoredGID]),
 		ProxyIngressPort:   aws.StringValue(proxyConfig.Properties[proxyIngressPort]),
@@ -73,7 +76,7 @@ func AppMeshFromACS(proxyConfig *ecsacs.ProxyConfiguration) (*AppMesh, error) {
 // buildAppPorts creates app ports from proxy config
 func buildAppPorts(proxyConfig *ecsacs.ProxyConfiguration) []string {
 	var inputAppPorts []string
-	if proxyConfig.Properties[appPorts] != nil {
+	if proxyConfig.Properties[appPorts] != nil && len(*proxyConfig.Properties[appPorts]) > 0 {
 		inputAppPorts = strings.Split(*proxyConfig.Properties[appPorts], splitter)
 	}
 	return inputAppPorts
@@ -82,7 +85,7 @@ func buildAppPorts(proxyConfig *ecsacs.ProxyConfiguration) []string {
 // buildEgressIgnoredIPs creates egress ignored IPs from proxy config
 func buildEgressIgnoredIPs(proxyConfig *ecsacs.ProxyConfiguration) []string {
 	var inputEgressIgnoredIPs []string
-	if proxyConfig.Properties[egressIgnoredIPs] != nil {
+	if proxyConfig.Properties[egressIgnoredIPs] != nil && len(*proxyConfig.Properties[egressIgnoredIPs]) > 0 {
 		inputEgressIgnoredIPs = strings.Split(*proxyConfig.Properties[egressIgnoredIPs], splitter)
 	}
 	// append agent default egress ignored IPs
@@ -92,7 +95,7 @@ func buildEgressIgnoredIPs(proxyConfig *ecsacs.ProxyConfiguration) []string {
 // buildEgressIgnoredPorts creates egress ignored ports from proxy config
 func buildEgressIgnoredPorts(proxyConfig *ecsacs.ProxyConfiguration) []string {
 	var inputEgressIgnoredPorts []string
-	if proxyConfig.Properties[egressIgnoredPorts] != nil {
+	if proxyConfig.Properties[egressIgnoredPorts] != nil && len(*proxyConfig.Properties[egressIgnoredPorts]) > 0 {
 		inputEgressIgnoredPorts = strings.Split(*proxyConfig.Properties[egressIgnoredPorts], splitter)
 	}
 	return inputEgressIgnoredPorts

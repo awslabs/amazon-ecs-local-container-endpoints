@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -28,7 +28,7 @@ type ExponentialBackoff struct {
 	mu             sync.Mutex
 }
 
-// NewSimpleBackoff creates a Backoff which ranges from min to max increasing by
+// NewExponentialBackoff creates a Backoff which ranges from min to max increasing by
 // multiple each time. (t = start * multiple * n for the nth iteration)
 // It also adds (and yes, the jitter is always added, never
 // subtracted) a random amount of jitter up to jitterMultiple percent (that is,

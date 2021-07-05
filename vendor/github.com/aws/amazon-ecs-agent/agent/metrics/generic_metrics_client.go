@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -113,12 +113,6 @@ func (gm *GenericMetrics) FireCallEnd(callHash, callName string, timestamp time.
 	} else {
 		seelog.Errorf("Call is not outstanding: %s", callName)
 	}
-}
-
-// Simple Timeout function
-func startTimeout(timeout chan bool) {
-	time.Sleep(callTimeout)
-	timeout <- true
 }
 
 // This function increments the call count for a specific API call
