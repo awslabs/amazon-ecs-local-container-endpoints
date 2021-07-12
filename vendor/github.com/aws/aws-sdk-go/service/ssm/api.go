@@ -129,6 +129,101 @@ func (c *SSM) AddTagsToResourceWithContext(ctx aws.Context, input *AddTagsToReso
 	return out, req.Send()
 }
 
+const opAssociateOpsItemRelatedItem = "AssociateOpsItemRelatedItem"
+
+// AssociateOpsItemRelatedItemRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateOpsItemRelatedItem operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AssociateOpsItemRelatedItem for more information on using the AssociateOpsItemRelatedItem
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AssociateOpsItemRelatedItemRequest method.
+//    req, resp := client.AssociateOpsItemRelatedItemRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/AssociateOpsItemRelatedItem
+func (c *SSM) AssociateOpsItemRelatedItemRequest(input *AssociateOpsItemRelatedItemInput) (req *request.Request, output *AssociateOpsItemRelatedItemOutput) {
+	op := &request.Operation{
+		Name:       opAssociateOpsItemRelatedItem,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateOpsItemRelatedItemInput{}
+	}
+
+	output = &AssociateOpsItemRelatedItemOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateOpsItemRelatedItem API operation for Amazon Simple Systems Manager (SSM).
+//
+// Associates a related resource to a Systems Manager OpsCenter OpsItem. For
+// example, you can associate an Incident Manager incident or analysis with
+// an OpsItem. Incident Manager is a capability of AWS Systems Manager.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation AssociateOpsItemRelatedItem for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * OpsItemNotFoundException
+//   The specified OpsItem ID doesn't exist. Verify the ID and try again.
+//
+//   * OpsItemLimitExceededException
+//   The request caused OpsItems to exceed one or more quotas. For information
+//   about OpsItem quotas, see What are the resource limits for OpsCenter? (https://docs.aws.amazon.com/systems-manager/latest/userguide/OpsCenter-learn-more.html#OpsCenter-learn-more-limits).
+//
+//   * OpsItemInvalidParameterException
+//   A specified parameter argument isn't valid. Verify the available arguments
+//   and try again.
+//
+//   * OpsItemRelatedItemAlreadyExistsException
+//   The Amazon Resource Name (ARN) is already associated with the OpsItem.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/AssociateOpsItemRelatedItem
+func (c *SSM) AssociateOpsItemRelatedItem(input *AssociateOpsItemRelatedItemInput) (*AssociateOpsItemRelatedItemOutput, error) {
+	req, out := c.AssociateOpsItemRelatedItemRequest(input)
+	return out, req.Send()
+}
+
+// AssociateOpsItemRelatedItemWithContext is the same as AssociateOpsItemRelatedItem with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AssociateOpsItemRelatedItem for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) AssociateOpsItemRelatedItemWithContext(ctx aws.Context, input *AssociateOpsItemRelatedItemInput, opts ...request.Option) (*AssociateOpsItemRelatedItemOutput, error) {
+	req, out := c.AssociateOpsItemRelatedItemRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCancelCommand = "CancelCommand"
 
 // CancelCommandRequest generates a "aws/request.Request" representing the
@@ -189,6 +284,7 @@ func (c *SSM) CancelCommandRequest(input *CancelCommandInput) (req *request.Requ
 //   An error occurred on the server side.
 //
 //   * InvalidCommandId
+//   The specified command ID is not valid. Verify the ID and try again.
 //
 //   * InvalidInstanceId
 //   The following problems can cause this exception:
@@ -7015,6 +7111,99 @@ func (c *SSM) DescribeSessionsPagesWithContext(ctx aws.Context, input *DescribeS
 	return p.Err()
 }
 
+const opDisassociateOpsItemRelatedItem = "DisassociateOpsItemRelatedItem"
+
+// DisassociateOpsItemRelatedItemRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateOpsItemRelatedItem operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisassociateOpsItemRelatedItem for more information on using the DisassociateOpsItemRelatedItem
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DisassociateOpsItemRelatedItemRequest method.
+//    req, resp := client.DisassociateOpsItemRelatedItemRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DisassociateOpsItemRelatedItem
+func (c *SSM) DisassociateOpsItemRelatedItemRequest(input *DisassociateOpsItemRelatedItemInput) (req *request.Request, output *DisassociateOpsItemRelatedItemOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateOpsItemRelatedItem,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateOpsItemRelatedItemInput{}
+	}
+
+	output = &DisassociateOpsItemRelatedItemOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DisassociateOpsItemRelatedItem API operation for Amazon Simple Systems Manager (SSM).
+//
+// Deletes the association between an OpsItem and a related resource. For example,
+// this API action can delete an Incident Manager incident from an OpsItem.
+// Incident Manager is a capability of AWS Systems Manager.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DisassociateOpsItemRelatedItem for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * OpsItemRelatedItemAssociationNotFoundException
+//   The association was not found using the parameters you specified in the call.
+//   Verify the information and try again.
+//
+//   * OpsItemNotFoundException
+//   The specified OpsItem ID doesn't exist. Verify the ID and try again.
+//
+//   * OpsItemInvalidParameterException
+//   A specified parameter argument isn't valid. Verify the available arguments
+//   and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/DisassociateOpsItemRelatedItem
+func (c *SSM) DisassociateOpsItemRelatedItem(input *DisassociateOpsItemRelatedItemInput) (*DisassociateOpsItemRelatedItemOutput, error) {
+	req, out := c.DisassociateOpsItemRelatedItemRequest(input)
+	return out, req.Send()
+}
+
+// DisassociateOpsItemRelatedItemWithContext is the same as DisassociateOpsItemRelatedItem with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisassociateOpsItemRelatedItem for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) DisassociateOpsItemRelatedItemWithContext(ctx aws.Context, input *DisassociateOpsItemRelatedItemInput, opts ...request.Option) (*DisassociateOpsItemRelatedItemOutput, error) {
+	req, out := c.DisassociateOpsItemRelatedItemRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetAutomationExecution = "GetAutomationExecution"
 
 // GetAutomationExecutionRequest generates a "aws/request.Request" representing the
@@ -7248,6 +7437,10 @@ func (c *SSM) GetCommandInvocationRequest(input *GetCommandInvocationInput) (req
 // Returns detailed information about command execution for an invocation or
 // plugin.
 //
+// GetCommandInvocation only gives the execution status of a plugin in a document.
+// To get the command execution status on a specific instance, use ListCommandInvocations.
+// To get the command execution status across instances, use ListCommands.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -7260,6 +7453,7 @@ func (c *SSM) GetCommandInvocationRequest(input *GetCommandInvocationInput) (req
 //   An error occurred on the server side.
 //
 //   * InvalidCommandId
+//   The specified command ID is not valid. Verify the ID and try again.
 //
 //   * InvalidInstanceId
 //   The following problems can cause this exception:
@@ -9524,8 +9718,8 @@ func (c *SSM) LabelParameterVersionRequest(input *LabelParameterVersionInput) (r
 //    * You can't create a label when you create a new parameter. You must attach
 //    a label to a specific version of a parameter.
 //
-//    * You can't delete a parameter label. If you no longer want to use a parameter
-//    label, then you must move it to a different version of a parameter.
+//    * If you no longer want to use a parameter label, then you can either
+//    delete it or move it to a different version of a parameter.
 //
 //    * A label can have a maximum of 100 characters.
 //
@@ -9936,6 +10130,7 @@ func (c *SSM) ListCommandInvocationsRequest(input *ListCommandInvocationsInput) 
 //   An error occurred on the server side.
 //
 //   * InvalidCommandId
+//   The specified command ID is not valid. Verify the ID and try again.
 //
 //   * InvalidInstanceId
 //   The following problems can cause this exception:
@@ -10093,6 +10288,7 @@ func (c *SSM) ListCommandsRequest(input *ListCommandsInput) (req *request.Reques
 //   An error occurred on the server side.
 //
 //   * InvalidCommandId
+//   The specified command ID is not valid. Verify the ID and try again.
 //
 //   * InvalidInstanceId
 //   The following problems can cause this exception:
@@ -11113,6 +11309,147 @@ func (c *SSM) ListOpsItemEventsPagesWithContext(ctx aws.Context, input *ListOpsI
 	return p.Err()
 }
 
+const opListOpsItemRelatedItems = "ListOpsItemRelatedItems"
+
+// ListOpsItemRelatedItemsRequest generates a "aws/request.Request" representing the
+// client's request for the ListOpsItemRelatedItems operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListOpsItemRelatedItems for more information on using the ListOpsItemRelatedItems
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListOpsItemRelatedItemsRequest method.
+//    req, resp := client.ListOpsItemRelatedItemsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/ListOpsItemRelatedItems
+func (c *SSM) ListOpsItemRelatedItemsRequest(input *ListOpsItemRelatedItemsInput) (req *request.Request, output *ListOpsItemRelatedItemsOutput) {
+	op := &request.Operation{
+		Name:       opListOpsItemRelatedItems,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListOpsItemRelatedItemsInput{}
+	}
+
+	output = &ListOpsItemRelatedItemsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListOpsItemRelatedItems API operation for Amazon Simple Systems Manager (SSM).
+//
+// Lists all related-item resources associated with an OpsItem.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation ListOpsItemRelatedItems for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * OpsItemInvalidParameterException
+//   A specified parameter argument isn't valid. Verify the available arguments
+//   and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/ListOpsItemRelatedItems
+func (c *SSM) ListOpsItemRelatedItems(input *ListOpsItemRelatedItemsInput) (*ListOpsItemRelatedItemsOutput, error) {
+	req, out := c.ListOpsItemRelatedItemsRequest(input)
+	return out, req.Send()
+}
+
+// ListOpsItemRelatedItemsWithContext is the same as ListOpsItemRelatedItems with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListOpsItemRelatedItems for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) ListOpsItemRelatedItemsWithContext(ctx aws.Context, input *ListOpsItemRelatedItemsInput, opts ...request.Option) (*ListOpsItemRelatedItemsOutput, error) {
+	req, out := c.ListOpsItemRelatedItemsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListOpsItemRelatedItemsPages iterates over the pages of a ListOpsItemRelatedItems operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListOpsItemRelatedItems method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListOpsItemRelatedItems operation.
+//    pageNum := 0
+//    err := client.ListOpsItemRelatedItemsPages(params,
+//        func(page *ssm.ListOpsItemRelatedItemsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *SSM) ListOpsItemRelatedItemsPages(input *ListOpsItemRelatedItemsInput, fn func(*ListOpsItemRelatedItemsOutput, bool) bool) error {
+	return c.ListOpsItemRelatedItemsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListOpsItemRelatedItemsPagesWithContext same as ListOpsItemRelatedItemsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) ListOpsItemRelatedItemsPagesWithContext(ctx aws.Context, input *ListOpsItemRelatedItemsInput, fn func(*ListOpsItemRelatedItemsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListOpsItemRelatedItemsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListOpsItemRelatedItemsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListOpsItemRelatedItemsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opListOpsMetadata = "ListOpsMetadata"
 
 // ListOpsMetadataRequest generates a "aws/request.Request" representing the
@@ -12109,8 +12446,8 @@ func (c *SSM) PutParameterRequest(input *PutParameterInput) (req *request.Reques
 //   assigned to them from being deleted. To continue creating new parameters,
 //   first move the label from the oldest version of the parameter to a newer
 //   one for use in your operations. For information about moving parameter labels,
-//   see Move a parameter label (console) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-console-move)
-//   or Move a parameter label (CLI) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-cli-move)
+//   see Move a parameter label (console) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-console-move)
+//   or Move a parameter label (CLI) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-cli-move)
 //   in the AWS Systems Manager User Guide.
 //
 //   * ParameterPatternMismatchException
@@ -13622,6 +13959,96 @@ func (c *SSM) TerminateSession(input *TerminateSessionInput) (*TerminateSessionO
 // for more information on using Contexts.
 func (c *SSM) TerminateSessionWithContext(ctx aws.Context, input *TerminateSessionInput, opts ...request.Option) (*TerminateSessionOutput, error) {
 	req, out := c.TerminateSessionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUnlabelParameterVersion = "UnlabelParameterVersion"
+
+// UnlabelParameterVersionRequest generates a "aws/request.Request" representing the
+// client's request for the UnlabelParameterVersion operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UnlabelParameterVersion for more information on using the UnlabelParameterVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UnlabelParameterVersionRequest method.
+//    req, resp := client.UnlabelParameterVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/UnlabelParameterVersion
+func (c *SSM) UnlabelParameterVersionRequest(input *UnlabelParameterVersionInput) (req *request.Request, output *UnlabelParameterVersionOutput) {
+	op := &request.Operation{
+		Name:       opUnlabelParameterVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UnlabelParameterVersionInput{}
+	}
+
+	output = &UnlabelParameterVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UnlabelParameterVersion API operation for Amazon Simple Systems Manager (SSM).
+//
+// Remove a label or labels from a parameter.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation UnlabelParameterVersion for usage and error information.
+//
+// Returned Error Types:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * TooManyUpdates
+//   There are concurrent updates for a resource that supports one update at a
+//   time.
+//
+//   * ParameterNotFound
+//   The parameter could not be found. Verify the name and try again.
+//
+//   * ParameterVersionNotFound
+//   The specified parameter version was not found. Verify the parameter name
+//   and version, and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ssm-2014-11-06/UnlabelParameterVersion
+func (c *SSM) UnlabelParameterVersion(input *UnlabelParameterVersionInput) (*UnlabelParameterVersionOutput, error) {
+	req, out := c.UnlabelParameterVersionRequest(input)
+	return out, req.Send()
+}
+
+// UnlabelParameterVersionWithContext is the same as UnlabelParameterVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UnlabelParameterVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *SSM) UnlabelParameterVersionWithContext(ctx aws.Context, input *UnlabelParameterVersionInput, opts ...request.Option) (*UnlabelParameterVersionOutput, error) {
+	req, out := c.UnlabelParameterVersionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -15209,6 +15636,12 @@ type AddTagsToResourceInput struct {
 	//
 	// PatchBaseline: pb-012345abcde
 	//
+	// OpsMetadata object: ResourceID for tagging is created from the Amazon Resource
+	// Name (ARN) for the object. Specifically, ResourceID is created from the strings
+	// that come after the word opsmetadata in the ARN. For example, an OpsMetadata
+	// object with an ARN of arn:aws:ssm:us-east-2:1234567890:opsmetadata/aws/ssm/MyGroup/appmanager
+	// has a ResourceID of either aws/ssm/MyGroup/appmanager or /aws/ssm/MyGroup/appmanager.
+	//
 	// For the Document and Parameter values, use the name of the resource.
 	//
 	// The ManagedInstance type for this API action is only for on-premises managed
@@ -15227,9 +15660,7 @@ type AddTagsToResourceInput struct {
 	// ResourceType is a required field
 	ResourceType *string `type:"string" required:"true" enum:"ResourceTypeForTagging"`
 
-	// One or more tags. The value parameter is required, but if you don't want
-	// the tag to have a value, specify the parameter with no value, and we set
-	// the value to an empty string.
+	// One or more tags. The value parameter is required.
 	//
 	// Do not enter personally identifiable information in this field.
 	//
@@ -15365,6 +15796,118 @@ func (s *AlreadyExistsException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+type AssociateOpsItemRelatedItemInput struct {
+	_ struct{} `type:"structure"`
+
+	// The type of association that you want to create between an OpsItem and a
+	// resource. OpsCenter supports IsParentOf and RelatesTo association types.
+	//
+	// AssociationType is a required field
+	AssociationType *string `type:"string" required:"true"`
+
+	// The ID of the OpsItem to which you want to associate a resource as a related
+	// item.
+	//
+	// OpsItemId is a required field
+	OpsItemId *string `type:"string" required:"true"`
+
+	// The type of resource that you want to associate with an OpsItem. OpsCenter
+	// supports the following types:
+	//
+	// AWS::SSMIncidents::IncidentRecord: an Incident Manager incident. Incident
+	// Manager is a capability of AWS Systems Manager.
+	//
+	// AWS::SSM::Document: a Systems Manager (SSM) document.
+	//
+	// ResourceType is a required field
+	ResourceType *string `type:"string" required:"true"`
+
+	// The Amazon Resource Name (ARN) of the AWS resource that you want to associate
+	// with the OpsItem.
+	//
+	// ResourceUri is a required field
+	ResourceUri *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateOpsItemRelatedItemInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateOpsItemRelatedItemInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateOpsItemRelatedItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateOpsItemRelatedItemInput"}
+	if s.AssociationType == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationType"))
+	}
+	if s.OpsItemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OpsItemId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.ResourceUri == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceUri"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationType sets the AssociationType field's value.
+func (s *AssociateOpsItemRelatedItemInput) SetAssociationType(v string) *AssociateOpsItemRelatedItemInput {
+	s.AssociationType = &v
+	return s
+}
+
+// SetOpsItemId sets the OpsItemId field's value.
+func (s *AssociateOpsItemRelatedItemInput) SetOpsItemId(v string) *AssociateOpsItemRelatedItemInput {
+	s.OpsItemId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *AssociateOpsItemRelatedItemInput) SetResourceType(v string) *AssociateOpsItemRelatedItemInput {
+	s.ResourceType = &v
+	return s
+}
+
+// SetResourceUri sets the ResourceUri field's value.
+func (s *AssociateOpsItemRelatedItemInput) SetResourceUri(v string) *AssociateOpsItemRelatedItemInput {
+	s.ResourceUri = &v
+	return s
+}
+
+type AssociateOpsItemRelatedItemOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID.
+	AssociationId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AssociateOpsItemRelatedItemOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateOpsItemRelatedItemOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *AssociateOpsItemRelatedItemOutput) SetAssociationId(v string) *AssociateOpsItemRelatedItemOutput {
+	s.AssociationId = &v
+	return s
+}
+
 // You must disassociate a document from all instances before you can delete
 // it.
 type AssociatedInstances struct {
@@ -15451,7 +15994,8 @@ type Association struct {
 	// Information about the association.
 	Overview *AssociationOverview `type:"structure"`
 
-	// A cron expression that specifies a schedule when the association runs.
+	// A cron expression that specifies a schedule when the association runs. The
+	// schedule runs in Coordinated Universal Time (UTC).
 	ScheduleExpression *string `min:"1" type:"string"`
 
 	// The instances targeted by the request to create an association.
@@ -15607,6 +16151,12 @@ type AssociationDescription struct {
 	// that use an Automation document and target resources by using rate controls.
 	AutomationTargetParameterName *string `min:"1" type:"string"`
 
+	// The names or Amazon Resource Names (ARNs) of the Systems Manager Change Calendar
+	// type documents your associations are gated under. The associations only run
+	// when that Change Calendar is open. For more information, see AWS Systems
+	// Manager Change Calendar (https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-change-calendar).
+	CalendarNames []*string `type:"list"`
+
 	// The severity level that is assigned to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -15731,6 +16281,12 @@ func (s *AssociationDescription) SetAssociationVersion(v string) *AssociationDes
 // SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
 func (s *AssociationDescription) SetAutomationTargetParameterName(v string) *AssociationDescription {
 	s.AutomationTargetParameterName = &v
+	return s
+}
+
+// SetCalendarNames sets the CalendarNames field's value.
+func (s *AssociationDescription) SetCalendarNames(v []*string) *AssociationDescription {
+	s.CalendarNames = v
 	return s
 }
 
@@ -16521,6 +17077,12 @@ type AssociationVersionInfo struct {
 	// The association version.
 	AssociationVersion *string `type:"string"`
 
+	// The names or Amazon Resource Names (ARNs) of the Systems Manager Change Calendar
+	// type documents your associations are gated under. The associations for this
+	// version only run when that Change Calendar is open. For more information,
+	// see AWS Systems Manager Change Calendar (https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-change-calendar).
+	CalendarNames []*string `type:"list"`
+
 	// The severity level that is assigned to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -16625,6 +17187,12 @@ func (s *AssociationVersionInfo) SetAssociationName(v string) *AssociationVersio
 // SetAssociationVersion sets the AssociationVersion field's value.
 func (s *AssociationVersionInfo) SetAssociationVersion(v string) *AssociationVersionInfo {
 	s.AssociationVersion = &v
+	return s
+}
+
+// SetCalendarNames sets the CalendarNames field's value.
+func (s *AssociationVersionInfo) SetCalendarNames(v []*string) *AssociationVersionInfo {
+	s.CalendarNames = v
 	return s
 }
 
@@ -17898,6 +18466,149 @@ func (s *AutomationStepNotFoundException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+// Defines the basic information about a patch baseline override.
+type BaselineOverride struct {
+	_ struct{} `type:"structure"`
+
+	// A set of rules defining the approval rules for a patch baseline.
+	ApprovalRules *PatchRuleGroup `type:"structure"`
+
+	// A list of explicitly approved patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see About package name formats for approved and rejected
+	// patch lists (https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
+	ApprovedPatches []*string `type:"list"`
+
+	// Defines the compliance level for approved patches. When an approved patch
+	// is reported as missing, this value describes the severity of the compliance
+	// violation.
+	ApprovedPatchesComplianceLevel *string `type:"string" enum:"PatchComplianceLevel"`
+
+	// Indicates whether the list of approved patches includes non-security updates
+	// that should be applied to the instances. The default value is 'false'. Applies
+	// to Linux instances only.
+	ApprovedPatchesEnableNonSecurity *bool `type:"boolean"`
+
+	// A set of patch filters, typically used for approval rules.
+	GlobalFilters *PatchFilterGroup `type:"structure"`
+
+	// The operating system rule used by the patch baseline override.
+	OperatingSystem *string `type:"string" enum:"OperatingSystem"`
+
+	// A list of explicitly rejected patches for the baseline.
+	//
+	// For information about accepted formats for lists of approved patches and
+	// rejected patches, see About package name formats for approved and rejected
+	// patch lists (https://docs.aws.amazon.com/systems-manager/latest/userguide/patch-manager-approved-rejected-package-name-formats.html)
+	// in the AWS Systems Manager User Guide.
+	RejectedPatches []*string `type:"list"`
+
+	// The action for Patch Manager to take on patches included in the RejectedPackages
+	// list. A patch can be allowed only if it is a dependency of another package,
+	// or blocked entirely along with packages that include it as a dependency.
+	RejectedPatchesAction *string `type:"string" enum:"PatchAction"`
+
+	// Information about the patches to use to update the instances, including target
+	// operating systems and source repositories. Applies to Linux instances only.
+	Sources []*PatchSource `type:"list"`
+}
+
+// String returns the string representation
+func (s BaselineOverride) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BaselineOverride) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BaselineOverride) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BaselineOverride"}
+	if s.ApprovalRules != nil {
+		if err := s.ApprovalRules.Validate(); err != nil {
+			invalidParams.AddNested("ApprovalRules", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GlobalFilters != nil {
+		if err := s.GlobalFilters.Validate(); err != nil {
+			invalidParams.AddNested("GlobalFilters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Sources != nil {
+		for i, v := range s.Sources {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Sources", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApprovalRules sets the ApprovalRules field's value.
+func (s *BaselineOverride) SetApprovalRules(v *PatchRuleGroup) *BaselineOverride {
+	s.ApprovalRules = v
+	return s
+}
+
+// SetApprovedPatches sets the ApprovedPatches field's value.
+func (s *BaselineOverride) SetApprovedPatches(v []*string) *BaselineOverride {
+	s.ApprovedPatches = v
+	return s
+}
+
+// SetApprovedPatchesComplianceLevel sets the ApprovedPatchesComplianceLevel field's value.
+func (s *BaselineOverride) SetApprovedPatchesComplianceLevel(v string) *BaselineOverride {
+	s.ApprovedPatchesComplianceLevel = &v
+	return s
+}
+
+// SetApprovedPatchesEnableNonSecurity sets the ApprovedPatchesEnableNonSecurity field's value.
+func (s *BaselineOverride) SetApprovedPatchesEnableNonSecurity(v bool) *BaselineOverride {
+	s.ApprovedPatchesEnableNonSecurity = &v
+	return s
+}
+
+// SetGlobalFilters sets the GlobalFilters field's value.
+func (s *BaselineOverride) SetGlobalFilters(v *PatchFilterGroup) *BaselineOverride {
+	s.GlobalFilters = v
+	return s
+}
+
+// SetOperatingSystem sets the OperatingSystem field's value.
+func (s *BaselineOverride) SetOperatingSystem(v string) *BaselineOverride {
+	s.OperatingSystem = &v
+	return s
+}
+
+// SetRejectedPatches sets the RejectedPatches field's value.
+func (s *BaselineOverride) SetRejectedPatches(v []*string) *BaselineOverride {
+	s.RejectedPatches = v
+	return s
+}
+
+// SetRejectedPatchesAction sets the RejectedPatchesAction field's value.
+func (s *BaselineOverride) SetRejectedPatchesAction(v string) *BaselineOverride {
+	s.RejectedPatchesAction = &v
+	return s
+}
+
+// SetSources sets the Sources field's value.
+func (s *BaselineOverride) SetSources(v []*PatchSource) *BaselineOverride {
+	s.Sources = v
+	return s
+}
+
 type CancelCommandInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18461,6 +19172,7 @@ type CommandInvocation struct {
 	// The command against which this invocation was requested.
 	CommandId *string `min:"36" type:"string"`
 
+	// Plugins processed by the command.
 	CommandPlugins []*CommandPlugin `type:"list"`
 
 	// User-specified information about the command, such as a brief description
@@ -19316,8 +20028,10 @@ type CreateActivationInput struct {
 	// Do not enter personally identifiable information in this field.
 	Description *string `type:"string"`
 
-	// The date by which this activation request should expire. The default value
-	// is 24 hours.
+	// The date by which this activation request should expire, in timestamp format,
+	// such as "2021-07-07T00:00:00". You can specify a date up to 30 days in advance.
+	// If you don't provide an expiration date, the activation code expires in 24
+	// hours.
 	ExpirationDate *time.Time `type:"timestamp"`
 
 	// The Amazon Identity and Access Management (IAM) role that you want to assign
@@ -19564,6 +20278,12 @@ type CreateAssociationBatchRequestEntry struct {
 	// that use an Automation document and target resources by using rate controls.
 	AutomationTargetParameterName *string `min:"1" type:"string"`
 
+	// The names or Amazon Resource Names (ARNs) of the Systems Manager Change Calendar
+	// type documents your associations are gated under. The associations only run
+	// when that Change Calendar is open. For more information, see AWS Systems
+	// Manager Change Calendar (https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-change-calendar).
+	CalendarNames []*string `type:"list"`
+
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -19733,6 +20453,12 @@ func (s *CreateAssociationBatchRequestEntry) SetAutomationTargetParameterName(v 
 	return s
 }
 
+// SetCalendarNames sets the CalendarNames field's value.
+func (s *CreateAssociationBatchRequestEntry) SetCalendarNames(v []*string) *CreateAssociationBatchRequestEntry {
+	s.CalendarNames = v
+	return s
+}
+
 // SetComplianceSeverity sets the ComplianceSeverity field's value.
 func (s *CreateAssociationBatchRequestEntry) SetComplianceSeverity(v string) *CreateAssociationBatchRequestEntry {
 	s.ComplianceSeverity = &v
@@ -19808,7 +20534,7 @@ func (s *CreateAssociationBatchRequestEntry) SetTargets(v []*Target) *CreateAsso
 type CreateAssociationInput struct {
 	_ struct{} `type:"structure"`
 
-	// By default, when you create a new associations, the system runs it immediately
+	// By default, when you create a new association, the system runs it immediately
 	// after it is created and then according to the schedule you specified. Specify
 	// this option if you don't want an association to run immediately after you
 	// create it. This parameter is not supported for rate expressions.
@@ -19820,6 +20546,12 @@ type CreateAssociationInput struct {
 	// Specify the target for the association. This target is required for associations
 	// that use an Automation document and target resources by using rate controls.
 	AutomationTargetParameterName *string `min:"1" type:"string"`
+
+	// The names or Amazon Resource Names (ARNs) of the Systems Manager Change Calendar
+	// type documents you want to gate your associations under. The associations
+	// only run when that Change Calendar is open. For more information, see AWS
+	// Systems Manager Change Calendar (https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-change-calendar).
+	CalendarNames []*string `type:"list"`
 
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
@@ -20003,6 +20735,12 @@ func (s *CreateAssociationInput) SetAutomationTargetParameterName(v string) *Cre
 	return s
 }
 
+// SetCalendarNames sets the CalendarNames field's value.
+func (s *CreateAssociationInput) SetCalendarNames(v []*string) *CreateAssociationInput {
+	s.CalendarNames = v
+	return s
+}
+
 // SetComplianceSeverity sets the ComplianceSeverity field's value.
 func (s *CreateAssociationInput) SetComplianceSeverity(v string) *CreateAssociationInput {
 	s.ComplianceSeverity = &v
@@ -20120,6 +20858,11 @@ type CreateDocumentInput struct {
 	// Content is a required field
 	Content *string `min:"1" type:"string" required:"true"`
 
+	// An optional field where you can specify a friendly name for the Systems Manager
+	// document. This value can differ for each version of the document. You can
+	// update this value at a later time using the UpdateDocument action.
+	DisplayName *string `type:"string"`
+
 	// Specify the document format for the request. The document format can be JSON,
 	// YAML, or TEXT. JSON is the default format.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
@@ -20168,7 +20911,7 @@ type CreateDocumentInput struct {
 	// value: /AWS::EC2::Instance. If you specify a value of '/' the document can
 	// run on all types of resources. If you don't specify a value, the document
 	// can't run on any resources. For a list of valid resource types, see AWS resource
-	// and property types reference (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+	// and property types reference (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 	// in the AWS CloudFormation User Guide.
 	TargetType *string `type:"string"`
 
@@ -20249,6 +20992,12 @@ func (s *CreateDocumentInput) SetAttachments(v []*AttachmentsSource) *CreateDocu
 // SetContent sets the Content field's value.
 func (s *CreateDocumentInput) SetContent(v string) *CreateDocumentInput {
 	s.Content = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *CreateDocumentInput) SetDisplayName(v string) *CreateDocumentInput {
+	s.DisplayName = &v
 	return s
 }
 
@@ -20847,6 +21596,18 @@ type CreateOpsMetadataInput struct {
 	//
 	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// Optional metadata that you assign to a resource. You can specify a maximum
+	// of five tags for an OpsMetadata object. Tags enable you to categorize a resource
+	// in different ways, such as by purpose, owner, or environment. For example,
+	// you might want to tag an OpsMetadata object to identify an environment or
+	// target AWS Region. In this case, you could specify the following key-value
+	// pairs:
+	//
+	//    * Key=Environment,Value=Production
+	//
+	//    * Key=Region,Value=us-east-2
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -20881,6 +21642,16 @@ func (s *CreateOpsMetadataInput) Validate() error {
 			}
 		}
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -20897,6 +21668,12 @@ func (s *CreateOpsMetadataInput) SetMetadata(v map[string]*MetadataValue) *Creat
 // SetResourceId sets the ResourceId field's value.
 func (s *CreateOpsMetadataInput) SetResourceId(v string) *CreateOpsMetadataInput {
 	s.ResourceId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateOpsMetadataInput) SetTags(v []*Tag) *CreateOpsMetadataInput {
+	s.Tags = v
 	return s
 }
 
@@ -20938,8 +21715,8 @@ type CreatePatchBaselineInput struct {
 	// in the AWS Systems Manager User Guide.
 	ApprovedPatches []*string `type:"list"`
 
-	// Defines the compliance level for approved patches. This means that if an
-	// approved patch is reported as missing, this is the severity of the compliance
+	// Defines the compliance level for approved patches. When an approved patch
+	// is reported as missing, this value describes the severity of the compliance
 	// violation. The default value is UNSPECIFIED.
 	ApprovedPatchesComplianceLevel *string `type:"string" enum:"PatchComplianceLevel"`
 
@@ -22946,8 +23723,8 @@ type DescribeAutomationStepExecutionsInput struct {
 	// a previous call.)
 	NextToken *string `type:"string"`
 
-	// A boolean that indicates whether to list step executions in reverse order
-	// by start time. The default value is false.
+	// Indicates whether to list step executions in reverse order by start time.
+	// The default value is 'false'.
 	ReverseOrder *bool `type:"boolean"`
 }
 
@@ -25579,6 +26356,13 @@ type DescribePatchGroupStateOutput struct {
 	// The number of instances in the patch group.
 	Instances *int64 `type:"integer"`
 
+	// The number of instances where patches that are specified as "Critical" for
+	// compliance reporting in the patch baseline are not installed. These patches
+	// might be missing, have failed installation, were rejected, or were installed
+	// but awaiting a required instance reboot. The status of these instances is
+	// NON_COMPLIANT.
+	InstancesWithCriticalNonCompliantPatches *int64 `type:"integer"`
+
 	// The number of instances with patches from the patch baseline that failed
 	// to install.
 	InstancesWithFailedPatches *int64 `type:"integer"`
@@ -25609,6 +26393,17 @@ type DescribePatchGroupStateOutput struct {
 	// The number of instances with patches that aren't applicable.
 	InstancesWithNotApplicablePatches *int64 `type:"integer"`
 
+	// The number of instances with patches installed that are specified as other
+	// than "Critical" or "Security" but are not compliant with the patch baseline.
+	// The status of these instances is NON_COMPLIANT.
+	InstancesWithOtherNonCompliantPatches *int64 `type:"integer"`
+
+	// The number of instances where patches that are specified as "Security" in
+	// a patch advisory are not installed. These patches might be missing, have
+	// failed installation, were rejected, or were installed but awaiting a required
+	// instance reboot. The status of these instances is NON_COMPLIANT.
+	InstancesWithSecurityNonCompliantPatches *int64 `type:"integer"`
+
 	// The number of instances with NotApplicable patches beyond the supported limit,
 	// which are not reported by name to Systems Manager Inventory.
 	InstancesWithUnreportedNotApplicablePatches *int64 `type:"integer"`
@@ -25627,6 +26422,12 @@ func (s DescribePatchGroupStateOutput) GoString() string {
 // SetInstances sets the Instances field's value.
 func (s *DescribePatchGroupStateOutput) SetInstances(v int64) *DescribePatchGroupStateOutput {
 	s.Instances = &v
+	return s
+}
+
+// SetInstancesWithCriticalNonCompliantPatches sets the InstancesWithCriticalNonCompliantPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithCriticalNonCompliantPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithCriticalNonCompliantPatches = &v
 	return s
 }
 
@@ -25669,6 +26470,18 @@ func (s *DescribePatchGroupStateOutput) SetInstancesWithMissingPatches(v int64) 
 // SetInstancesWithNotApplicablePatches sets the InstancesWithNotApplicablePatches field's value.
 func (s *DescribePatchGroupStateOutput) SetInstancesWithNotApplicablePatches(v int64) *DescribePatchGroupStateOutput {
 	s.InstancesWithNotApplicablePatches = &v
+	return s
+}
+
+// SetInstancesWithOtherNonCompliantPatches sets the InstancesWithOtherNonCompliantPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithOtherNonCompliantPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithOtherNonCompliantPatches = &v
+	return s
+}
+
+// SetInstancesWithSecurityNonCompliantPatches sets the InstancesWithSecurityNonCompliantPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithSecurityNonCompliantPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithSecurityNonCompliantPatches = &v
 	return s
 }
 
@@ -26025,6 +26838,74 @@ func (s *DescribeSessionsOutput) SetSessions(v []*Session) *DescribeSessionsOutp
 	return s
 }
 
+type DisassociateOpsItemRelatedItemInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association for which you want to delete an association between
+	// the OpsItem and a related resource.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The ID of the OpsItem for which you want to delete an association between
+	// the OpsItem and a related resource.
+	//
+	// OpsItemId is a required field
+	OpsItemId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateOpsItemRelatedItemInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateOpsItemRelatedItemInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateOpsItemRelatedItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateOpsItemRelatedItemInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.OpsItemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OpsItemId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateOpsItemRelatedItemInput) SetAssociationId(v string) *DisassociateOpsItemRelatedItemInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetOpsItemId sets the OpsItemId field's value.
+func (s *DisassociateOpsItemRelatedItemInput) SetOpsItemId(v string) *DisassociateOpsItemRelatedItemInput {
+	s.OpsItemId = &v
+	return s
+}
+
+type DisassociateOpsItemRelatedItemOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateOpsItemRelatedItemOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateOpsItemRelatedItemOutput) GoString() string {
+	return s.String()
+}
+
 // The specified document already exists.
 type DocumentAlreadyExists struct {
 	_            struct{}                  `type:"structure"`
@@ -26146,6 +27027,10 @@ type DocumentDescription struct {
 	// A description of the document.
 	Description *string `type:"string"`
 
+	// The friendly name of the Systems Manager document. This value can differ
+	// for each version of the document. If you want to update this value, see UpdateDocument.
+	DisplayName *string `type:"string"`
+
 	// The document format, either JSON or YAML.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
 
@@ -26213,7 +27098,7 @@ type DocumentDescription struct {
 
 	// The target type which defines the kinds of resources the document can run
 	// on. For example, /AWS::EC2::Instance. For a list of valid resource types,
-	// see AWS resource and property types reference (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+	// see AWS resource and property types reference (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 	// in the AWS CloudFormation User Guide.
 	TargetType *string `type:"string"`
 
@@ -26264,6 +27149,12 @@ func (s *DocumentDescription) SetDefaultVersion(v string) *DocumentDescription {
 // SetDescription sets the Description field's value.
 func (s *DocumentDescription) SetDescription(v string) *DocumentDescription {
 	s.Description = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *DocumentDescription) SetDisplayName(v string) *DocumentDescription {
+	s.DisplayName = &v
 	return s
 }
 
@@ -26456,6 +27347,14 @@ type DocumentIdentifier struct {
 	// The user in your organization who created the document.
 	Author *string `type:"string"`
 
+	// The date the Systems Manager document was created.
+	CreatedDate *time.Time `type:"timestamp"`
+
+	// An optional field where you can specify a friendly name for the Systems Manager
+	// document. This value can differ for each version of the document. If you
+	// want to update this value, see UpdateDocument.
+	DisplayName *string `type:"string"`
+
 	// The document format, either JSON or YAML.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
 
@@ -26489,7 +27388,7 @@ type DocumentIdentifier struct {
 
 	// The target type which defines the kinds of resources the document can run
 	// on. For example, /AWS::EC2::Instance. For a list of valid resource types,
-	// see AWS resource and property types reference (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+	// see AWS resource and property types reference (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 	// in the AWS CloudFormation User Guide.
 	TargetType *string `type:"string"`
 
@@ -26512,6 +27411,18 @@ func (s DocumentIdentifier) GoString() string {
 // SetAuthor sets the Author field's value.
 func (s *DocumentIdentifier) SetAuthor(v string) *DocumentIdentifier {
 	s.Author = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *DocumentIdentifier) SetCreatedDate(v time.Time) *DocumentIdentifier {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *DocumentIdentifier) SetDisplayName(v string) *DocumentIdentifier {
+	s.DisplayName = &v
 	return s
 }
 
@@ -26642,7 +27553,7 @@ func (s *DocumentIdentifier) SetVersionName(v string) *DocumentIdentifier {
 //
 // You can also use the TargetType AWS-provided key. For a list of valid resource
 // type values that can be used with this key, see AWS resource and property
-// types reference (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+// types reference (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 // in the AWS CloudFormation User Guide.
 //
 // If you specify more than two keys, only documents that are identified by
@@ -27125,6 +28036,10 @@ type DocumentVersionInfo struct {
 	// The date the document was created.
 	CreatedDate *time.Time `type:"timestamp"`
 
+	// The friendly name of the Systems Manager document. This value can differ
+	// for each version of the document. If you want to update this value, see UpdateDocument.
+	DisplayName *string `type:"string"`
+
 	// The document format, either JSON or YAML.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
 
@@ -27169,6 +28084,12 @@ func (s DocumentVersionInfo) GoString() string {
 // SetCreatedDate sets the CreatedDate field's value.
 func (s *DocumentVersionInfo) SetCreatedDate(v time.Time) *DocumentVersionInfo {
 	s.CreatedDate = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *DocumentVersionInfo) SetDisplayName(v string) *DocumentVersionInfo {
+	s.DisplayName = &v
 	return s
 }
 
@@ -27865,17 +28786,25 @@ type GetCommandInvocationInput struct {
 	CommandId *string `min:"36" type:"string" required:"true"`
 
 	// (Required) The ID of the managed instance targeted by the command. A managed
-	// instance can be an EC2 instance or an instance in your hybrid environment
-	// that is configured for Systems Manager.
+	// instance can be an Amazon Elastic Compute Cloud (Amazon EC2) instance or
+	// an instance in your hybrid environment that is configured for AWS Systems
+	// Manager.
 	//
 	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
-	// (Optional) The name of the plugin for which you want detailed results. If
-	// the document contains only one plugin, the name can be omitted and the details
-	// will be returned.
+	// The name of the plugin for which you want detailed results. If the document
+	// contains only one plugin, you can omit the name and details for that plugin.
+	// If the document contains more than one plugin, you must specify the name
+	// of the plugin for which you want to view details.
 	//
 	// Plugin names are also referred to as step names in Systems Manager documents.
+	// For example, aws:RunShellScript is a plugin.
+	//
+	// To find the PluginName, check the document content and find the name of the
+	// plugin. Alternatively, use ListCommandInvocations with the CommandId and
+	// Details parameters. The PluginName is the Name attribute of the CommandPlugin
+	// object in the CommandPlugins list.
 	PluginName *string `min:"4" type:"string"`
 }
 
@@ -27950,7 +28879,7 @@ type GetCommandInvocationOutput struct {
 	// Duration since ExecutionStartDateTime.
 	ExecutionElapsedTime *string `type:"string"`
 
-	// The date and time the plugin was finished running. Date and time are written
+	// The date and time the plugin finished running. Date and time are written
 	// in ISO 8601 format. For example, June 7, 2017 is represented as 2017-06-7.
 	// The following sample AWS CLI command uses the InvokedAfter filter.
 	//
@@ -27973,8 +28902,8 @@ type GetCommandInvocationOutput struct {
 	// configured for Systems Manager.
 	InstanceId *string `type:"string"`
 
-	// The name of the plugin for which you want detailed results. For example,
-	// aws:RunShellScript is a plugin.
+	// The name of the plugin, or step name, for which details are reported. For
+	// example, aws:RunShellScript is a plugin.
 	PluginName *string `min:"4" type:"string"`
 
 	// The error level response code for the plugin script. If the response code
@@ -27995,8 +28924,9 @@ type GetCommandInvocationOutput struct {
 	// then this string is empty.
 	StandardOutputContent *string `type:"string"`
 
-	// The URL for the complete text written by the plugin to stdout in Amazon S3.
-	// If an S3 bucket was not specified, then this string is empty.
+	// The URL for the complete text written by the plugin to stdout in Amazon Simple
+	// Storage Service (Amazon S3). If an S3 bucket was not specified, then this
+	// string is empty.
 	StandardOutputUrl *string `type:"string"`
 
 	// The status of this invocation plugin. This status can be different than StatusDetails.
@@ -28297,6 +29227,9 @@ func (s *GetDefaultPatchBaselineOutput) SetOperatingSystem(v string) *GetDefault
 type GetDeployablePatchSnapshotForInstanceInput struct {
 	_ struct{} `type:"structure"`
 
+	// Defines the basic information about a patch baseline override.
+	BaselineOverride *BaselineOverride `type:"structure"`
+
 	// The ID of the instance for which the appropriate patch snapshot should be
 	// retrieved.
 	//
@@ -28331,11 +29264,22 @@ func (s *GetDeployablePatchSnapshotForInstanceInput) Validate() error {
 	if s.SnapshotId != nil && len(*s.SnapshotId) < 36 {
 		invalidParams.Add(request.NewErrParamMinLen("SnapshotId", 36))
 	}
+	if s.BaselineOverride != nil {
+		if err := s.BaselineOverride.Validate(); err != nil {
+			invalidParams.AddNested("BaselineOverride", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBaselineOverride sets the BaselineOverride field's value.
+func (s *GetDeployablePatchSnapshotForInstanceInput) SetBaselineOverride(v *BaselineOverride) *GetDeployablePatchSnapshotForInstanceInput {
+	s.BaselineOverride = v
+	return s
 }
 
 // SetInstanceId sets the InstanceId field's value.
@@ -28479,6 +29423,13 @@ type GetDocumentOutput struct {
 	// The contents of the Systems Manager document.
 	Content *string `min:"1" type:"string"`
 
+	// The date the Systems Manager document was created.
+	CreatedDate *time.Time `type:"timestamp"`
+
+	// The friendly name of the Systems Manager document. This value can differ
+	// for each version of the document. If you want to update this value, see UpdateDocument.
+	DisplayName *string `type:"string"`
+
 	// The document format, either JSON or YAML.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
 
@@ -28541,6 +29492,18 @@ func (s *GetDocumentOutput) SetAttachmentsContent(v []*AttachmentContent) *GetDo
 // SetContent sets the Content field's value.
 func (s *GetDocumentOutput) SetContent(v string) *GetDocumentOutput {
 	s.Content = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *GetDocumentOutput) SetCreatedDate(v time.Time) *GetDocumentOutput {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *GetDocumentOutput) SetDisplayName(v string) *GetDocumentOutput {
+	s.DisplayName = &v
 	return s
 }
 
@@ -30830,8 +31793,19 @@ func (s *GetPatchBaselineOutput) SetSources(v []*PatchSource) *GetPatchBaselineO
 type GetServiceSettingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID of the service setting to get. The setting ID can be /ssm/parameter-store/default-parameter-tier,
-	// /ssm/parameter-store/high-throughput-enabled, or /ssm/managed-instance/activation-tier.
+	// The ID of the service setting to get. The setting ID can be one of the following.
+	//
+	//    * /ssm/automation/customer-script-log-destination
+	//
+	//    * /ssm/automation/customer-script-log-group-name
+	//
+	//    * /ssm/documents/console/public-sharing-permission
+	//
+	//    * /ssm/parameter-store/default-parameter-tier
+	//
+	//    * /ssm/parameter-store/high-throughput-enabled
+	//
+	//    * /ssm/managed-instance/activation-tier
 	//
 	// SettingId is a required field
 	SettingId *string `min:"1" type:"string" required:"true"`
@@ -31215,6 +32189,10 @@ func (s *InstanceAssociation) SetInstanceId(v string) *InstanceAssociation {
 }
 
 // An S3 bucket where you want to store the results of this request.
+//
+// For the minimal permissions required to enable Amazon S3 output for an association,
+// see Creating associations (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-state-assoc.html)
+// in the Systems Manager User Guide.
 type InstanceAssociationOutputLocation struct {
 	_ struct{} `type:"structure"`
 
@@ -31426,8 +32404,8 @@ type InstanceInformation struct {
 	// Systems Manager managed instance. This call does not return the IAM role
 	// for EC2 instances. To retrieve the IAM role for an EC2 instance, use the
 	// Amazon EC2 DescribeInstances action. For information, see DescribeInstances
-	// (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)
-	// in the Amazon EC2 API Reference or describe-instances (http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html)
+	// (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)
+	// in the Amazon EC2 API Reference or describe-instances (https://docs.aws.amazon.com/cli/latest/ec2/describe-instances.html)
 	// in the AWS CLI Command Reference.
 	IamRole *string `type:"string"`
 
@@ -31454,11 +32432,11 @@ type InstanceInformation struct {
 	// as the DefaultInstanceName property using the CreateActivation command. It
 	// is applied to the managed instance by specifying the Activation Code and
 	// Activation ID when you install SSM Agent on the instance, as explained in
-	// Install SSM Agent for a hybrid environment (Linux) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-linux.html)
-	// and Install SSM Agent for a hybrid environment (Windows) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-win.html).
+	// Install SSM Agent for a hybrid environment (Linux) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-linux.html)
+	// and Install SSM Agent for a hybrid environment (Windows) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-install-managed-win.html).
 	// To retrieve the Name tag of an EC2 instance, use the Amazon EC2 DescribeInstances
-	// action. For information, see DescribeInstances (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)
-	// in the Amazon EC2 API Reference or describe-instances (http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html)
+	// action. For information, see DescribeInstances (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)
+	// in the Amazon EC2 API Reference or describe-instances (https://docs.aws.amazon.com/cli/latest/ec2/describe-instances.html)
 	// in the AWS CLI Command Reference.
 	Name *string `type:"string"`
 
@@ -31677,6 +32655,10 @@ type InstanceInformationStringFilter struct {
 	// "InstanceIds"|"AgentVersion"|"PingStatus"|"PlatformTypes"|"ActivationIds"|"IamRole"|"ResourceType"|"AssociationStatus"|"Tag
 	// Key"
 	//
+	// Tag key is not a valid filter. You must specify either tag-key or tag:keyname
+	// and a string. Here are some valid examples: tag-key, tag:123, tag:al!, tag:Windows.
+	// Here are some invalid examples: tag-keys, Tag Key, tag:, tagKey, abc:keyname.
+	//
 	// Key is a required field
 	Key *string `min:"1" type:"string" required:"true"`
 
@@ -31741,6 +32723,13 @@ type InstancePatchState struct {
 	//
 	// BaselineId is a required field
 	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// The number of instances where patches that are specified as "Critical" for
+	// compliance reporting in the patch baseline are not installed. These patches
+	// might be missing, have failed installation, were rejected, or were installed
+	// but awaiting a required instance reboot. The status of these instances is
+	// NON_COMPLIANT.
+	CriticalNonCompliantCount *int64 `type:"integer"`
 
 	// The number of patches from the patch baseline that were attempted to be installed
 	// during the last patching operation, but failed to install.
@@ -31811,6 +32800,11 @@ type InstancePatchState struct {
 	// OperationStartTime is a required field
 	OperationStartTime *time.Time `type:"timestamp" required:"true"`
 
+	// The number of instances with patches installed that are specified as other
+	// than "Critical" or "Security" but are not compliant with the patch baseline.
+	// The status of these instances is NON_COMPLIANT.
+	OtherNonCompliantCount *int64 `type:"integer"`
+
 	// Placeholder information. This field will always be empty in the current release
 	// of the service.
 	OwnerInformation *string `min:"1" type:"string" sensitive:"true"`
@@ -31834,6 +32828,12 @@ type InstancePatchState struct {
 	//    until a reboot is performed.
 	RebootOption *string `type:"string" enum:"RebootOption"`
 
+	// The number of instances where patches that are specified as "Security" in
+	// a patch advisory are not installed. These patches might be missing, have
+	// failed installation, were rejected, or were installed but awaiting a required
+	// instance reboot. The status of these instances is NON_COMPLIANT.
+	SecurityNonCompliantCount *int64 `type:"integer"`
+
 	// The ID of the patch baseline snapshot used during the patching operation
 	// when this compliance data was collected.
 	SnapshotId *string `min:"36" type:"string"`
@@ -31856,6 +32856,12 @@ func (s InstancePatchState) GoString() string {
 // SetBaselineId sets the BaselineId field's value.
 func (s *InstancePatchState) SetBaselineId(v string) *InstancePatchState {
 	s.BaselineId = &v
+	return s
+}
+
+// SetCriticalNonCompliantCount sets the CriticalNonCompliantCount field's value.
+func (s *InstancePatchState) SetCriticalNonCompliantCount(v int64) *InstancePatchState {
+	s.CriticalNonCompliantCount = &v
 	return s
 }
 
@@ -31937,6 +32943,12 @@ func (s *InstancePatchState) SetOperationStartTime(v time.Time) *InstancePatchSt
 	return s
 }
 
+// SetOtherNonCompliantCount sets the OtherNonCompliantCount field's value.
+func (s *InstancePatchState) SetOtherNonCompliantCount(v int64) *InstancePatchState {
+	s.OtherNonCompliantCount = &v
+	return s
+}
+
 // SetOwnerInformation sets the OwnerInformation field's value.
 func (s *InstancePatchState) SetOwnerInformation(v string) *InstancePatchState {
 	s.OwnerInformation = &v
@@ -31952,6 +32964,12 @@ func (s *InstancePatchState) SetPatchGroup(v string) *InstancePatchState {
 // SetRebootOption sets the RebootOption field's value.
 func (s *InstancePatchState) SetRebootOption(v string) *InstancePatchState {
 	s.RebootOption = &v
+	return s
+}
+
+// SetSecurityNonCompliantCount sets the SecurityNonCompliantCount field's value.
+func (s *InstancePatchState) SetSecurityNonCompliantCount(v int64) *InstancePatchState {
+	s.SecurityNonCompliantCount = &v
 	return s
 }
 
@@ -32611,6 +33629,7 @@ func (s *InvalidAutomationStatusUpdateException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+// The specified command ID is not valid. Verify the ID and try again.
 type InvalidCommandId struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -35968,7 +36987,7 @@ type ListCommandInvocationsInput struct {
 	CommandId *string `min:"36" type:"string"`
 
 	// (Optional) If set this returns the response of the command executions and
-	// any command output. By default this is set to False.
+	// any command output. The default value is 'false'.
 	Details *bool `type:"boolean"`
 
 	// (Optional) One or more filters. Use a filter to return a more specific list
@@ -37091,6 +38110,116 @@ func (s *ListOpsItemEventsOutput) SetNextToken(v string) *ListOpsItemEventsOutpu
 
 // SetSummaries sets the Summaries field's value.
 func (s *ListOpsItemEventsOutput) SetSummaries(v []*OpsItemEventSummary) *ListOpsItemEventsOutput {
+	s.Summaries = v
+	return s
+}
+
+type ListOpsItemRelatedItemsInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more OpsItem filters. Use a filter to return a more specific list
+	// of results.
+	Filters []*OpsItemRelatedItemsFilter `type:"list"`
+
+	// The maximum number of items to return for this call. The call also returns
+	// a token that you can specify in a subsequent call to get the next set of
+	// results.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+
+	// The ID of the OpsItem for which you want to list all related-item resources.
+	OpsItemId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListOpsItemRelatedItemsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOpsItemRelatedItemsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListOpsItemRelatedItemsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListOpsItemRelatedItemsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListOpsItemRelatedItemsInput) SetFilters(v []*OpsItemRelatedItemsFilter) *ListOpsItemRelatedItemsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListOpsItemRelatedItemsInput) SetMaxResults(v int64) *ListOpsItemRelatedItemsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOpsItemRelatedItemsInput) SetNextToken(v string) *ListOpsItemRelatedItemsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetOpsItemId sets the OpsItemId field's value.
+func (s *ListOpsItemRelatedItemsInput) SetOpsItemId(v string) *ListOpsItemRelatedItemsInput {
+	s.OpsItemId = &v
+	return s
+}
+
+type ListOpsItemRelatedItemsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token for the next set of items to return. Use this token to get the
+	// next set of results.
+	NextToken *string `type:"string"`
+
+	// A list of related-item resources for the specified OpsItem.
+	Summaries []*OpsItemRelatedItemSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListOpsItemRelatedItemsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOpsItemRelatedItemsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOpsItemRelatedItemsOutput) SetNextToken(v string) *ListOpsItemRelatedItemsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSummaries sets the Summaries field's value.
+func (s *ListOpsItemRelatedItemsOutput) SetSummaries(v []*OpsItemRelatedItemSummary) *ListOpsItemRelatedItemsOutput {
 	s.Summaries = v
 	return s
 }
@@ -39675,7 +40804,8 @@ func (s *OpsItemEventFilter) SetValues(v []*string) *OpsItemEventFilter {
 	return s
 }
 
-// Summary information about an OpsItem event.
+// Summary information about an OpsItem event or that associated an OpsItem
+// with a related item.
 type OpsItemEventSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -40045,6 +41175,287 @@ func (s OpsItemNotification) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *OpsItemNotification) SetArn(v string) *OpsItemNotification {
 	s.Arn = &v
+	return s
+}
+
+// The Amazon Resource Name (ARN) is already associated with the OpsItem.
+type OpsItemRelatedItemAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+
+	OpsItemId *string `type:"string"`
+
+	ResourceUri *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OpsItemRelatedItemAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OpsItemRelatedItemAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorOpsItemRelatedItemAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &OpsItemRelatedItemAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *OpsItemRelatedItemAlreadyExistsException) Code() string {
+	return "OpsItemRelatedItemAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *OpsItemRelatedItemAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *OpsItemRelatedItemAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *OpsItemRelatedItemAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *OpsItemRelatedItemAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *OpsItemRelatedItemAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The association was not found using the parameters you specified in the call.
+// Verify the information and try again.
+type OpsItemRelatedItemAssociationNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"Message" type:"string"`
+}
+
+// String returns the string representation
+func (s OpsItemRelatedItemAssociationNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OpsItemRelatedItemAssociationNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorOpsItemRelatedItemAssociationNotFoundException(v protocol.ResponseMetadata) error {
+	return &OpsItemRelatedItemAssociationNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *OpsItemRelatedItemAssociationNotFoundException) Code() string {
+	return "OpsItemRelatedItemAssociationNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *OpsItemRelatedItemAssociationNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *OpsItemRelatedItemAssociationNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *OpsItemRelatedItemAssociationNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *OpsItemRelatedItemAssociationNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *OpsItemRelatedItemAssociationNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Summary information about related-item resources for an OpsItem.
+type OpsItemRelatedItemSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID.
+	AssociationId *string `type:"string"`
+
+	// The association type.
+	AssociationType *string `type:"string"`
+
+	// Information about the user or resource that created an OpsItem event.
+	CreatedBy *OpsItemIdentity `type:"structure"`
+
+	// The time the related-item association was created.
+	CreatedTime *time.Time `type:"timestamp"`
+
+	// Information about the user or resource that created an OpsItem event.
+	LastModifiedBy *OpsItemIdentity `type:"structure"`
+
+	// The time the related-item association was last updated.
+	LastModifiedTime *time.Time `type:"timestamp"`
+
+	// The OpsItem ID.
+	OpsItemId *string `type:"string"`
+
+	// The resource type.
+	ResourceType *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the related-item resource.
+	ResourceUri *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OpsItemRelatedItemSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OpsItemRelatedItemSummary) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *OpsItemRelatedItemSummary) SetAssociationId(v string) *OpsItemRelatedItemSummary {
+	s.AssociationId = &v
+	return s
+}
+
+// SetAssociationType sets the AssociationType field's value.
+func (s *OpsItemRelatedItemSummary) SetAssociationType(v string) *OpsItemRelatedItemSummary {
+	s.AssociationType = &v
+	return s
+}
+
+// SetCreatedBy sets the CreatedBy field's value.
+func (s *OpsItemRelatedItemSummary) SetCreatedBy(v *OpsItemIdentity) *OpsItemRelatedItemSummary {
+	s.CreatedBy = v
+	return s
+}
+
+// SetCreatedTime sets the CreatedTime field's value.
+func (s *OpsItemRelatedItemSummary) SetCreatedTime(v time.Time) *OpsItemRelatedItemSummary {
+	s.CreatedTime = &v
+	return s
+}
+
+// SetLastModifiedBy sets the LastModifiedBy field's value.
+func (s *OpsItemRelatedItemSummary) SetLastModifiedBy(v *OpsItemIdentity) *OpsItemRelatedItemSummary {
+	s.LastModifiedBy = v
+	return s
+}
+
+// SetLastModifiedTime sets the LastModifiedTime field's value.
+func (s *OpsItemRelatedItemSummary) SetLastModifiedTime(v time.Time) *OpsItemRelatedItemSummary {
+	s.LastModifiedTime = &v
+	return s
+}
+
+// SetOpsItemId sets the OpsItemId field's value.
+func (s *OpsItemRelatedItemSummary) SetOpsItemId(v string) *OpsItemRelatedItemSummary {
+	s.OpsItemId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *OpsItemRelatedItemSummary) SetResourceType(v string) *OpsItemRelatedItemSummary {
+	s.ResourceType = &v
+	return s
+}
+
+// SetResourceUri sets the ResourceUri field's value.
+func (s *OpsItemRelatedItemSummary) SetResourceUri(v string) *OpsItemRelatedItemSummary {
+	s.ResourceUri = &v
+	return s
+}
+
+// Describes a filter for a specific list of related-item resources.
+type OpsItemRelatedItemsFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the filter key. Supported values include ResourceUri, ResourceType,
+	// or AssociationId.
+	//
+	// Key is a required field
+	Key *string `type:"string" required:"true" enum:"OpsItemRelatedItemsFilterKey"`
+
+	// The operator used by the filter call. The only supported operator is EQUAL.
+	//
+	// Operator is a required field
+	Operator *string `type:"string" required:"true" enum:"OpsItemRelatedItemsFilterOperator"`
+
+	// The values for the filter.
+	//
+	// Values is a required field
+	Values []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s OpsItemRelatedItemsFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OpsItemRelatedItemsFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OpsItemRelatedItemsFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OpsItemRelatedItemsFilter"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Operator == nil {
+		invalidParams.Add(request.NewErrParamRequired("Operator"))
+	}
+	if s.Values == nil {
+		invalidParams.Add(request.NewErrParamRequired("Values"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *OpsItemRelatedItemsFilter) SetKey(v string) *OpsItemRelatedItemsFilter {
+	s.Key = &v
+	return s
+}
+
+// SetOperator sets the Operator field's value.
+func (s *OpsItemRelatedItemsFilter) SetOperator(v string) *OpsItemRelatedItemsFilter {
+	s.Operator = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *OpsItemRelatedItemsFilter) SetValues(v []*string) *OpsItemRelatedItemsFilter {
+	s.Values = v
 	return s
 }
 
@@ -41178,8 +42589,8 @@ func (s *ParameterLimitExceeded) RequestID() string {
 // assigned to them from being deleted. To continue creating new parameters,
 // first move the label from the oldest version of the parameter to a newer
 // one for use in your operations. For information about moving parameter labels,
-// see Move a parameter label (console) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-console-move)
-// or Move a parameter label (CLI) (http://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-cli-move)
+// see Move a parameter label (console) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-console-move)
+// or Move a parameter label (CLI) (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-labels.html#sysman-paramstore-labels-cli-move)
 // in the AWS Systems Manager User Guide.
 type ParameterMaxVersionLimitExceeded struct {
 	_            struct{}                  `type:"structure"`
@@ -42335,12 +43746,12 @@ type PatchRule struct {
 	// The number of days after the release date of each patch matched by the rule
 	// that the patch is marked as approved in the patch baseline. For example,
 	// a value of 7 means that patches are approved seven days after they are released.
-	// Not supported on Ubuntu Server.
+	// Not supported on Debian Server or Ubuntu Server.
 	ApproveAfterDays *int64 `type:"integer"`
 
 	// The cutoff date for auto approval of released patches. Any patches released
-	// on or before this date are installed automatically. Not supported on Ubuntu
-	// Server.
+	// on or before this date are installed automatically. Not supported on Debian
+	// Server or Ubuntu Server.
 	//
 	// Enter dates in the format YYYY-MM-DD. For example, 2020-12-31.
 	ApproveUntilDate *string `min:"1" type:"string"`
@@ -42998,7 +44409,7 @@ type PutParameterInput struct {
 	// When you create a String parameter and specify aws:ec2:image, Systems Manager
 	// validates the parameter value is in the required format, such as ami-12345abcdeEXAMPLE,
 	// and that the specified AMI is available in your AWS account. For more information,
-	// see Native parameter support for Amazon Machine Image IDs (http://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-ec2-aliases.html)
+	// see Native parameter support for Amazon Machine Image IDs (https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-ec2-aliases.html)
 	// in the AWS Systems Manager User Guide.
 	DataType *string `type:"string"`
 
@@ -43039,14 +44450,15 @@ type PutParameterInput struct {
 	//    * A parameter name can't be prefixed with "aws" or "ssm" (case-insensitive).
 	//
 	//    * Parameter names can include only the following symbols and letters:
-	//    a-zA-Z0-9_.-/
+	//    a-zA-Z0-9_.- In addition, the slash character ( / ) is used to delineate
+	//    hierarchies in parameter names. For example: /Dev/Production/East/Project-ABC/MyParameter
 	//
 	//    * A parameter name can't include spaces.
 	//
 	//    * Parameter hierarchies are limited to a maximum depth of fifteen levels.
 	//
-	// For additional information about valid values for parameter names, see About
-	// requirements and constraints for parameter names (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-parameter-name-constraints.html)
+	// For additional information about valid values for parameter names, see Creating
+	// Systems Manager parameters (https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-su-create.html)
 	// in the AWS Systems Manager User Guide.
 	//
 	// The maximum length constraint listed below includes capacity for additional
@@ -43060,7 +44472,7 @@ type PutParameterInput struct {
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
-	// Overwrite an existing parameter. If not specified, will default to "false".
+	// Overwrite an existing parameter. The default value is 'false'.
 	Overwrite *bool `type:"boolean"`
 
 	// One or more policies to apply to a parameter. This action takes a JSON array.
@@ -43514,6 +44926,11 @@ type RegisterTargetWithMaintenanceWindowInput struct {
 
 	// The targets to register with the maintenance window. In other words, the
 	// instances to run commands on when the maintenance window runs.
+	//
+	// If a single maintenance window task is registered with multiple targets,
+	// its task invocations occur sequentially and not in parallel. If your task
+	// must run on multiple targets at the same time, register a task for each target
+	// individually and assign each task the same priority level.
 	//
 	// You can specify targets using instance IDs, resource group names, or tags
 	// that have been applied to instances.
@@ -44005,6 +45422,12 @@ type RemoveTagsFromResourceInput struct {
 	//
 	// PatchBaseline: pb-012345abcde
 	//
+	// OpsMetadata object: ResourceID for tagging is created from the Amazon Resource
+	// Name (ARN) for the object. Specifically, ResourceID is created from the strings
+	// that come after the word opsmetadata in the ARN. For example, an OpsMetadata
+	// object with an ARN of arn:aws:ssm:us-east-2:1234567890:opsmetadata/aws/ssm/MyGroup/appmanager
+	// has a ResourceID of either aws/ssm/MyGroup/appmanager or /aws/ssm/MyGroup/appmanager.
+	//
 	// For the Document and Parameter values, use the name of the resource.
 	//
 	// The ManagedInstance type for this API action is only for on-premises managed
@@ -44095,8 +45518,19 @@ type ResetServiceSettingInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the service setting to reset. The setting
-	// ID can be /ssm/parameter-store/default-parameter-tier, /ssm/parameter-store/high-throughput-enabled,
-	// or /ssm/managed-instance/activation-tier. For example, arn:aws:ssm:us-east-1:111122223333:servicesetting/ssm/parameter-store/high-throughput-enabled.
+	// ID can be one of the following.
+	//
+	//    * /ssm/automation/customer-script-log-destination
+	//
+	//    * /ssm/automation/customer-script-log-group-name
+	//
+	//    * /ssm/documents/console/public-sharing-permission
+	//
+	//    * /ssm/parameter-store/default-parameter-tier
+	//
+	//    * /ssm/parameter-store/high-throughput-enabled
+	//
+	//    * /ssm/managed-instance/activation-tier
 	//
 	// SettingId is a required field
 	SettingId *string `min:"1" type:"string" required:"true"`
@@ -44943,6 +46377,14 @@ type ResourceDataSyncSource struct {
 	// sync source of this type can synchronize data from AWS Organizations.
 	AwsOrganizationsSource *ResourceDataSyncAwsOrganizationsSource `type:"structure"`
 
+	// When you create a resource data sync, if you choose one of the AWS Organizations
+	// options, then Systems Manager automatically enables all OpsData sources in
+	// the selected AWS Regions for all AWS accounts in your organization (or in
+	// the selected organization units). For more information, see About multiple
+	// account and Region resource data syncs (https://docs.aws.amazon.com/systems-manager/latest/userguide/Explorer-resouce-data-sync-multiple-accounts-and-regions.html)
+	// in the AWS Systems Manager User Guide.
+	EnableAllOpsDataSources *bool `type:"boolean"`
+
 	// Whether to automatically synchronize and aggregate data from new AWS Regions
 	// when those Regions come online.
 	IncludeFutureRegions *bool `type:"boolean"`
@@ -44954,7 +46396,7 @@ type ResourceDataSyncSource struct {
 
 	// The type of data source for the resource data sync. SourceType is either
 	// AwsOrganizations (if an organization is present in AWS Organizations) or
-	// singleAccountMultiRegions.
+	// SingleAccountMultiRegions.
 	//
 	// SourceType is a required field
 	SourceType *string `min:"1" type:"string" required:"true"`
@@ -45000,6 +46442,12 @@ func (s *ResourceDataSyncSource) SetAwsOrganizationsSource(v *ResourceDataSyncAw
 	return s
 }
 
+// SetEnableAllOpsDataSources sets the EnableAllOpsDataSources field's value.
+func (s *ResourceDataSyncSource) SetEnableAllOpsDataSources(v bool) *ResourceDataSyncSource {
+	s.EnableAllOpsDataSources = &v
+	return s
+}
+
 // SetIncludeFutureRegions sets the IncludeFutureRegions field's value.
 func (s *ResourceDataSyncSource) SetIncludeFutureRegions(v bool) *ResourceDataSyncSource {
 	s.IncludeFutureRegions = &v
@@ -45037,6 +46485,14 @@ type ResourceDataSyncSourceWithState struct {
 	// The field name in SyncSource for the ResourceDataSyncAwsOrganizationsSource
 	// type.
 	AwsOrganizationsSource *ResourceDataSyncAwsOrganizationsSource `type:"structure"`
+
+	// When you create a resource data sync, if you choose one of the AWS Organizations
+	// options, then Systems Manager automatically enables all OpsData sources in
+	// the selected AWS Regions for all AWS accounts in your organization (or in
+	// the selected organization units). For more information, see About multiple
+	// account and Region resource data syncs (https://docs.aws.amazon.com/systems-manager/latest/userguide/Explorer-resouce-data-sync-multiple-accounts-and-regions.html)
+	// in the AWS Systems Manager User Guide.
+	EnableAllOpsDataSources *bool `type:"boolean"`
 
 	// Whether to automatically synchronize and aggregate data from new AWS Regions
 	// when those Regions come online.
@@ -45079,6 +46535,12 @@ func (s ResourceDataSyncSourceWithState) GoString() string {
 // SetAwsOrganizationsSource sets the AwsOrganizationsSource field's value.
 func (s *ResourceDataSyncSourceWithState) SetAwsOrganizationsSource(v *ResourceDataSyncAwsOrganizationsSource) *ResourceDataSyncSourceWithState {
 	s.AwsOrganizationsSource = v
+	return s
+}
+
+// SetEnableAllOpsDataSources sets the EnableAllOpsDataSources field's value.
+func (s *ResourceDataSyncSourceWithState) SetEnableAllOpsDataSources(v bool) *ResourceDataSyncSourceWithState {
+	s.EnableAllOpsDataSources = &v
 	return s
 }
 
@@ -46811,6 +48273,11 @@ func (s *StartAutomationExecutionOutput) SetAutomationExecutionId(v string) *Sta
 type StartChangeRequestExecutionInput struct {
 	_ struct{} `type:"structure"`
 
+	// User-provided details about the change. If no details are provided, content
+	// specified in the Template information section of the associated change template
+	// is added.
+	ChangeDetails *string `min:"1" type:"string"`
+
 	// The name of the change request associated with the runbook workflow to be
 	// run.
 	ChangeRequestName *string `min:"1" type:"string"`
@@ -46839,6 +48306,11 @@ type StartChangeRequestExecutionInput struct {
 	//
 	// Runbooks is a required field
 	Runbooks []*Runbook `min:"1" type:"list" required:"true"`
+
+	// The time that the requester expects the runbook workflow related to the change
+	// request to complete. The time is an estimate only that the requester provides
+	// for reviewers.
+	ScheduledEndTime *time.Time `type:"timestamp"`
 
 	// The date and time specified in the change request to run the Automation runbooks.
 	//
@@ -46871,6 +48343,9 @@ func (s StartChangeRequestExecutionInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *StartChangeRequestExecutionInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "StartChangeRequestExecutionInput"}
+	if s.ChangeDetails != nil && len(*s.ChangeDetails) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ChangeDetails", 1))
+	}
 	if s.ChangeRequestName != nil && len(*s.ChangeRequestName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ChangeRequestName", 1))
 	}
@@ -46916,6 +48391,12 @@ func (s *StartChangeRequestExecutionInput) Validate() error {
 	return nil
 }
 
+// SetChangeDetails sets the ChangeDetails field's value.
+func (s *StartChangeRequestExecutionInput) SetChangeDetails(v string) *StartChangeRequestExecutionInput {
+	s.ChangeDetails = &v
+	return s
+}
+
 // SetChangeRequestName sets the ChangeRequestName field's value.
 func (s *StartChangeRequestExecutionInput) SetChangeRequestName(v string) *StartChangeRequestExecutionInput {
 	s.ChangeRequestName = &v
@@ -46949,6 +48430,12 @@ func (s *StartChangeRequestExecutionInput) SetParameters(v map[string][]*string)
 // SetRunbooks sets the Runbooks field's value.
 func (s *StartChangeRequestExecutionInput) SetRunbooks(v []*Runbook) *StartChangeRequestExecutionInput {
 	s.Runbooks = v
+	return s
+}
+
+// SetScheduledEndTime sets the ScheduledEndTime field's value.
+func (s *StartChangeRequestExecutionInput) SetScheduledEndTime(v time.Time) *StartChangeRequestExecutionInput {
+	s.ScheduledEndTime = &v
 	return s
 }
 
@@ -47683,6 +49170,9 @@ type Target struct {
 	// User-defined criteria that maps to Key. For example, if you specified tag:ServerRole,
 	// you could specify value:WebServer to run a command on instances that include
 	// EC2 tags of ServerRole,WebServer.
+	//
+	// Depending on the type of Target, the maximum number of values for a Key might
+	// be lower than the global maximum of 50.
 	Values []*string `type:"list"`
 }
 
@@ -48162,6 +49652,111 @@ func (s *TotalSizeLimitExceededException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
+type UnlabelParameterVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more labels to delete from the specified parameter version.
+	//
+	// Labels is a required field
+	Labels []*string `min:"1" type:"list" required:"true"`
+
+	// The parameter name of which you want to delete one or more labels.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The specific version of the parameter which you want to delete one or more
+	// labels from. If it is not present, the call will fail.
+	//
+	// ParameterVersion is a required field
+	ParameterVersion *int64 `type:"long" required:"true"`
+}
+
+// String returns the string representation
+func (s UnlabelParameterVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnlabelParameterVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UnlabelParameterVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UnlabelParameterVersionInput"}
+	if s.Labels == nil {
+		invalidParams.Add(request.NewErrParamRequired("Labels"))
+	}
+	if s.Labels != nil && len(s.Labels) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Labels", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.ParameterVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterVersion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLabels sets the Labels field's value.
+func (s *UnlabelParameterVersionInput) SetLabels(v []*string) *UnlabelParameterVersionInput {
+	s.Labels = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UnlabelParameterVersionInput) SetName(v string) *UnlabelParameterVersionInput {
+	s.Name = &v
+	return s
+}
+
+// SetParameterVersion sets the ParameterVersion field's value.
+func (s *UnlabelParameterVersionInput) SetParameterVersion(v int64) *UnlabelParameterVersionInput {
+	s.ParameterVersion = &v
+	return s
+}
+
+type UnlabelParameterVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The labels that are not attached to the given parameter version.
+	InvalidLabels []*string `min:"1" type:"list"`
+
+	// A list of all labels deleted from the parameter.
+	RemovedLabels []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s UnlabelParameterVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnlabelParameterVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetInvalidLabels sets the InvalidLabels field's value.
+func (s *UnlabelParameterVersionOutput) SetInvalidLabels(v []*string) *UnlabelParameterVersionOutput {
+	s.InvalidLabels = v
+	return s
+}
+
+// SetRemovedLabels sets the RemovedLabels field's value.
+func (s *UnlabelParameterVersionOutput) SetRemovedLabels(v []*string) *UnlabelParameterVersionOutput {
+	s.RemovedLabels = v
+	return s
+}
+
 // The calendar entry contained in the specified Systems Manager document is
 // not supported.
 type UnsupportedCalendarException struct {
@@ -48599,6 +50194,12 @@ type UpdateAssociationInput struct {
 	// that use an Automation document and target resources by using rate controls.
 	AutomationTargetParameterName *string `min:"1" type:"string"`
 
+	// The names or Amazon Resource Names (ARNs) of the Systems Manager Change Calendar
+	// type documents you want to gate your associations under. The associations
+	// only run when that Change Calendar is open. For more information, see AWS
+	// Systems Manager Change Calendar (https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-change-calendar).
+	CalendarNames []*string `type:"list"`
+
 	// The severity level to assign to the association.
 	ComplianceSeverity *string `type:"string" enum:"AssociationComplianceSeverity"`
 
@@ -48774,6 +50375,12 @@ func (s *UpdateAssociationInput) SetAssociationVersion(v string) *UpdateAssociat
 // SetAutomationTargetParameterName sets the AutomationTargetParameterName field's value.
 func (s *UpdateAssociationInput) SetAutomationTargetParameterName(v string) *UpdateAssociationInput {
 	s.AutomationTargetParameterName = &v
+	return s
+}
+
+// SetCalendarNames sets the CalendarNames field's value.
+func (s *UpdateAssociationInput) SetCalendarNames(v []*string) *UpdateAssociationInput {
+	s.CalendarNames = v
 	return s
 }
 
@@ -49048,16 +50655,22 @@ type UpdateDocumentInput struct {
 	// Content is a required field
 	Content *string `min:"1" type:"string" required:"true"`
 
+	// The friendly name of the Systems Manager document that you want to update.
+	// This value can differ for each version of the document. If you do not specify
+	// a value for this parameter in your request, the existing value is applied
+	// to the new document version.
+	DisplayName *string `type:"string"`
+
 	// Specify the document format for the new document version. Systems Manager
 	// supports JSON and YAML documents. JSON is the default format.
 	DocumentFormat *string `type:"string" enum:"DocumentFormat"`
 
-	// (Required) The latest version of the document that you want to update. The
-	// latest document version can be specified using the $LATEST variable or by
-	// the version number. Updating a previous version of a document is not supported.
+	// The version of the document that you want to update. Currently, Systems Manager
+	// supports updating only the latest version of the document. You can specify
+	// the version number of the latest version or use the $LATEST variable.
 	DocumentVersion *string `type:"string"`
 
-	// The name of the document that you want to update.
+	// The name of the Systems Manager document that you want to update.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -49119,6 +50732,12 @@ func (s *UpdateDocumentInput) SetAttachments(v []*AttachmentsSource) *UpdateDocu
 // SetContent sets the Content field's value.
 func (s *UpdateDocumentInput) SetContent(v string) *UpdateDocumentInput {
 	s.Content = &v
+	return s
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *UpdateDocumentInput) SetDisplayName(v string) *UpdateDocumentInput {
+	s.DisplayName = &v
 	return s
 }
 
@@ -51007,6 +52626,12 @@ type UpdateServiceSettingInput struct {
 	// arn:aws:ssm:us-east-1:111122223333:servicesetting/ssm/parameter-store/high-throughput-enabled.
 	// The setting ID can be one of the following.
 	//
+	//    * /ssm/automation/customer-script-log-destination
+	//
+	//    * /ssm/automation/customer-script-log-group-name
+	//
+	//    * /ssm/documents/console/public-sharing-permission
+	//
 	//    * /ssm/parameter-store/default-parameter-tier
 	//
 	//    * /ssm/parameter-store/high-throughput-enabled
@@ -51027,6 +52652,15 @@ type UpdateServiceSettingInput struct {
 	//
 	// For the /ssm/parameter-store/high-throughput-enabled, and /ssm/managed-instance/activation-tier
 	// setting IDs, the setting value can be true or false.
+	//
+	// For the /ssm/automation/customer-script-log-destination setting ID, the setting
+	// value can be CloudWatch.
+	//
+	// For the /ssm/automation/customer-script-log-group-name setting ID, the setting
+	// value can be the name of a CloudWatch Logs log group.
+	//
+	// For the /ssm/documents/console/public-sharing-permission setting ID, the
+	// setting value can be Enable or Disable.
 	//
 	// SettingValue is a required field
 	SettingValue *string `min:"1" type:"string" required:"true"`
@@ -51926,6 +53560,12 @@ const (
 
 	// DocumentTypeAutomationChangeTemplate is a DocumentType enum value
 	DocumentTypeAutomationChangeTemplate = "Automation.ChangeTemplate"
+
+	// DocumentTypeProblemAnalysis is a DocumentType enum value
+	DocumentTypeProblemAnalysis = "ProblemAnalysis"
+
+	// DocumentTypeProblemAnalysisTemplate is a DocumentType enum value
+	DocumentTypeProblemAnalysisTemplate = "ProblemAnalysisTemplate"
 )
 
 // DocumentType_Values returns all elements of the DocumentType enum
@@ -51941,6 +53581,8 @@ func DocumentType_Values() []string {
 		DocumentTypeDeploymentStrategy,
 		DocumentTypeChangeCalendar,
 		DocumentTypeAutomationChangeTemplate,
+		DocumentTypeProblemAnalysis,
+		DocumentTypeProblemAnalysisTemplate,
 	}
 }
 
@@ -52529,6 +54171,38 @@ func OpsItemFilterOperator_Values() []string {
 }
 
 const (
+	// OpsItemRelatedItemsFilterKeyResourceType is a OpsItemRelatedItemsFilterKey enum value
+	OpsItemRelatedItemsFilterKeyResourceType = "ResourceType"
+
+	// OpsItemRelatedItemsFilterKeyAssociationId is a OpsItemRelatedItemsFilterKey enum value
+	OpsItemRelatedItemsFilterKeyAssociationId = "AssociationId"
+
+	// OpsItemRelatedItemsFilterKeyResourceUri is a OpsItemRelatedItemsFilterKey enum value
+	OpsItemRelatedItemsFilterKeyResourceUri = "ResourceUri"
+)
+
+// OpsItemRelatedItemsFilterKey_Values returns all elements of the OpsItemRelatedItemsFilterKey enum
+func OpsItemRelatedItemsFilterKey_Values() []string {
+	return []string{
+		OpsItemRelatedItemsFilterKeyResourceType,
+		OpsItemRelatedItemsFilterKeyAssociationId,
+		OpsItemRelatedItemsFilterKeyResourceUri,
+	}
+}
+
+const (
+	// OpsItemRelatedItemsFilterOperatorEqual is a OpsItemRelatedItemsFilterOperator enum value
+	OpsItemRelatedItemsFilterOperatorEqual = "Equal"
+)
+
+// OpsItemRelatedItemsFilterOperator_Values returns all elements of the OpsItemRelatedItemsFilterOperator enum
+func OpsItemRelatedItemsFilterOperator_Values() []string {
+	return []string{
+		OpsItemRelatedItemsFilterOperatorEqual,
+	}
+}
+
+const (
 	// OpsItemStatusOpen is a OpsItemStatus enum value
 	OpsItemStatusOpen = "Open"
 
@@ -53026,6 +54700,9 @@ const (
 
 	// ResourceTypeForTaggingOpsItem is a ResourceTypeForTagging enum value
 	ResourceTypeForTaggingOpsItem = "OpsItem"
+
+	// ResourceTypeForTaggingOpsMetadata is a ResourceTypeForTagging enum value
+	ResourceTypeForTaggingOpsMetadata = "OpsMetadata"
 )
 
 // ResourceTypeForTagging_Values returns all elements of the ResourceTypeForTagging enum
@@ -53037,6 +54714,7 @@ func ResourceTypeForTagging_Values() []string {
 		ResourceTypeForTaggingParameter,
 		ResourceTypeForTaggingPatchBaseline,
 		ResourceTypeForTaggingOpsItem,
+		ResourceTypeForTaggingOpsMetadata,
 	}
 }
 
