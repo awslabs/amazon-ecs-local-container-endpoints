@@ -1,6 +1,6 @@
 // +build linux
 
-// Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,23 +16,27 @@
 package task
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
 	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
+	apieni "github.com/aws/amazon-ecs-agent/agent/api/eni"
 	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/credentials"
+	"github.com/aws/amazon-ecs-agent/agent/ecscni"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/cgroup"
 	resourcestatus "github.com/aws/amazon-ecs-agent/agent/taskresource/status"
 	resourcetype "github.com/aws/amazon-ecs-agent/agent/taskresource/types"
 	"github.com/cihub/seelog"
+	"github.com/containernetworking/cni/libcni"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
 const (
-	defaultCPUPeriod = 100 * time.Millisecond // 100ms
 	// With a 100ms CPU period, we can express 0.01 vCPU to 10 vCPUs
 	maxTaskVCPULimit = 10
 	// Reference: http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html
@@ -51,12 +55,12 @@ func (task *Task) adjustForPlatform(cfg *config.Config) {
 	task.MemoryCPULimitsEnabled = cfg.TaskCPUMemLimit.Enabled()
 }
 
-func (task *Task) initializeCgroupResourceSpec(cgroupPath string, resourceFields *taskresource.ResourceFields) error {
+func (task *Task) initializeCgroupResourceSpec(cgroupPath string, cGroupCPUPeriod time.Duration, resourceFields *taskresource.ResourceFields) error {
 	cgroupRoot, err := task.BuildCgroupRoot()
 	if err != nil {
 		return errors.Wrapf(err, "cgroup resource: unable to determine cgroup root for task")
 	}
-	resSpec, err := task.BuildLinuxResourceSpec()
+	resSpec, err := task.BuildLinuxResourceSpec(cGroupCPUPeriod)
 	if err != nil {
 		return errors.Wrapf(err, "cgroup resource: unable to build resource spec for task")
 	}
@@ -71,8 +75,6 @@ func (task *Task) initializeCgroupResourceSpec(cgroupPath string, resourceFields
 	return nil
 }
 
-func getCanonicalPath(path string) string { return path }
-
 // BuildCgroupRoot helps build the task cgroup prefix
 // Example: /ecs/task-id
 func (task *Task) BuildCgroupRoot() (string, error) {
@@ -85,13 +87,13 @@ func (task *Task) BuildCgroupRoot() (string, error) {
 }
 
 // BuildLinuxResourceSpec returns a linuxResources object for the task cgroup
-func (task *Task) BuildLinuxResourceSpec() (specs.LinuxResources, error) {
+func (task *Task) BuildLinuxResourceSpec(cGroupCPUPeriod time.Duration) (specs.LinuxResources, error) {
 	linuxResourceSpec := specs.LinuxResources{}
 
 	// If task level CPU limits are requested, set CPU quota + CPU period
 	// Else set CPU shares
 	if task.CPU > 0 {
-		linuxCPUSpec, err := task.buildExplicitLinuxCPUSpec()
+		linuxCPUSpec, err := task.buildExplicitLinuxCPUSpec(cGroupCPUPeriod)
 		if err != nil {
 			return specs.LinuxResources{}, err
 		}
@@ -116,13 +118,13 @@ func (task *Task) BuildLinuxResourceSpec() (specs.LinuxResources, error) {
 
 // buildExplicitLinuxCPUSpec builds CPU spec when task CPU limits are
 // explicitly requested
-func (task *Task) buildExplicitLinuxCPUSpec() (specs.LinuxCPU, error) {
+func (task *Task) buildExplicitLinuxCPUSpec(cGroupCPUPeriod time.Duration) (specs.LinuxCPU, error) {
 	if task.CPU > maxTaskVCPULimit {
 		return specs.LinuxCPU{},
 			errors.Errorf("task CPU spec builder: unsupported CPU limits, requested=%f, max-supported=%d",
 				task.CPU, maxTaskVCPULimit)
 	}
-	taskCPUPeriod := uint64(defaultCPUPeriod / time.Microsecond)
+	taskCPUPeriod := uint64(cGroupCPUPeriod / time.Microsecond)
 	taskCPUQuota := int64(task.CPU * float64(taskCPUPeriod))
 
 	// TODO: DefaultCPUPeriod only permits 10VCPUs.
@@ -216,4 +218,106 @@ func (task *Task) dockerCPUShares(containerCPU uint) int64 {
 		return 2
 	}
 	return int64(containerCPU)
+}
+
+// requiresCredentialSpecResource returns true if at least one container in the task
+// needs a valid credentialspec resource
+func (task *Task) requiresCredentialSpecResource() bool {
+	return false
+}
+
+// initializeCredentialSpecResource builds the resource dependency map for the credentialspec resource
+func (task *Task) initializeCredentialSpecResource(config *config.Config, credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields) error {
+	return errors.New("task credentialspec is only supported on windows")
+}
+
+// GetCredentialSpecResource retrieves credentialspec resource from resource map
+func (task *Task) GetCredentialSpecResource() ([]taskresource.TaskResource, bool) {
+	return []taskresource.TaskResource{}, false
+}
+
+func enableIPv6SysctlSetting(hostConfig *dockercontainer.HostConfig) {
+	if hostConfig.Sysctls == nil {
+		hostConfig.Sysctls = make(map[string]string)
+	}
+	hostConfig.Sysctls[disableIPv6SysctlKey] = sysctlValueOff
+}
+
+// requiresFSxWindowsFileServerResource returns true if at least one volume in the task
+// is of type 'fsxWindowsFileServer'
+func (task *Task) requiresFSxWindowsFileServerResource() bool {
+	return false
+}
+
+// initializeFSxWindowsFileServerResource builds the resource dependency map for the fsxwindowsfileserver resource
+func (task *Task) initializeFSxWindowsFileServerResource(cfg *config.Config, credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields) error {
+	return errors.New("task with FSx for Windows File Server volumes is only supported on Windows container instance")
+}
+
+// BuildCNIConfig builds a list of CNI network configurations for the task.
+// If includeIPAMConfig is set to true, the list also includes the bridge IPAM configuration.
+func (task *Task) BuildCNIConfig(includeIPAMConfig bool, cniConfig *ecscni.Config) (*ecscni.Config, error) {
+	if !task.IsNetworkModeAWSVPC() {
+		return nil, errors.New("task config: task network mode is not AWSVPC")
+	}
+
+	var netconf *libcni.NetworkConfig
+	var ifName string
+	var err error
+
+	// Build a CNI network configuration for each ENI.
+	for _, eni := range task.ENIs {
+		switch eni.InterfaceAssociationProtocol {
+		// If the association protocol is set to "default" or unset (to preserve backwards
+		// compatibility), consider it a "standard" ENI attachment.
+		case "", apieni.DefaultInterfaceAssociationProtocol:
+			cniConfig.ID = eni.MacAddress
+			ifName, netconf, err = ecscni.NewENINetworkConfig(eni, cniConfig)
+		case apieni.VLANInterfaceAssociationProtocol:
+			cniConfig.ID = eni.MacAddress
+			ifName, netconf, err = ecscni.NewBranchENINetworkConfig(eni, cniConfig)
+		default:
+			err = errors.Errorf("task config: unknown interface association type: %s",
+				eni.InterfaceAssociationProtocol)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+			IfName:           ifName,
+			CNINetworkConfig: netconf,
+		})
+	}
+
+	// Build the bridge CNI network configuration.
+	// All AWSVPC tasks have a bridge network.
+	ifName, netconf, err = ecscni.NewBridgeNetworkConfig(cniConfig, includeIPAMConfig)
+	if err != nil {
+		return nil, err
+	}
+	cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+		IfName:           ifName,
+		CNINetworkConfig: netconf,
+	})
+
+	// Build a CNI network configuration for AppMesh if enabled.
+	appMeshConfig := task.GetAppMesh()
+	if appMeshConfig != nil {
+		ifName, netconf, err = ecscni.NewAppMeshConfig(appMeshConfig, cniConfig)
+		if err != nil {
+			return nil, err
+		}
+		cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+			IfName:           ifName,
+			CNINetworkConfig: netconf,
+		})
+	}
+
+	cniConfig.ContainerNetNS = fmt.Sprintf(ecscni.NetnsFormat, cniConfig.ContainerPID)
+
+	return cniConfig, nil
 }
