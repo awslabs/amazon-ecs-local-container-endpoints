@@ -71,7 +71,7 @@ github.com/aws/amazon-ecs-agent/agent/utils/retry
 github.com/aws/amazon-ecs-agent/agent/utils/sync
 github.com/aws/amazon-ecs-agent/agent/utils/ttime
 github.com/aws/amazon-ecs-agent/agent/version
-# github.com/aws/aws-sdk-go v1.37.10
+# github.com/aws/aws-sdk-go v1.40.17
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -266,12 +266,13 @@ github.com/sirupsen/logrus
 ## explicit
 github.com/stretchr/testify/assert
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+## explicit
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 golang.org/x/net/context
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
