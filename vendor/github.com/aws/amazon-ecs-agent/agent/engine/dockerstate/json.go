@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -85,7 +85,7 @@ func (state *DockerTaskEngineState) UnmarshalJSON(data []byte) error {
 		state.AddImageState(imageState)
 	}
 	for id, container := range saved.IdToContainer {
-		taskArn, _ := saved.IdToTask[id]
+		taskArn := saved.IdToTask[id]
 		task, _ := state.TaskByArn(taskArn)
 		taskContainer, _ := task.ContainerByName(container.Container.Name)
 		container.Container = taskContainer
