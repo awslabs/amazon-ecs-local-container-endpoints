@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -56,7 +56,7 @@ func (tp *TransportProtocol) String() string {
 	case TransportProtocolTCP:
 		return tcp
 	default:
-		seelog.Critical("Unknown TransportProtocol type!")
+		seelog.Criticalf("Unknown TransportProtocol type: %s", *tp)
 		return tcp
 	}
 }
