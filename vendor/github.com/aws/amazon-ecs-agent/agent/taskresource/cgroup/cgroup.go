@@ -1,5 +1,6 @@
-// +build linux
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+//go:build linux
+
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,12 +17,16 @@ package cgroup
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
 
+	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
+	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
 	"github.com/aws/amazon-ecs-agent/agent/api/task/status"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
 	control "github.com/aws/amazon-ecs-agent/agent/taskresource/cgroup/control"
@@ -30,7 +35,6 @@ import (
 	"github.com/cihub/seelog"
 	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -161,7 +165,7 @@ func (cgroup *CgroupResource) ApplyTransition(nextState resourcestatus.ResourceS
 	if !ok {
 		seelog.Errorf("Cgroup Resource [%s]: unsupported desired state transition [%s]: %s",
 			cgroup.taskARN, cgroup.GetName(), cgroup.StatusString(nextState))
-		return errors.Errorf("resource [%s]: transition to %s impossible", cgroup.GetName(),
+		return fmt.Errorf("resource [%s]: transition to %s impossible", cgroup.GetName(),
 			cgroup.StatusString(nextState))
 	}
 	return transitionFunc()
@@ -206,6 +210,14 @@ func (cgroup *CgroupResource) SetAppliedStatus(status resourcestatus.ResourceSta
 
 	cgroup.appliedStatus = status
 	return true
+}
+
+// GetAppliedStatus safely returns the currently applied status of the resource
+func (cgroup *CgroupResource) GetAppliedStatus() resourcestatus.ResourceStatus {
+	cgroup.lock.RLock()
+	defer cgroup.lock.RUnlock()
+
+	return cgroup.appliedStatus
 }
 
 // GetKnownStatus safely returns the currently known status of the task
@@ -266,14 +278,14 @@ func (cgroup *CgroupResource) setupTaskCgroup() error {
 
 	_, err := cgroup.control.Create(&cgroupSpec)
 	if err != nil {
-		return errors.Wrapf(err, "cgroup resource [%s]: setup cgroup: unable to create cgroup at %s", cgroup.taskARN, cgroupRoot)
+		return fmt.Errorf("cgroup resource [%s]: setup cgroup: unable to create cgroup at %s: %w", cgroup.taskARN, cgroupRoot, err)
 	}
 
 	// enabling cgroup memory hierarchy by doing 'echo 1 > memory.use_hierarchy'
 	memoryHierarchyPath := filepath.Join(cgroup.cgroupMountPath, memorySubsystem, cgroupRoot, memoryUseHierarchy)
 	err = cgroup.ioutil.WriteFile(memoryHierarchyPath, enableMemoryHierarchy, rootReadOnlyPermissions)
 	if err != nil {
-		return errors.Wrapf(err, "cgroup resource [%s]: setup cgroup: unable to set use hierarchy flag", cgroup.taskARN)
+		return fmt.Errorf("cgroup resource [%s]: setup cgroup: unable to set use hierarchy flag: %w", cgroup.taskARN, err)
 	}
 
 	return nil
@@ -284,11 +296,11 @@ func (cgroup *CgroupResource) Cleanup() error {
 	err := cgroup.control.Remove(cgroup.cgroupRoot)
 	// Explicitly handle cgroup deleted error
 	if err != nil {
-		if err == cgroups.ErrCgroupDeleted {
+		if errors.Is(err, cgroups.ErrCgroupDeleted) {
 			seelog.Warnf("Cgroup at %s has already been removed: %v", cgroup.cgroupRoot, err)
 			return nil
 		}
-		return errors.Wrapf(err, "resource: cleanup cgroup: unable to remove cgroup at %s", cgroup.cgroupRoot)
+		return fmt.Errorf("resource: cleanup cgroup: unable to remove cgroup at %s: %w", cgroup.cgroupRoot, err)
 	}
 	return nil
 }
@@ -370,4 +382,16 @@ func (cgroup *CgroupResource) Initialize(resourceFields *taskresource.ResourceFi
 	cgroup.initializeResourceStatusToTransitionFunction()
 	cgroup.ioutil = resourceFields.IOUtil
 	cgroup.control = resourceFields.Control
+}
+
+func (cgroup *CgroupResource) DependOnTaskNetwork() bool {
+	return false
+}
+
+func (cgroup *CgroupResource) BuildContainerDependency(containerName string, satisfied apicontainerstatus.ContainerStatus,
+	dependent resourcestatus.ResourceStatus) {
+}
+
+func (cgroup *CgroupResource) GetContainerDependencies(dependent resourcestatus.ResourceStatus) []apicontainer.ContainerDependency {
+	return nil
 }
