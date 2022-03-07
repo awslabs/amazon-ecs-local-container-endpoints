@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -14,6 +14,7 @@
 package container
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -23,9 +24,11 @@ import (
 	apierrors "github.com/aws/amazon-ecs-agent/agent/api/errors"
 	"github.com/aws/amazon-ecs-agent/agent/credentials"
 	resourcestatus "github.com/aws/amazon-ecs-agent/agent/taskresource/status"
-	"github.com/aws/aws-sdk-go/aws"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/cihub/seelog"
 	"github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
 )
 
 const (
@@ -52,8 +55,14 @@ const (
 	// variable in containers' config, which can be used by the containers to access the
 	// v3 metadata endpoint
 	MetadataURIEnvironmentVariableName = "ECS_CONTAINER_METADATA_URI"
-	// MetadataURIFormat defines the URI format for v3 metadata endpoint
-	MetadataURIFormat = "http://169.254.170.2/v3/%s"
+
+	// MetadataURIEnvVarNameV4 defines the name of the environment
+	// variable in containers' config, which can be used by the containers to access the
+	// v4 metadata endpoint
+	MetadataURIEnvVarNameV4 = "ECS_CONTAINER_METADATA_URI_V4"
+
+	// MetadataURIFormat defines the URI format for v4 metadata endpoint
+	MetadataURIFormatV4 = "http://169.254.170.2/v4/%s"
 
 	// SecretProviderSSM is to show secret provider being SSM
 	SecretProviderSSM = "ssm"
@@ -63,6 +72,18 @@ const (
 
 	// SecretTypeEnv is to show secret type being ENVIRONMENT_VARIABLE
 	SecretTypeEnv = "ENVIRONMENT_VARIABLE"
+
+	// TargetLogDriver is to show secret target being "LOG_DRIVER", the default will be "CONTAINER"
+	SecretTargetLogDriver = "LOG_DRIVER"
+
+	// neuronVisibleDevicesEnvVar is the env which indicates that the container wants to use inferentia devices.
+	neuronVisibleDevicesEnvVar = "AWS_NEURON_VISIBLE_DEVICES"
+)
+
+var (
+	// MetadataURIFormat defines the URI format for v3 metadata endpoint. Made as a var to be able to
+	// overwrite it in test.
+	MetadataURIFormat = "http://169.254.170.2/v3/%s"
 )
 
 // DockerConfig represents additional metadata about a container to run. It's
@@ -89,12 +110,45 @@ type HealthStatus struct {
 	Output string `json:"output,omitempty"`
 }
 
+type ManagedAgentState struct {
+	// ID of this managed agent state
+	ID string `json:"id,omitempty"`
+	// TODO: [ecs-exec] Change variable name from Status to KnownStatus in future PR to avoid noise
+	// Status is the managed agent health status
+	Status apicontainerstatus.ManagedAgentStatus `json:"status,omitempty"`
+	// SentStatus is the managed agent sent status
+	SentStatus apicontainerstatus.ManagedAgentStatus `json:"sentStatus,omitempty"`
+	// Reason is a placeholder for failure messaging
+	Reason string `json:"reason,omitempty"`
+	// LastStartedAt is the timestamp when the status last went from PENDING->RUNNING
+	LastStartedAt time.Time `json:"lastStartedAt,omitempty"`
+	// Metadata holds metadata about the managed agent
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	// InitFailed indicates if exec agent initialization failed
+	InitFailed bool `json:"initFailed,omitempty"`
+}
+
+type ManagedAgent struct {
+	ManagedAgentState
+	// Name is the name of this managed agent. This name is streamed down from ACS.
+	Name string `json:"name,omitempty"`
+	// Properties of this managed agent. Properties are streamed down from ACS.
+	Properties map[string]string `json:"properties,omitempty"`
+}
+
 // Container is the internal representation of a container in the ECS agent
 type Container struct {
 	// Name is the name of the container specified in the task definition
 	Name string
-	// DependsOn is the field which specifies the ordering for container startup and shutdown.
-	DependsOn []DependsOn `json:"dependsOn,omitempty"`
+	// RuntimeID is the docker id of the container
+	RuntimeID string
+	// TaskARNUnsafe is the task ARN of the task that the container belongs to. Access should be
+	// protected by lock i.e. via GetTaskARN and SetTaskARN.
+	TaskARNUnsafe string `json:"taskARN"`
+	// DependsOnUnsafe is the field which specifies the ordering for container startup and shutdown.
+	DependsOnUnsafe []DependsOn `json:"dependsOn,omitempty"`
+	// ManagedAgentsUnsafe presently contains only the executeCommandAgent
+	ManagedAgentsUnsafe []ManagedAgent `json:"managedAgents,omitempty"`
 	// V3EndpointID is a container identifier used to construct v3 metadata endpoint; it's unique among
 	// all the containers managed by the agent
 	V3EndpointID string
@@ -102,6 +156,8 @@ type Container struct {
 	Image string
 	// ImageID is the local ID of the image used in the container
 	ImageID string
+	// ImageDigest is the sha-256 digest of the container image as pulled from the repository
+	ImageDigest string
 	// Command is the command to run in the container which is specified in the task definition
 	Command []string
 	// CPU is the cpu limitation of the container which is specified in the task definition
@@ -112,6 +168,8 @@ type Container struct {
 	Memory uint
 	// Links contains a list of containers to link, corresponding to docker option: --link
 	Links []string
+	// FirelensConfig contains configuration for a Firelens container
+	FirelensConfig *FirelensConfig `json:"firelensConfiguration"`
 	// VolumesFrom contains a list of container's volume to use, corresponding to docker option: --volumes-from
 	VolumesFrom []VolumeFrom `json:"volumesFrom"`
 	// MountPoints contains a list of volume mount paths
@@ -126,6 +184,8 @@ type Container struct {
 	EntryPoint *[]string
 	// Environment is the environment variable set in the container
 	Environment map[string]string `json:"environment"`
+	// EnvironmentFiles is the list of environmentFile used to populate environment variables
+	EnvironmentFiles []EnvironmentFile `json:"environmentFiles"`
 	// Overrides contains the configuration to override of a container
 	Overrides ContainerOverrides `json:"overrides"`
 	// DockerConfig is the configuration used to create the container
@@ -238,6 +298,13 @@ type Container struct {
 	// the JSON body while saving the state
 	SteadyStateStatusUnsafe *apicontainerstatus.ContainerStatus `json:"SteadyStateStatus,omitempty"`
 
+	// ContainerArn is the Arn of this container.
+	ContainerArn string `json:"ContainerArn,omitempty"`
+
+	// ContainerTornDownUnsafe is set to true when we have cleaned up this container. For now this is only used for the
+	// pause container
+	ContainerTornDownUnsafe bool `json:"containerTornDown"`
+
 	createdAt  time.Time
 	startedAt  time.Time
 	finishedAt time.Time
@@ -261,12 +328,23 @@ type DockerContainer struct {
 	Container *Container
 }
 
+type EnvironmentFile struct {
+	Value string `json:"value"`
+	Type  string `json:"type"`
+}
+
 // MountPoint describes the in-container location of a Volume and references
 // that Volume by name.
 type MountPoint struct {
 	SourceVolume  string `json:"sourceVolume"`
 	ContainerPath string `json:"containerPath"`
 	ReadOnly      bool   `json:"readOnly"`
+}
+
+// FirelensConfig describes the type and options of a Firelens container.
+type FirelensConfig struct {
+	Type    string            `json:"type"`
+	Options map[string]string `json:"options"`
 }
 
 // VolumeFrom is a volume which references another container as its source.
@@ -283,6 +361,7 @@ type Secret struct {
 	ContainerPath string `json:"containerPath"`
 	Type          string `json:"type"`
 	Provider      string `json:"provider"`
+	Target        string `json:"target"`
 }
 
 // GetSecretResourceCacheKey returns the key required to access the secret
@@ -463,11 +542,7 @@ func (c *Container) GetNextKnownStateProgression() apicontainerstatus.ContainerS
 // IsInternal returns true if the container type is `ContainerCNIPause`
 // or `ContainerNamespacePause`. It returns false otherwise
 func (c *Container) IsInternal() bool {
-	if c.Type == ContainerNormal {
-		return false
-	}
-
-	return true
+	return c.Type != ContainerNormal
 }
 
 // IsRunning returns true if the container's known status is either RUNNING
@@ -573,6 +648,38 @@ func (c *Container) SetLabels(labels map[string]string) {
 	c.labels = labels
 }
 
+// SetRuntimeID sets the DockerID for a container
+func (c *Container) SetRuntimeID(RuntimeID string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.RuntimeID = RuntimeID
+}
+
+// GetRuntimeID gets the DockerID for a container
+func (c *Container) GetRuntimeID() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.RuntimeID
+}
+
+// SetImageDigest sets the ImageDigest for a container
+func (c *Container) SetImageDigest(ImageDigest string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.ImageDigest = ImageDigest
+}
+
+// GetImageDigest gets the ImageDigest for a container
+func (c *Container) GetImageDigest() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.ImageDigest
+}
+
 // GetLabels gets the labels for a container
 func (c *Container) GetLabels() map[string]string {
 	c.lock.RLock()
@@ -595,6 +702,13 @@ func (c *Container) GetKnownPortBindings() []PortBinding {
 	defer c.lock.RUnlock()
 
 	return c.KnownPortBindingsUnsafe
+}
+
+// GetManagedAgents returns the managed agents configured for this container
+func (c *Container) GetManagedAgents() []ManagedAgent {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.ManagedAgentsUnsafe
 }
 
 // SetVolumes sets the volumes mounted in a container
@@ -806,6 +920,20 @@ func (c *Container) InjectV3MetadataEndpoint() {
 		fmt.Sprintf(MetadataURIFormat, c.V3EndpointID)
 }
 
+// InjectV4MetadataEndpoint injects the v4 metadata endpoint as an environment variable for a container
+func (c *Container) InjectV4MetadataEndpoint() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	// don't assume that the environment variable map has been initialized by others
+	if c.Environment == nil {
+		c.Environment = make(map[string]string)
+	}
+
+	c.Environment[MetadataURIEnvVarNameV4] =
+		fmt.Sprintf(MetadataURIFormatV4, c.V3EndpointID)
+}
+
 // ShouldCreateWithSSMSecret returns true if this container needs to get secret
 // value from SSM Parameter Store
 func (c *Container) ShouldCreateWithSSMSecret() bool {
@@ -844,8 +972,21 @@ func (c *Container) ShouldCreateWithASMSecret() bool {
 	return false
 }
 
+// ShouldCreateWithEnvFiles returns true if this container needs to
+// retrieve environment variable files
+func (c *Container) ShouldCreateWithEnvFiles() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if c.EnvironmentFiles == nil {
+		return false
+	}
+
+	return len(c.EnvironmentFiles) != 0
+}
+
 // MergeEnvironmentVariables appends additional envVarName:envVarValue pairs to
-// the the container's enviornment values structure
+// the the container's environment values structure
 func (c *Container) MergeEnvironmentVariables(envVars map[string]string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -859,19 +1000,48 @@ func (c *Container) MergeEnvironmentVariables(envVars map[string]string) {
 	}
 }
 
-func (c *Container) HasSecretAsEnv() bool {
+// MergeEnvironmentVariablesFromEnvfiles appends environment variable pairs from
+// the retrieved envfiles to the container's environment values list
+// envvars from envfiles will have lower precedence than existing envvars
+func (c *Container) MergeEnvironmentVariablesFromEnvfiles(envVarsList []map[string]string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	// create map if does not exist
+	if c.Environment == nil {
+		c.Environment = make(map[string]string)
+	}
+
+	// envVarsList is a list of map, where each map is from an envfile
+	// iterate over this sequentially because the original order of the
+	// environment files give precedence to the environment variables
+	for _, envVars := range envVarsList {
+		for k, v := range envVars {
+			// existing environment variables have precedence over variables from envfile
+			// only set the env var if key does not already exist
+			if _, ok := c.Environment[k]; !ok {
+				c.Environment[k] = v
+			}
+		}
+	}
+	return nil
+}
+
+// HasSecret returns whether a container has secret based on a certain condition.
+func (c *Container) HasSecret(f func(s Secret) bool) bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	// Secrets field will be nil if there is no secrets for container
 	if c.Secrets == nil {
 		return false
 	}
+
 	for _, secret := range c.Secrets {
-		if secret.Type == SecretTypeEnv {
+		if f(secret) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -887,4 +1057,270 @@ func (c *Container) GetStopTimeout() time.Duration {
 	defer c.lock.Unlock()
 
 	return time.Duration(c.StopTimeout) * time.Second
+}
+
+func (c *Container) GetDependsOn() []DependsOn {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.DependsOnUnsafe
+}
+
+func (c *Container) SetDependsOn(dependsOn []DependsOn) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.DependsOnUnsafe = dependsOn
+}
+
+// DependsOnContainer checks whether a container depends on another container.
+func (c *Container) DependsOnContainer(name string) bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	for _, dependsOn := range c.DependsOnUnsafe {
+		if dependsOn.ContainerName == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+// HasContainerDependencies checks whether a container has any container dependency.
+func (c *Container) HasContainerDependencies() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return len(c.DependsOnUnsafe) != 0
+}
+
+// AddContainerDependency adds a container dependency to a container.
+func (c *Container) AddContainerDependency(name string, condition string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.DependsOnUnsafe = append(c.DependsOnUnsafe, DependsOn{
+		ContainerName: name,
+		Condition:     condition,
+	})
+}
+
+// GetLogDriver returns the log driver used by the container.
+func (c *Container) GetLogDriver() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if c.DockerConfig.HostConfig == nil {
+		return ""
+	}
+
+	hostConfig := &dockercontainer.HostConfig{}
+	err := json.Unmarshal([]byte(*c.DockerConfig.HostConfig), hostConfig)
+	if err != nil {
+		seelog.Warnf("Encountered error when trying to get log driver for container %s: %v", c.RuntimeID, err)
+		return ""
+	}
+
+	return hostConfig.LogConfig.Type
+}
+
+// GetLogOptions gets the log 'options' map passed into the task definition.
+// see https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_LogConfiguration.html
+func (c *Container) GetLogOptions() map[string]string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if c.DockerConfig.HostConfig == nil {
+		return map[string]string{}
+	}
+
+	hostConfig := &dockercontainer.HostConfig{}
+	err := json.Unmarshal([]byte(*c.DockerConfig.HostConfig), hostConfig)
+	if err != nil {
+		seelog.Warnf("Encountered error when trying to get log configuration for container %s: %v", c.RuntimeID, err)
+		return map[string]string{}
+	}
+
+	return hostConfig.LogConfig.Config
+}
+
+// GetNetworkModeFromHostConfig returns the network mode used by the container from the host config .
+func (c *Container) GetNetworkModeFromHostConfig() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if c.DockerConfig.HostConfig == nil {
+		return ""
+	}
+
+	hostConfig := &dockercontainer.HostConfig{}
+	// TODO return error to differentiate between error and default mode .
+	err := json.Unmarshal([]byte(*c.DockerConfig.HostConfig), hostConfig)
+	if err != nil {
+		seelog.Warnf("Encountered error when trying to get network mode for container %s: %v", c.RuntimeID, err)
+		return ""
+	}
+
+	return hostConfig.NetworkMode.NetworkName()
+}
+
+// GetHostConfig returns the container's host config.
+func (c *Container) GetHostConfig() *string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.DockerConfig.HostConfig
+}
+
+// GetFirelensConfig returns the container's firelens config.
+func (c *Container) GetFirelensConfig() *FirelensConfig {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.FirelensConfig
+}
+
+// GetEnvironmentFiles returns the container's environment files.
+func (c *Container) GetEnvironmentFiles() []EnvironmentFile {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.EnvironmentFiles
+}
+
+// RequireNeuronRuntime checks if the container needs to use the neuron runtime.
+func (c *Container) RequireNeuronRuntime() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	_, ok := c.Environment[neuronVisibleDevicesEnvVar]
+	return ok
+}
+
+// SetTaskARN sets the task arn of the container.
+func (c *Container) SetTaskARN(arn string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.TaskARNUnsafe = arn
+}
+
+// GetTaskARN returns the task arn of the container.
+func (c *Container) GetTaskARN() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.TaskARNUnsafe
+}
+
+// HasNotAndWillNotStart returns true if the container has never started, and is not going to start in the future.
+// This is true if the following are all true:
+// 1. Container's known status is earlier than running;
+// 2. Container's desired status is stopped;
+// 3. Container is not in the middle a transition (indicated by applied status is none status).
+func (c *Container) HasNotAndWillNotStart() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.KnownStatusUnsafe < apicontainerstatus.ContainerRunning &&
+		c.DesiredStatusUnsafe.Terminal() &&
+		c.AppliedStatus == apicontainerstatus.ContainerStatusNone
+}
+
+// GetManagedAgentByName retrieves the managed agent with the name specified and a boolean indicating whether an agent
+// was found or not.
+// note: a zero value for ManagedAgent if the name is not known to this container.
+func (c *Container) GetManagedAgentByName(agentName string) (ManagedAgent, bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	for _, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			return ma, true
+		}
+	}
+	return ManagedAgent{}, false
+}
+
+// UpdateManagedAgentByName updates the state of the managed agent with the name specified. If the agent is not found,
+// this method returns false.
+func (c *Container) UpdateManagedAgentByName(agentName string, state ManagedAgentState) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	for i, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			// It's necessary to clone the whole ManagedAgent struct
+			c.ManagedAgentsUnsafe[i] = ManagedAgent{
+				Name:              ma.Name,
+				Properties:        ma.Properties,
+				ManagedAgentState: state,
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateManagedAgentStatus updates the status of the managed agent with the name specified. If the agent is not found,
+// this method returns false.
+func (c *Container) UpdateManagedAgentStatus(agentName string, status apicontainerstatus.ManagedAgentStatus) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	for i, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			c.ManagedAgentsUnsafe[i].Status = status
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateManagedAgentSentStatus updates the sent status of the managed agent with the name specified. If the agent is not found,
+// this method returns false.
+func (c *Container) UpdateManagedAgentSentStatus(agentName string, status apicontainerstatus.ManagedAgentStatus) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	for i, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			c.ManagedAgentsUnsafe[i].SentStatus = status
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Container) GetManagedAgentStatus(agentName string) apicontainerstatus.ManagedAgentStatus {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	for i, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			return c.ManagedAgentsUnsafe[i].Status
+		}
+	}
+	// we shouldn't get here because we'll always have a valid ManagedAgentName
+	return apicontainerstatus.ManagedAgentStatusNone
+}
+
+func (c *Container) GetManagedAgentSentStatus(agentName string) apicontainerstatus.ManagedAgentStatus {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	for i, ma := range c.ManagedAgentsUnsafe {
+		if ma.Name == agentName {
+			return c.ManagedAgentsUnsafe[i].SentStatus
+		}
+	}
+	// we shouldn't get here because we'll always have a valid ManagedAgentName
+	return apicontainerstatus.ManagedAgentStatusNone
+}
+
+func (c *Container) SetContainerTornDown(td bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.ContainerTornDownUnsafe = td
+}
+
+func (c *Container) IsContainerTornDown() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.ContainerTornDownUnsafe
 }

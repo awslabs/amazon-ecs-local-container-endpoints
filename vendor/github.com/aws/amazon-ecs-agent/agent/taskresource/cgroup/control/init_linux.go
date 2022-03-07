@@ -1,6 +1,6 @@
-// +build linux
+//go:build linux
 
-// Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -17,14 +17,16 @@ package control
 
 import (
 	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/logger"
 
-	"github.com/cihub/seelog"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // Init is used to setup the cgroup root for ecs
 func (c *control) Init() error {
-	seelog.Infof("Creating root ecs cgroup: %s", config.DefaultTaskCgroupPrefix)
+	logger.Info("Creating root ecs cgroup", logger.Fields{
+		"cgroup": config.DefaultTaskCgroupPrefix,
+	})
 
 	// Build cgroup spec
 	cgroupSpec := &Spec{
