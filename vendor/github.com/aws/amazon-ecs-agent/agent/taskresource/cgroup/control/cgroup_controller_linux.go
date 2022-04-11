@@ -1,6 +1,6 @@
-// +build linux
+//go:build linux
 
-// Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,7 +16,11 @@
 package control
 
 import (
+	"fmt"
+
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/cgroup/control/factory"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/cihub/seelog"
 	"github.com/containerd/cgroups"
@@ -30,6 +34,9 @@ type control struct {
 
 // New is used to obtain a new cgroup control object
 func New() Control {
+	if config.CgroupV2 {
+		return &controlv2{}
+	}
 	return newControl(&factory.GlobalCgroupFactory{})
 }
 
@@ -41,44 +48,43 @@ func newControl(cgroupFact factory.CgroupFactory) Control {
 }
 
 // Create creates a new cgroup based off the spec post validation
-func (c *control) Create(cgroupSpec *Spec) (cgroups.Cgroup, error) {
+func (c *control) Create(cgroupSpec *Spec) error {
 	// Validate incoming spec
 	err := validateCgroupSpec(cgroupSpec)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cgroup create: failed to validate spec")
+		return fmt.Errorf("cgroup create: failed to validate spec: %w", err)
 	}
 
-	// Create cgroup
-	seelog.Infof("Creating cgroup %s", cgroupSpec.Root)
-	controller, err := c.New(cgroups.V1, cgroups.StaticPath(cgroupSpec.Root), cgroupSpec.Specs)
-
+	seelog.Debugf("Creating cgroup cgroupPath=%s", cgroupSpec.Root)
+	_, err = c.New(cgroups.V1, cgroups.StaticPath(cgroupSpec.Root), cgroupSpec.Specs)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cgroup create: unable to create controller")
+		return fmt.Errorf("cgroup create: unable to create controller: v1: %s", err)
 	}
 
-	return controller, nil
+	return nil
 }
 
 // Remove is used to delete the cgroup
 func (c *control) Remove(cgroupPath string) error {
-	seelog.Debugf("Removing cgroup %s", cgroupPath)
+	seelog.Debugf("Removing cgroup cgroupPath=%s", cgroupPath)
 
 	controller, err := c.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
 	if err != nil {
-		return errors.Wrapf(err, "cgroup remove: unable to obtain controller")
+		// use the %w verb to wrap the error to be unwrapped by errors.Is()
+		return fmt.Errorf("cgroup remove: unable to obtain controller: %w", err)
 	}
 
 	// Delete cgroup
 	err = controller.Delete()
 	if err != nil {
-		return errors.Wrapf(err, "cgroup remove: unable to delete cgroup")
+		return fmt.Errorf("cgroup remove: unable to delete cgroup: %w", err)
 	}
 	return nil
 }
 
 // Exists is used to verify the existence of a cgroup
 func (c *control) Exists(cgroupPath string) bool {
-	seelog.Debugf("Checking existence of cgroup: %s", cgroupPath)
+	seelog.Debugf("Checking existence of cgroup cgroupPath=%s", cgroupPath)
 
 	controller, err := c.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
 	if err != nil || controller == nil {
@@ -86,6 +92,19 @@ func (c *control) Exists(cgroupPath string) bool {
 	}
 
 	return true
+}
+
+// Init is used to setup the cgroup root for ecs
+func (c *control) Init() error {
+	seelog.Debugf("Creating root ecs cgroup cgroupPath=%s", config.DefaultTaskCgroupV1Prefix)
+
+	// Build cgroup spec
+	cgroupSpec := &Spec{
+		Root:  config.DefaultTaskCgroupV1Prefix,
+		Specs: &specs.LinuxResources{},
+	}
+	err := c.Create(cgroupSpec)
+	return err
 }
 
 // validateCgroupSpec checks the cgroup spec for valid path and specifications

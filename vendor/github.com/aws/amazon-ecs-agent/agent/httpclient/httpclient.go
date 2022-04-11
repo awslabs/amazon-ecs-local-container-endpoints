@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -23,17 +23,16 @@ import (
 	"time"
 
 	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/utils"
 	"github.com/aws/amazon-ecs-agent/agent/utils/cipher"
 	"github.com/aws/amazon-ecs-agent/agent/version"
 )
-
-const defaultTimeout = 10 * time.Minute
 
 // Taken from the default http.Client behavior
 const defaultDialTimeout = 30 * time.Second
 const defaultDialKeepalive = 30 * time.Second
 
-//go:generate go run ../../scripts/generate/mockgen.go net/http RoundTripper mock/$GOFILE
+//go:generate mockgen -destination=mock/$GOFILE -copyright_file=../../scripts/copyright_file net/http RoundTripper
 
 type ecsRoundTripper struct {
 	insecureSkipVerify bool
@@ -61,7 +60,7 @@ func New(timeout time.Duration, insecureSkipVerify bool) *http.Client {
 	// Note, these defaults are taken from the golang http library. We do not
 	// explicitly do not use theirs to avoid changing their behavior.
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: utils.Proxy,
 		Dial: (&net.Dialer{
 			Timeout:   defaultDialTimeout,
 			KeepAlive: defaultDialKeepalive,

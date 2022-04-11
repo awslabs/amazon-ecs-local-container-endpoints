@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -24,8 +24,15 @@ const (
 	DockerTimeoutErrorName = "DockerTimeoutError"
 	// CannotInspectContainerErrorName is the name of container inspect error.
 	CannotInspectContainerErrorName = "CannotInspectContainerError"
+	// CannotStartContainerErrorName is the name of container start error.
+	CannotStartContainerErrorName = "CannotStartContainerError"
 	// CannotDescribeContainerErrorName is the name of describe container error.
 	CannotDescribeContainerErrorName = "CannotDescribeContainerError"
+	// CannotGetContainerTopErrorName is the name of the top container error.
+	CannotGetContainerTopErrorName = "CannotGetContainerTopError"
+	// TopProcessNotFoundErrorName is the error thrown when the specified pid does
+	// not exist in the container
+	TopProcessNotFoundErrorName = "ps: exit status 1"
 )
 
 // DockerTimeoutError is an error type for describing timeouts
@@ -42,6 +49,12 @@ func (err *DockerTimeoutError) Error() string {
 
 // ErrorName returns the name of the error
 func (err *DockerTimeoutError) ErrorName() string { return DockerTimeoutErrorName }
+
+// IsRetriableError returns a boolean indicating whether the call that
+// generated the error can be retried.
+func (err DockerTimeoutError) IsRetriableError() bool {
+	return true
+}
 
 // OutOfMemoryError is a type for errors caused by running out of memory
 type OutOfMemoryError struct{}
@@ -201,7 +214,7 @@ func (err CannotStartContainerError) Error() string {
 
 // ErrorName returns name of the CannotStartContainerError
 func (err CannotStartContainerError) ErrorName() string {
-	return "CannotStartContainerError"
+	return CannotStartContainerErrorName
 }
 
 // CannotInspectContainerError indicates any error when trying to inspect a container
@@ -216,6 +229,20 @@ func (err CannotInspectContainerError) Error() string {
 // ErrorName returns name of the CannotInspectContainerError
 func (err CannotInspectContainerError) ErrorName() string {
 	return CannotInspectContainerErrorName
+}
+
+// CannotGetContainerTopError indicates any error when trying to get container top processes
+type CannotGetContainerTopError struct {
+	FromError error
+}
+
+func (err CannotGetContainerTopError) Error() string {
+	return err.FromError.Error()
+}
+
+// ErrorName returns name of the CannotGetContainerTopError
+func (err CannotGetContainerTopError) ErrorName() string {
+	return CannotGetContainerTopErrorName
 }
 
 // CannotRemoveContainerError indicates any error when trying to remove a container
@@ -336,4 +363,46 @@ func (err NoSuchContainerError) Error() string {
 
 func (err NoSuchContainerError) ErrorName() string {
 	return "NoSuchContainerError"
+}
+
+// CannotCreateContainerExecError indicates any error when trying to create an exec object
+type CannotCreateContainerExecError struct {
+	FromError error
+}
+
+func (err CannotCreateContainerExecError) Error() string {
+	return err.FromError.Error()
+}
+
+// ErrorName returns name of the CannotCreateContainerExecError.
+func (err CannotCreateContainerExecError) ErrorName() string {
+	return "CannotCreateContainerExecError"
+}
+
+// CannotStartContainerExecError indicates any error when trying to start an exec process
+type CannotStartContainerExecError struct {
+	FromError error
+}
+
+func (err CannotStartContainerExecError) Error() string {
+	return err.FromError.Error()
+}
+
+// ErrorName returns name of the CannotCreateContainerExecError.
+func (err CannotStartContainerExecError) ErrorName() string {
+	return "CannotStartContainerExecError"
+}
+
+// CannotInspectContainerExecError indicates any error when trying to start an exec process
+type CannotInspectContainerExecError struct {
+	FromError error
+}
+
+func (err CannotInspectContainerExecError) Error() string {
+	return err.FromError.Error()
+}
+
+// ErrorName returns name of the CannotCreateContainerExecError.
+func (err CannotInspectContainerExecError) ErrorName() string {
+	return "CannotInspectContainerExecError"
 }
