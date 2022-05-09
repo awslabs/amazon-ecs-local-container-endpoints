@@ -1,4 +1,4 @@
-// Copyright 2017-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -22,8 +22,6 @@ import (
 	apitask "github.com/aws/amazon-ecs-agent/agent/api/task"
 	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient"
-	"github.com/aws/amazon-ecs-agent/agent/utils/ioutilwrapper"
-	"github.com/aws/amazon-ecs-agent/agent/utils/oswrapper"
 	dockercontainer "github.com/docker/docker/api/types/container"
 )
 
@@ -40,8 +38,9 @@ const (
 type Manager interface {
 	SetContainerInstanceARN(string)
 	SetAvailabilityZone(string)
+	SetHostPrivateIPv4Address(string)
 	SetHostPublicIPv4Address(string)
-	Create(*dockercontainer.Config, *dockercontainer.HostConfig, *apitask.Task, string) error
+	Create(*dockercontainer.Config, *dockercontainer.HostConfig, *apitask.Task, string, []string) error
 	Update(context.Context, string, *apitask.Task, string) error
 	Clean(string) error
 }
@@ -61,13 +60,11 @@ type metadataManager struct {
 	dataDirOnHost string
 	// containerInstanceARN is the Container Instance ARN registered for this agent
 	containerInstanceARN string
-	// osWrap is a wrapper for 'os' package operations
-	osWrap oswrapper.OS
-	// ioutilWrap is a wrapper for 'ioutil' package operations
-	ioutilWrap ioutilwrapper.IOUtil
 	// availabilityZone is the availabiltyZone where task is in
 	availabilityZone string
-	// hostPublicIPv4Address is the public IPv4 address associated with the EC2 instance ID
+	// hostPrivateIPv4Address is the private IPv4 address associated with the EC2 instance
+	hostPrivateIPv4Address string
+	// hostPublicIPv4Address is the public IPv4 address associated with the EC2 instance
 	hostPublicIPv4Address string
 }
 
@@ -78,8 +75,6 @@ func NewManager(client DockerMetadataClient, cfg *config.Config) Manager {
 		cluster:       cfg.Cluster,
 		dataDir:       cfg.DataDir,
 		dataDirOnHost: cfg.DataDirOnHost,
-		osWrap:        oswrapper.NewOS(),
-		ioutilWrap:    ioutilwrapper.NewIOUtil(),
 	}
 }
 
@@ -95,16 +90,25 @@ func (manager *metadataManager) SetAvailabilityZone(availabilityZone string) {
 	manager.availabilityZone = availabilityZone
 }
 
+// SetHostPrivateIPv4Address sets the metadataManager's hostPrivateIPv4Address which is not available
+// at its creation as this information is not present immediately at the agent's startup
+func (manager *metadataManager) SetHostPrivateIPv4Address(ipv4address string) {
+	manager.hostPrivateIPv4Address = ipv4address
+}
+
 // SetHostPublicIPv4Address sets the metadataManager's hostPublicIPv4Address which is not available
 // at its creation as this information is not present immediately at the agent's startup
 func (manager *metadataManager) SetHostPublicIPv4Address(ipv4address string) {
 	manager.hostPublicIPv4Address = ipv4address
 }
 
+var mkdirAll = os.MkdirAll
+
 // Create creates the metadata file and adds the metadata directory to
 // the container's mounted host volumes
 // Pointer hostConfig is modified directly so there is risk of concurrency errors.
-func (manager *metadataManager) Create(config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, task *apitask.Task, containerName string) error {
+func (manager *metadataManager) Create(config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig,
+	task *apitask.Task, containerName string, dockerSecurityOptions []string) error {
 	// Create task and container directories if they do not yet exist
 	metadataDirectoryPath, err := getMetadataFilePath(task.Arn, containerName, manager.dataDir)
 	// Stop metadata creation if path is malformed for any reason
@@ -112,7 +116,7 @@ func (manager *metadataManager) Create(config *dockercontainer.Config, hostConfi
 		return fmt.Errorf("container metadata create for task %s container %s: %v", task.Arn, containerName, err)
 	}
 
-	err = manager.osWrap.MkdirAll(metadataDirectoryPath, os.ModePerm)
+	err = mkdirAll(metadataDirectoryPath, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("creating metadata directory for task %s: %v", task.Arn, err)
 	}
@@ -126,7 +130,7 @@ func (manager *metadataManager) Create(config *dockercontainer.Config, hostConfi
 
 	// Add the directory of this container's metadata to the container's mount binds
 	// Then add the destination directory as an environment variable in the container $METADATA
-	binds, env := createBindsEnv(hostConfig.Binds, config.Env, manager.dataDirOnHost, metadataDirectoryPath)
+	binds, env := createBindsEnv(hostConfig.Binds, config.Env, manager.dataDirOnHost, metadataDirectoryPath, dockerSecurityOptions)
 	config.Env = env
 	hostConfig.Binds = binds
 	return nil
@@ -150,13 +154,15 @@ func (manager *metadataManager) Update(ctx context.Context, dockerID string, tas
 	return manager.marshalAndWrite(metadata, task.Arn, containerName)
 }
 
+var removeAll = os.RemoveAll
+
 // Clean removes the metadata files of all containers associated with a task
 func (manager *metadataManager) Clean(taskARN string) error {
 	metadataPath, err := getTaskMetadataDir(taskARN, manager.dataDir)
 	if err != nil {
 		return fmt.Errorf("clean task metadata: unable to get metadata directory for task %s: %v", taskARN, err)
 	}
-	return manager.osWrap.RemoveAll(metadataPath)
+	return removeAll(metadataPath)
 }
 
 func (manager *metadataManager) marshalAndWrite(metadata Metadata, taskARN string, containerName string) error {
@@ -166,5 +172,5 @@ func (manager *metadataManager) marshalAndWrite(metadata Metadata, taskARN strin
 	}
 
 	// Write the metadata to file
-	return writeToMetadataFile(manager.osWrap, manager.ioutilWrap, data, taskARN, containerName, manager.dataDir)
+	return writeToMetadataFile(data, taskARN, containerName, manager.dataDir)
 }

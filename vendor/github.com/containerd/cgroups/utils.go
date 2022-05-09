@@ -18,6 +18,7 @@ package cgroups
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,41 +26,93 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"golang.org/x/sys/unix"
 )
 
-var isUserNS = runningInUserNS()
+var (
+	nsOnce    sync.Once
+	inUserNS  bool
+	checkMode sync.Once
+	cgMode    CGMode
+)
 
-// runningInUserNS detects whether we are currently running in a user namespace.
+const unifiedMountpoint = "/sys/fs/cgroup"
+
+// CGMode is the cgroups mode of the host system
+type CGMode int
+
+const (
+	// Unavailable cgroup mountpoint
+	Unavailable CGMode = iota
+	// Legacy cgroups v1
+	Legacy
+	// Hybrid with cgroups v1 and v2 controllers mounted
+	Hybrid
+	// Unified with only cgroups v2 mounted
+	Unified
+)
+
+// Mode returns the cgroups mode running on the host
+func Mode() CGMode {
+	checkMode.Do(func() {
+		var st unix.Statfs_t
+		if err := unix.Statfs(unifiedMountpoint, &st); err != nil {
+			cgMode = Unavailable
+			return
+		}
+		switch st.Type {
+		case unix.CGROUP2_SUPER_MAGIC:
+			cgMode = Unified
+		default:
+			cgMode = Legacy
+			if err := unix.Statfs(filepath.Join(unifiedMountpoint, "unified"), &st); err != nil {
+				return
+			}
+			if st.Type == unix.CGROUP2_SUPER_MAGIC {
+				cgMode = Hybrid
+			}
+		}
+	})
+	return cgMode
+}
+
+// RunningInUserNS detects whether we are currently running in a user namespace.
 // Copied from github.com/lxc/lxd/shared/util.go
-func runningInUserNS() bool {
-	file, err := os.Open("/proc/self/uid_map")
-	if err != nil {
-		// This kernel-provided file only exists if user namespaces are supported
-		return false
-	}
-	defer file.Close()
+func RunningInUserNS() bool {
+	nsOnce.Do(func() {
+		file, err := os.Open("/proc/self/uid_map")
+		if err != nil {
+			// This kernel-provided file only exists if user namespaces are supported
+			return
+		}
+		defer file.Close()
 
-	buf := bufio.NewReader(file)
-	l, _, err := buf.ReadLine()
-	if err != nil {
-		return false
-	}
+		buf := bufio.NewReader(file)
+		l, _, err := buf.ReadLine()
+		if err != nil {
+			return
+		}
 
-	line := string(l)
-	var a, b, c int64
-	fmt.Sscanf(line, "%d %d %d", &a, &b, &c)
-	/*
-	 * We assume we are in the initial user namespace if we have a full
-	 * range - 4294967295 uids starting at uid 0.
-	 */
-	if a == 0 && b == 0 && c == 4294967295 {
-		return false
-	}
-	return true
+		line := string(l)
+		var a, b, c int64
+		fmt.Sscanf(line, "%d %d %d", &a, &b, &c)
+
+		/*
+		 * We assume we are in the initial user namespace if we have a full
+		 * range - 4294967295 uids starting at uid 0.
+		 */
+		if a == 0 && b == 0 && c == 4294967295 {
+			return
+		}
+		inUserNS = true
+	})
+	return inUserNS
 }
 
 // defaults returns all known groups
@@ -75,7 +128,7 @@ func defaults(root string) ([]Subsystem, error) {
 		NewNetCls(root),
 		NewNetPrio(root),
 		NewPerfEvent(root),
-		NewCputset(root),
+		NewCpuset(root),
 		NewCpu(root),
 		NewCpuacct(root),
 		NewMemory(root),
@@ -84,7 +137,7 @@ func defaults(root string) ([]Subsystem, error) {
 	}
 	// only add the devices cgroup if we are not in a user namespace
 	// because modifications are not allowed
-	if !isUserNS {
+	if !RunningInUserNS() {
 		s = append(s, NewDevices(root))
 	}
 	// add the hugetlb cgroup if error wasn't due to missing hugetlb
@@ -111,9 +164,9 @@ func remove(path string) error {
 	return fmt.Errorf("cgroups: unable to remove path %q", path)
 }
 
-// readPids will read all the pids of processes in a cgroup by the provided path
-func readPids(path string, subsystem Name) ([]Process, error) {
-	f, err := os.Open(filepath.Join(path, cgroupProcs))
+// readPids will read all the pids of processes or tasks in a cgroup by the provided path
+func readPids(path string, subsystem Name, pType procType) ([]Process, error) {
+	f, err := os.Open(filepath.Join(path, pType))
 	if err != nil {
 		return nil, err
 	}
@@ -135,32 +188,9 @@ func readPids(path string, subsystem Name) ([]Process, error) {
 			})
 		}
 	}
-	return out, nil
-}
-
-// readTasksPids will read all the pids of tasks in a cgroup by the provided path
-func readTasksPids(path string, subsystem Name) ([]Task, error) {
-	f, err := os.Open(filepath.Join(path, cgroupTasks))
-	if err != nil {
+	if err := s.Err(); err != nil {
+		// failed to read all pids?
 		return nil, err
-	}
-	defer f.Close()
-	var (
-		out []Task
-		s   = bufio.NewScanner(f)
-	)
-	for s.Scan() {
-		if t := s.Text(); t != "" {
-			pid, err := strconv.Atoi(t)
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, Task{
-				Pid:       pid,
-				Subsystem: subsystem,
-				Path:      path,
-			})
-		}
 	}
 	return out, nil
 }
@@ -168,7 +198,7 @@ func readTasksPids(path string, subsystem Name) ([]Task, error) {
 func hugePageSizes() ([]string, error) {
 	var (
 		pageSizes []string
-		sizeList  = []string{"B", "kB", "MB", "GB", "TB", "PB"}
+		sizeList  = []string{"B", "KB", "MB", "GB", "TB", "PB"}
 	)
 	files, err := ioutil.ReadDir("/sys/kernel/mm/hugepages")
 	if err != nil {
@@ -225,7 +255,16 @@ func parseKV(raw string) (string, uint64, error) {
 	}
 }
 
-func parseCgroupFile(path string) (map[string]string, error) {
+// ParseCgroupFile parses the given cgroup file, typically /proc/self/cgroup
+// or /proc/<pid>/cgroup, into a map of subsystems to cgroup paths, e.g.
+//   "cpu": "/user.slice/user-1000.slice"
+//   "pids": "/user.slice/user-1000.slice"
+// etc.
+//
+// Note that for cgroup v2 unified hierarchy, there are no per-controller
+// cgroup paths, so the resulting map will have a single element where the key
+// is empty string ("") and the value is the cgroup path the <pid> is in.
+func ParseCgroupFile(path string) (map[string]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -240,9 +279,6 @@ func parseCgroupFromReader(r io.Reader) (map[string]string, error) {
 		s       = bufio.NewScanner(r)
 	)
 	for s.Scan() {
-		if err := s.Err(); err != nil {
-			return nil, err
-		}
 		var (
 			text  = s.Text()
 			parts = strings.SplitN(text, ":", 3)
@@ -256,6 +292,9 @@ func parseCgroupFromReader(r io.Reader) (map[string]string, error) {
 			}
 		}
 	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
 	return cgroups, nil
 }
 
@@ -267,15 +306,22 @@ func getCgroupDestination(subsystem string) (string, error) {
 	defer f.Close()
 	s := bufio.NewScanner(f)
 	for s.Scan() {
-		if err := s.Err(); err != nil {
-			return "", err
+		fields := strings.Split(s.Text(), " ")
+		if len(fields) < 10 {
+			// broken mountinfo?
+			continue
 		}
-		fields := strings.Fields(s.Text())
+		if fields[len(fields)-3] != "cgroup" {
+			continue
+		}
 		for _, opt := range strings.Split(fields[len(fields)-1], ",") {
 			if opt == subsystem {
 				return fields[3], nil
 			}
 		}
+	}
+	if err := s.Err(); err != nil {
+		return "", err
 	}
 	return "", ErrNoCgroupMountDestination
 }
@@ -320,5 +366,18 @@ func cleanPath(path string) string {
 	if !filepath.IsAbs(path) {
 		path, _ = filepath.Rel(string(os.PathSeparator), filepath.Clean(string(os.PathSeparator)+path))
 	}
-	return filepath.Clean(path)
+	return path
+}
+
+func retryingWriteFile(path string, data []byte, mode os.FileMode) error {
+	// Retry writes on EINTR; see:
+	//    https://github.com/golang/go/issues/38033
+	for {
+		err := ioutil.WriteFile(path, data, mode)
+		if err == nil {
+			return nil
+		} else if !errors.Is(err, syscall.EINTR) {
+			return err
+		}
+	}
 }
