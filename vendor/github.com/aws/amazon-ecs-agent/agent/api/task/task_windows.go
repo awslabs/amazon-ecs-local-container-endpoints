@@ -1,6 +1,7 @@
+//go:build windows
 // +build windows
 
-// Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,16 +17,26 @@
 package task
 
 import (
-	"errors"
-	"path/filepath"
 	"runtime"
-	"strings"
+	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/ecscni"
+	"github.com/aws/amazon-ecs-agent/agent/utils"
+	"github.com/containernetworking/cni/libcni"
+
+	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
+	apieni "github.com/aws/amazon-ecs-agent/agent/api/eni"
 	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/credentials"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/credentialspec"
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/fsxwindowsfileserver"
+	resourcestatus "github.com/aws/amazon-ecs-agent/agent/taskresource/status"
+	resourcetype "github.com/aws/amazon-ecs-agent/agent/taskresource/types"
 	taskresourcevolume "github.com/aws/amazon-ecs-agent/agent/taskresource/volume"
 	"github.com/cihub/seelog"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -39,7 +50,10 @@ const (
 type PlatformFields struct {
 	// CpuUnbounded determines whether a mix of unbounded and bounded CPU tasks
 	// are allowed to run in the instance
-	CpuUnbounded bool `json:"cpuUnbounded"`
+	CpuUnbounded config.BooleanDefaultFalse `json:"cpuUnbounded"`
+	// MemoryUnbounded determines whether a mix of unbounded and bounded Memory tasks
+	// are allowed to run in the instance
+	MemoryUnbounded config.BooleanDefaultFalse `json:"memoryUnbounded"`
 }
 
 var cpuShareScaleFactor = runtime.NumCPU() * cpuSharesPerCore
@@ -48,7 +62,8 @@ var cpuShareScaleFactor = runtime.NumCPU() * cpuSharesPerCore
 func (task *Task) adjustForPlatform(cfg *config.Config) {
 	task.downcaseAllVolumePaths()
 	platformFields := PlatformFields{
-		CpuUnbounded: cfg.PlatformVariables.CPUUnbounded,
+		CpuUnbounded:    cfg.PlatformVariables.CPUUnbounded,
+		MemoryUnbounded: cfg.PlatformVariables.MemoryUnbounded,
 	}
 	task.PlatformFields = platformFields
 }
@@ -59,35 +74,16 @@ func (task *Task) adjustForPlatform(cfg *config.Config) {
 func (task *Task) downcaseAllVolumePaths() {
 	for _, volume := range task.Volumes {
 		if hostVol, ok := volume.Volume.(*taskresourcevolume.FSHostVolume); ok {
-			hostVol.FSSourcePath = getCanonicalPath(hostVol.FSSourcePath)
+			hostVol.FSSourcePath = utils.GetCanonicalPath(hostVol.FSSourcePath)
 		}
 	}
 	for _, container := range task.Containers {
 		for i, mountPoint := range container.MountPoints {
 			// container.MountPoints is a slice of values, not a slice of pointers so
 			// we need to mutate the actual value instead of the copied value
-			container.MountPoints[i].ContainerPath = getCanonicalPath(mountPoint.ContainerPath)
+			container.MountPoints[i].ContainerPath = utils.GetCanonicalPath(mountPoint.ContainerPath)
 		}
 	}
-}
-
-func getCanonicalPath(path string) string {
-	lowercasedPath := strings.ToLower(path)
-	// if the path is a bare drive like "d:", don't filepath.Clean it because it will add a '.'.
-	// this is to fix the case where mounting from D:\ to D: is supported by docker but not ecs
-	if isBareDrive(lowercasedPath) {
-		return lowercasedPath
-	}
-
-	return filepath.Clean(lowercasedPath)
-}
-
-func isBareDrive(path string) bool {
-	if filepath.VolumeName(path) == path {
-		return true
-	}
-
-	return false
 }
 
 // platformHostConfigOverride provides an entry point to set up default HostConfig options to be
@@ -103,6 +99,13 @@ func (task *Task) platformHostConfigOverride(hostConfig *dockercontainer.HostCon
 		hostConfig.CPUPercent = minimumCPUPercent
 	}
 	hostConfig.CPUShares = 0
+
+	if hostConfig.Memory <= 0 && task.PlatformFields.MemoryUnbounded.Enabled() {
+		// As of version  17.06.2-ee-6 of docker. MemoryReservation is not supported on windows. This ensures that
+		// this parameter is not passed, allowing to launch a container without a hard limit.
+		hostConfig.MemoryReservation = 0
+	}
+
 	return nil
 }
 
@@ -111,7 +114,7 @@ func (task *Task) platformHostConfigOverride(hostConfig *dockercontainer.HostCon
 // want.  Instead, we convert 0 to 2 to be closer to expected behavior. The
 // reason for 2 over 1 is that 1 is an invalid value (Linux's choice, not Docker's).
 func (task *Task) dockerCPUShares(containerCPU uint) int64 {
-	if containerCPU <= 1 && !task.PlatformFields.CpuUnbounded {
+	if containerCPU <= 1 && !task.PlatformFields.CpuUnbounded.Enabled() {
 		seelog.Debugf(
 			"Converting CPU shares to allowed minimum of 2 for task arn: [%s] and cpu shares: %d",
 			task.Arn, containerCPU)
@@ -120,6 +123,176 @@ func (task *Task) dockerCPUShares(containerCPU uint) int64 {
 	return int64(containerCPU)
 }
 
-func (task *Task) initializeCgroupResourceSpec(cgroupPath string, resourceFields *taskresource.ResourceFields) error {
+func (task *Task) initializeCgroupResourceSpec(cgroupPath string, cGroupCPUPeriod time.Duration, resourceFields *taskresource.ResourceFields) error {
 	return errors.New("unsupported platform")
+}
+
+// requiresCredentialSpecResource returns true if at least one container in the task
+// needs a valid credentialspec resource
+func (task *Task) requiresCredentialSpecResource() bool {
+	for _, container := range task.Containers {
+		if container.RequiresCredentialSpec() {
+			return true
+		}
+	}
+	return false
+}
+
+// initializeCredentialSpecResource builds the resource dependency map for the credentialspec resource
+func (task *Task) initializeCredentialSpecResource(config *config.Config, credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields) error {
+	credentialspecResource, err := credentialspec.NewCredentialSpecResource(task.Arn, config.AWSRegion, task.getAllCredentialSpecRequirements(),
+		task.ExecutionCredentialsID, credentialsManager, resourceFields.SSMClientCreator, resourceFields.S3ClientCreator)
+	if err != nil {
+		return err
+	}
+
+	task.AddResource(credentialspec.ResourceName, credentialspecResource)
+
+	// for every container that needs credential spec vending, it needs to wait for all credential spec resources
+	for _, container := range task.Containers {
+		if container.RequiresCredentialSpec() {
+			container.BuildResourceDependency(credentialspecResource.GetName(),
+				resourcestatus.ResourceStatus(credentialspec.CredentialSpecCreated),
+				apicontainerstatus.ContainerCreated)
+		}
+	}
+
+	return nil
+}
+
+// getAllCredentialSpecRequirements is used to build all the credential spec requirements for the task
+func (task *Task) getAllCredentialSpecRequirements() []string {
+	reqs := []string{}
+
+	for _, container := range task.Containers {
+		credentialSpec, err := container.GetCredentialSpec()
+		if err == nil && credentialSpec != "" && !utils.StrSliceContains(reqs, credentialSpec) {
+			reqs = append(reqs, credentialSpec)
+		}
+	}
+
+	return reqs
+}
+
+// GetCredentialSpecResource retrieves credentialspec resource from resource map
+func (task *Task) GetCredentialSpecResource() ([]taskresource.TaskResource, bool) {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	res, ok := task.ResourcesMapUnsafe[credentialspec.ResourceName]
+	return res, ok
+}
+
+func enableIPv6SysctlSetting(hostConfig *dockercontainer.HostConfig) {
+	return
+}
+
+// requiresFSxWindowsFileServerResource returns true if at least one volume in the task
+// is of type 'fsxWindowsFileServer'
+func (task *Task) requiresFSxWindowsFileServerResource() bool {
+	for _, volume := range task.Volumes {
+		if volume.Type == FSxWindowsFileServerVolumeType {
+			return true
+		}
+	}
+	return false
+}
+
+// initializeFSxWindowsFileServerResource builds the resource dependency map for the fsxwindowsfileserver resource
+func (task *Task) initializeFSxWindowsFileServerResource(cfg *config.Config, credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields) error {
+	for i, vol := range task.Volumes {
+		if vol.Type != FSxWindowsFileServerVolumeType {
+			continue
+		}
+
+		fsxWindowsFileServerVol, ok := vol.Volume.(*fsxwindowsfileserver.FSxWindowsFileServerVolumeConfig)
+		if !ok {
+			return errors.New("task volume: volume configuration does not match the type 'fsxWindowsFileServer'")
+		}
+
+		err := task.addFSxWindowsFileServerResource(cfg, credentialsManager, resourceFields, &task.Volumes[i], fsxWindowsFileServerVol)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// addFSxWindowsFileServerResource creates a fsxwindowsfileserver resource for every fsxwindowsfileserver task volume
+// and updates container dependency
+func (task *Task) addFSxWindowsFileServerResource(
+	cfg *config.Config,
+	credentialsManager credentials.Manager,
+	resourceFields *taskresource.ResourceFields,
+	vol *TaskVolume,
+	fsxWindowsFileServerVol *fsxwindowsfileserver.FSxWindowsFileServerVolumeConfig,
+) error {
+	fsxwindowsfileserverResource, err := fsxwindowsfileserver.NewFSxWindowsFileServerResource(
+		task.Arn,
+		cfg.AWSRegion,
+		vol.Name,
+		FSxWindowsFileServerVolumeType,
+		fsxWindowsFileServerVol,
+		task.ExecutionCredentialsID,
+		credentialsManager,
+		resourceFields.SSMClientCreator,
+		resourceFields.ASMClientCreator,
+		resourceFields.FSxClientCreator)
+	if err != nil {
+		return err
+	}
+
+	vol.Volume = &fsxwindowsfileserverResource.VolumeConfig
+	task.AddResource(resourcetype.FSxWindowsFileServerKey, fsxwindowsfileserverResource)
+	task.updateContainerVolumeDependency(vol.Name)
+
+	return nil
+}
+
+// BuildCNIConfig builds a list of CNI network configurations for the task.
+func (task *Task) BuildCNIConfig(includeIPAMConfig bool, cniConfig *ecscni.Config) (*ecscni.Config, error) {
+	if !task.IsNetworkModeAWSVPC() {
+		return nil, errors.New("task config: task network mode is not awsvpc")
+	}
+
+	var netconf *libcni.NetworkConfig
+	var err error
+
+	// Build a CNI network configuration for each ENI.
+	for _, eni := range task.ENIs {
+		switch eni.InterfaceAssociationProtocol {
+		// If the association protocol is set to "default" or unset (to preserve backwards
+		// compatibility), consider it a "standard" ENI attachment.
+		case "", apieni.DefaultInterfaceAssociationProtocol:
+			cniConfig.ID = eni.MacAddress
+			netconf, err = ecscni.NewVPCENIPluginConfigForTaskNSSetup(eni, cniConfig)
+		default:
+			err = errors.Errorf("task config: unknown interface association type: %s",
+				eni.InterfaceAssociationProtocol)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		// IfName is expected by the plugin but is not used.
+		cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+			IfName:           eni.ID,
+			CNINetworkConfig: netconf,
+		})
+	}
+
+	// Create the vpc-eni plugin configuration to setup ecs-bridge endpoint in the task namespace.
+	netconf, err = ecscni.NewVPCENIPluginConfigForECSBridgeSetup(cniConfig)
+	if err != nil {
+		return nil, err
+	}
+	cniConfig.NetworkConfigs = append(cniConfig.NetworkConfigs, &ecscni.NetworkConfig{
+		IfName:           ecscni.ECSBridgeNetworkName,
+		CNINetworkConfig: netconf,
+	})
+
+	return cniConfig, nil
 }

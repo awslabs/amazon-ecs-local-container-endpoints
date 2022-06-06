@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,12 +16,14 @@ package ssmsecret
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cihub/seelog"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
 
+	"github.com/cihub/seelog"
+	"github.com/pkg/errors"
+
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
+	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
 	"github.com/aws/amazon-ecs-agent/agent/api/task/status"
 	"github.com/aws/amazon-ecs-agent/agent/credentials"
 	"github.com/aws/amazon-ecs-agent/agent/ssm"
@@ -333,7 +335,7 @@ func (secret *SSMSecretResource) retrieveSSMSecretValues(region string, names []
 	defer wg.Done()
 
 	ssmClient := secret.ssmClientCreator.NewSSMClient(region, iamCredentials)
-	seelog.Infof("ssm secret resource: retrieving resource for secrets %v in region [%s] in task: [%s]", names, region, secret.taskARN)
+	seelog.Debugf("ssm secret resource: retrieving resource for secrets %v in region [%s] in task: [%s]", names, region, secret.taskARN)
 	secValueMap, err := ssm.GetSecretsFromSSM(names, ssmClient)
 	if err != nil {
 		errorEvents <- fmt.Errorf("fetching secret data from SSM Parameter Store in %s: %v", region, err)
@@ -476,5 +478,25 @@ func (secret *SSMSecretResource) UnmarshalJSON(b []byte) error {
 	secret.taskARN = temp.TaskARN
 	secret.executionCredentialsID = temp.ExecutionCredentialsID
 
+	return nil
+}
+
+// GetAppliedStatus safely returns the currently applied status of the resource
+func (secret *SSMSecretResource) GetAppliedStatus() resourcestatus.ResourceStatus {
+	secret.lock.RLock()
+	defer secret.lock.RUnlock()
+
+	return secret.appliedStatus
+}
+
+func (secret *SSMSecretResource) DependOnTaskNetwork() bool {
+	return false
+}
+
+func (secret *SSMSecretResource) BuildContainerDependency(containerName string, satisfied apicontainerstatus.ContainerStatus,
+	dependent resourcestatus.ResourceStatus) {
+}
+
+func (secret *SSMSecretResource) GetContainerDependencies(dependent resourcestatus.ResourceStatus) []apicontainer.ContainerDependency {
 	return nil
 }
