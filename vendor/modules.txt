@@ -262,7 +262,7 @@ github.com/prometheus/procfs/xfs
 # github.com/sirupsen/logrus v1.3.0
 ## explicit
 github.com/sirupsen/logrus
-# github.com/stretchr/testify v1.2.2
+# github.com/stretchr/testify v1.7.3
 ## explicit
 github.com/stretchr/testify/assert
 # golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
@@ -281,5 +281,7 @@ golang.org/x/sys/windows/svc/eventlog
 ## explicit
 # google.golang.org/grpc v1.19.1
 ## explicit
+# gopkg.in/yaml.v3 v3.0.1
+gopkg.in/yaml.v3
 # gotest.tools v2.2.0+incompatible
 ## explicit
