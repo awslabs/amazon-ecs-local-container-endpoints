@@ -1,6 +1,7 @@
+//go:build linux
 // +build linux
 
-// Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,7 +17,6 @@
 package control
 
 import (
-	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -30,7 +30,7 @@ type Spec struct {
 }
 
 type Control interface {
-	Create(cgroupSpec *Spec) (cgroups.Cgroup, error)
+	Create(cgroupSpec *Spec) error
 	Remove(cgroupPath string) error
 	Exists(cgroupPath string) bool
 	Init() error
