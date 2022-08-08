@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,6 +16,7 @@ package ec2
 import (
 	"strings"
 
+	"github.com/aws/amazon-ecs-agent/agent/credentials/instancecreds"
 	"github.com/aws/amazon-ecs-agent/agent/ecs_client/model/ecs"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -50,9 +51,10 @@ type ClientImpl struct {
 }
 
 func NewClientImpl(awsRegion string) Client {
-	var ec2Config aws.Config
+	ec2Config := aws.NewConfig().WithMaxRetries(clientRetriesNum)
 	ec2Config.Region = aws.String(awsRegion)
-	client := ec2sdk.New(session.New(&ec2Config), aws.NewConfig().WithMaxRetries(clientRetriesNum))
+	ec2Config.Credentials = instancecreds.GetCredentials(false)
+	client := ec2sdk.New(session.New(), ec2Config)
 	return &ClientImpl{
 		client: client,
 	}

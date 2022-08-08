@@ -1,5 +1,7 @@
+//go:build linux
 // +build linux
-// Copyright 2014-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,13 +18,18 @@ package cgroup
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
 
+	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
+	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
 	"github.com/aws/amazon-ecs-agent/agent/api/task/status"
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource"
 	control "github.com/aws/amazon-ecs-agent/agent/taskresource/cgroup/control"
 	resourcestatus "github.com/aws/amazon-ecs-agent/agent/taskresource/status"
@@ -30,7 +37,6 @@ import (
 	"github.com/cihub/seelog"
 	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -67,12 +73,14 @@ type CgroupResource struct {
 }
 
 // NewCgroupResource is used to return an object that implements the Resource interface
-func NewCgroupResource(taskARN string,
+func NewCgroupResource(
+	taskARN string,
 	control control.Control,
 	ioutil ioutilwrapper.IOUtil,
 	cgroupRoot string,
 	cgroupMountPath string,
-	resourceSpec specs.LinuxResources) *CgroupResource {
+	resourceSpec specs.LinuxResources,
+) *CgroupResource {
 	c := &CgroupResource{
 		taskARN:         taskARN,
 		control:         control,
@@ -161,7 +169,7 @@ func (cgroup *CgroupResource) ApplyTransition(nextState resourcestatus.ResourceS
 	if !ok {
 		seelog.Errorf("Cgroup Resource [%s]: unsupported desired state transition [%s]: %s",
 			cgroup.taskARN, cgroup.GetName(), cgroup.StatusString(nextState))
-		return errors.Errorf("resource [%s]: transition to %s impossible", cgroup.GetName(),
+		return fmt.Errorf("resource [%s]: transition to %s impossible", cgroup.GetName(),
 			cgroup.StatusString(nextState))
 	}
 	return transitionFunc()
@@ -208,6 +216,14 @@ func (cgroup *CgroupResource) SetAppliedStatus(status resourcestatus.ResourceSta
 	return true
 }
 
+// GetAppliedStatus safely returns the currently applied status of the resource
+func (cgroup *CgroupResource) GetAppliedStatus() resourcestatus.ResourceStatus {
+	cgroup.lock.RLock()
+	defer cgroup.lock.RUnlock()
+
+	return cgroup.appliedStatus
+}
+
 // GetKnownStatus safely returns the currently known status of the task
 func (cgroup *CgroupResource) GetKnownStatus() resourcestatus.ResourceStatus {
 	cgroup.lock.RLock()
@@ -244,7 +260,7 @@ func (cgroup *CgroupResource) GetCreatedAt() time.Time {
 func (cgroup *CgroupResource) Create() error {
 	err := cgroup.setupTaskCgroup()
 	if err != nil {
-		seelog.Criticalf("Cgroup resource [%s]: unable to setup cgroup root: %v", cgroup.taskARN, err)
+		// this error is already formatted in setupTaskCgroup function
 		return err
 	}
 	return nil
@@ -252,10 +268,9 @@ func (cgroup *CgroupResource) Create() error {
 
 func (cgroup *CgroupResource) setupTaskCgroup() error {
 	cgroupRoot := cgroup.cgroupRoot
-	seelog.Debugf("Cgroup resource [%s]: setting up cgroup at: %s", cgroup.taskARN, cgroupRoot)
 
 	if cgroup.control.Exists(cgroupRoot) {
-		seelog.Debugf("Cgroup resource [%s]: cgroup at %s already exists, skipping creation", cgroup.taskARN, cgroupRoot)
+		seelog.Debugf("Cgroup already exists, skipping creation taskARN=%s cgroupPath=%s cgroupV2=%v", cgroup.taskARN, cgroupRoot, config.CgroupV2)
 		return nil
 	}
 
@@ -264,16 +279,19 @@ func (cgroup *CgroupResource) setupTaskCgroup() error {
 		Specs: &cgroup.resourceSpec,
 	}
 
-	_, err := cgroup.control.Create(&cgroupSpec)
+	seelog.Infof("Creating task cgroup taskARN=%s cgroupPath=%s cgroupV2=%v", cgroup.taskARN, cgroupRoot, config.CgroupV2)
+	err := cgroup.control.Create(&cgroupSpec)
 	if err != nil {
-		return errors.Wrapf(err, "cgroup resource [%s]: setup cgroup: unable to create cgroup at %s", cgroup.taskARN, cgroupRoot)
+		return fmt.Errorf("cgroup resource: setup cgroup: unable to create cgroup taskARN=%s cgroupPath=%s cgroupV2=%v err=%s", cgroup.taskARN, cgroupRoot, config.CgroupV2, err)
 	}
 
-	// enabling cgroup memory hierarchy by doing 'echo 1 > memory.use_hierarchy'
-	memoryHierarchyPath := filepath.Join(cgroup.cgroupMountPath, memorySubsystem, cgroupRoot, memoryUseHierarchy)
-	err = cgroup.ioutil.WriteFile(memoryHierarchyPath, enableMemoryHierarchy, rootReadOnlyPermissions)
-	if err != nil {
-		return errors.Wrapf(err, "cgroup resource [%s]: setup cgroup: unable to set use hierarchy flag", cgroup.taskARN)
+	if !config.CgroupV2 {
+		// enabling cgroup memory hierarchy by doing 'echo 1 > memory.use_hierarchy'
+		memoryHierarchyPath := filepath.Join(cgroup.cgroupMountPath, memorySubsystem, cgroupRoot, memoryUseHierarchy)
+		err = cgroup.ioutil.WriteFile(memoryHierarchyPath, enableMemoryHierarchy, rootReadOnlyPermissions)
+		if err != nil {
+			return fmt.Errorf("cgroup resource: setup cgroup: unable to set use hierarchy flag taskARN=%s cgroupPath=%s cgroupV2=%v err=%s", cgroup.taskARN, cgroupRoot, config.CgroupV2, err)
+		}
 	}
 
 	return nil
@@ -284,11 +302,11 @@ func (cgroup *CgroupResource) Cleanup() error {
 	err := cgroup.control.Remove(cgroup.cgroupRoot)
 	// Explicitly handle cgroup deleted error
 	if err != nil {
-		if err == cgroups.ErrCgroupDeleted {
+		if errors.Is(err, cgroups.ErrCgroupDeleted) {
 			seelog.Warnf("Cgroup at %s has already been removed: %v", cgroup.cgroupRoot, err)
 			return nil
 		}
-		return errors.Wrapf(err, "resource: cleanup cgroup: unable to remove cgroup at %s", cgroup.cgroupRoot)
+		return fmt.Errorf("resource: cleanup cgroup: unable to remove cgroup at %s: %w", cgroup.cgroupRoot, err)
 	}
 	return nil
 }
@@ -370,4 +388,16 @@ func (cgroup *CgroupResource) Initialize(resourceFields *taskresource.ResourceFi
 	cgroup.initializeResourceStatusToTransitionFunction()
 	cgroup.ioutil = resourceFields.IOUtil
 	cgroup.control = resourceFields.Control
+}
+
+func (cgroup *CgroupResource) DependOnTaskNetwork() bool {
+	return false
+}
+
+func (cgroup *CgroupResource) BuildContainerDependency(containerName string, satisfied apicontainerstatus.ContainerStatus,
+	dependent resourcestatus.ResourceStatus) {
+}
+
+func (cgroup *CgroupResource) GetContainerDependencies(dependent resourcestatus.ResourceStatus) []apicontainer.ContainerDependency {
+	return nil
 }
