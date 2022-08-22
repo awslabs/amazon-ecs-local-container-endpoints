@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -22,17 +22,16 @@ import (
 	apieni "github.com/aws/amazon-ecs-agent/agent/api/eni"
 	apitask "github.com/aws/amazon-ecs-agent/agent/api/task"
 	"github.com/aws/amazon-ecs-agent/agent/engine/image"
-	"github.com/aws/amazon-ecs-agent/agent/logger"
 	"github.com/cihub/seelog"
 )
-
-var log = logger.ForModule("dockerstate")
 
 // TaskEngineState keeps track of all mappings between tasks we know about
 // and containers docker runs
 type TaskEngineState interface {
 	// AllTasks returns all of the tasks
 	AllTasks() []*apitask.Task
+	// AllENIAttachments returns all of the eni attachments
+	AllENIAttachments() []*apieni.ENIAttachment
 	// AllImageStates returns all of the image.ImageStates
 	AllImageStates() []*image.ImageState
 	// GetAllContainerIDs returns all of the Container Ids
@@ -41,6 +40,8 @@ type TaskEngineState interface {
 	ContainerByID(id string) (*apicontainer.DockerContainer, bool)
 	// ContainerMapByArn returns a map of containers belonging to a particular task ARN
 	ContainerMapByArn(arn string) (map[string]*apicontainer.DockerContainer, bool)
+	// PulledContainerMapByArn returns a map of pulled containers belonging to a particular task ARN
+	PulledContainerMapByArn(arn string) (map[string]*apicontainer.DockerContainer, bool)
 	// TaskByShortID retrieves the task of a given docker short container id
 	TaskByShortID(cid string) ([]*apitask.Task, bool)
 	// TaskByID returns an apitask.Task for a given container ID
@@ -49,6 +50,8 @@ type TaskEngineState interface {
 	TaskByArn(arn string) (*apitask.Task, bool)
 	// AddTask adds a task to the state to be stored
 	AddTask(task *apitask.Task)
+	// AddPulledContainer adds a pulled container to the state to be stored for a given task
+	AddPulledContainer(container *apicontainer.DockerContainer, task *apitask.Task)
 	// AddContainer adds a container to the state to be stored for a given task
 	AddContainer(container *apicontainer.DockerContainer, task *apitask.Task)
 	// AddImageState adds an image.ImageState to be stored
@@ -69,6 +72,8 @@ type TaskEngineState interface {
 	AddTaskIPAddress(addr string, taskARN string)
 	// GetTaskByIPAddress gets the task arn for an IP address
 	GetTaskByIPAddress(addr string) (string, bool)
+	// GetIPAddressByTaskARN gets the local ip address of a task.
+	GetIPAddressByTaskARN(taskARN string) (string, bool)
 	// DockerIDByV3EndpointID returns a docker ID for a given v3 endpoint ID
 	DockerIDByV3EndpointID(v3EndpointID string) (string, bool)
 	// TaskARNByV3EndpointID returns a taskARN for a given v3 endpoint ID
@@ -97,6 +102,7 @@ type DockerTaskEngineState struct {
 	tasks                  map[string]*apitask.Task                            // taskarn -> apitask.Task
 	idToTask               map[string]string                                   // DockerId -> taskarn
 	taskToID               map[string]map[string]*apicontainer.DockerContainer // taskarn -> (containername -> c.DockerContainer)
+	taskToPulledContainer  map[string]map[string]*apicontainer.DockerContainer // taskarn -> (containername -> c.DockerContainer)
 	idToContainer          map[string]*apicontainer.DockerContainer            // DockerId -> c.DockerContainer
 	eniAttachments         map[string]*apieni.ENIAttachment                    // ENIMac -> apieni.ENIAttachment
 	imageStates            map[string]*image.ImageState
@@ -123,6 +129,7 @@ func (state *DockerTaskEngineState) initializeDockerTaskEngineState() {
 	state.tasks = make(map[string]*apitask.Task)
 	state.idToTask = make(map[string]string)
 	state.taskToID = make(map[string]map[string]*apicontainer.DockerContainer)
+	state.taskToPulledContainer = make(map[string]map[string]*apicontainer.DockerContainer)
 	state.idToContainer = make(map[string]*apicontainer.DockerContainer)
 	state.imageStates = make(map[string]*image.ImageState)
 	state.eniAttachments = make(map[string]*apieni.ENIAttachment)
@@ -199,7 +206,7 @@ func (state *DockerTaskEngineState) ENIByMac(mac string) (*apieni.ENIAttachment,
 // AddENIAttachment adds the eni into the state
 func (state *DockerTaskEngineState) AddENIAttachment(eniAttachment *apieni.ENIAttachment) {
 	if eniAttachment == nil {
-		log.Debug("Cannot add empty eni attachment information")
+		seelog.Debug("Cannot add empty eni attachment information")
 		return
 	}
 
@@ -217,12 +224,11 @@ func (state *DockerTaskEngineState) AddENIAttachment(eniAttachment *apieni.ENIAt
 // RemoveENIAttachment removes the eni from state and stop managing
 func (state *DockerTaskEngineState) RemoveENIAttachment(mac string) {
 	if mac == "" {
-		log.Debug("Cannot remove empty eni attachment information")
+		seelog.Debug("Cannot remove empty eni attachment information")
 		return
 	}
 	state.lock.Lock()
 	defer state.lock.Unlock()
-
 	if _, ok := state.eniAttachments[mac]; ok {
 		delete(state.eniAttachments, mac)
 	} else {
@@ -259,16 +265,32 @@ func (state *DockerTaskEngineState) ContainerMapByArn(arn string) (map[string]*a
 
 	ret, ok := state.taskToID[arn]
 
-	// Copy the map to avoid data race
-	if ok {
-		mc := make(map[string]*apicontainer.DockerContainer)
-		for k, v := range ret {
-			mc[k] = v
-		}
-		return mc, ok
+	if !ok {
+		return ret, ok
 	}
+	// Copy the map to avoid data race
+	mc := make(map[string]*apicontainer.DockerContainer)
+	for k, v := range ret {
+		mc[k] = v
+	}
+	return mc, ok
+}
 
-	return ret, ok
+// PulledContainerMapByArn returns a map of pulled containers belonging to a particular task ARN
+func (state *DockerTaskEngineState) PulledContainerMapByArn(arn string) (map[string]*apicontainer.DockerContainer, bool) {
+	state.lock.RLock()
+	defer state.lock.RUnlock()
+
+	ret, ok := state.taskToPulledContainer[arn]
+	if !ok {
+		return ret, ok
+	}
+	// Copy the map to avoid data race
+	mc := make(map[string]*apicontainer.DockerContainer)
+	for k, v := range ret {
+		mc[k] = v
+	}
+	return mc, ok
 }
 
 // TaskByShortID retrieves the task of a given docker short container id
@@ -318,6 +340,29 @@ func (state *DockerTaskEngineState) AddTask(task *apitask.Task) {
 	state.tasks[task.Arn] = task
 }
 
+// AddPulledContainer adds a pulled container to the state
+func (state *DockerTaskEngineState) AddPulledContainer(container *apicontainer.DockerContainer, task *apitask.Task) {
+	state.lock.Lock()
+	defer state.lock.Unlock()
+	if task == nil || container == nil {
+		seelog.Critical("AddPulledContainer called with nil task/container")
+		return
+	}
+
+	_, exists := state.tasks[task.Arn]
+	if !exists {
+		seelog.Debugf("AddPulledContainer called with unknown task; adding", "arn", task.Arn)
+		state.tasks[task.Arn] = task
+	}
+
+	existingMap, exists := state.taskToPulledContainer[task.Arn]
+	if !exists {
+		existingMap = make(map[string]*apicontainer.DockerContainer, len(task.Containers))
+		state.taskToPulledContainer[task.Arn] = existingMap
+	}
+	existingMap[container.Container.Name] = container
+}
+
 // AddContainer adds a container to the state.
 // If the container has been added with only a name and no docker-id, this
 // updates the state to include the docker id
@@ -325,14 +370,24 @@ func (state *DockerTaskEngineState) AddContainer(container *apicontainer.DockerC
 	state.lock.Lock()
 	defer state.lock.Unlock()
 	if task == nil || container == nil {
-		log.Crit("Addcontainer called with nil task/container")
+		seelog.Critical("AddContainer called with nil task/container")
 		return
 	}
 
 	_, exists := state.tasks[task.Arn]
 	if !exists {
-		log.Debug("AddContainer called with unknown task; adding", "arn", task.Arn)
+		seelog.Debugf("AddContainer called with unknown task; adding", "arn", task.Arn)
 		state.tasks[task.Arn] = task
+	}
+
+	_, pulledExist := state.taskToPulledContainer[task.Arn]
+	if pulledExist {
+		seelog.Debugf("Delete a pulled container named %s from the pulled container map associated with the"+
+			" task ARN %s since AddContainer is called", container.Container.Name, task.Arn)
+		delete(state.taskToPulledContainer[task.Arn], container.Container.Name)
+		if len(state.taskToPulledContainer[task.Arn]) == 0 {
+			delete(state.taskToPulledContainer, task.Arn)
+		}
 	}
 
 	state.storeIDToContainerTaskUnsafe(container, task)
@@ -356,11 +411,11 @@ func (state *DockerTaskEngineState) AddContainer(container *apicontainer.DockerC
 // AddImageState adds an image.ImageState to be stored
 func (state *DockerTaskEngineState) AddImageState(imageState *image.ImageState) {
 	if imageState == nil {
-		log.Debug("Cannot add empty image state")
+		seelog.Debug("Cannot add empty image state")
 		return
 	}
 	if imageState.Image.ImageID == "" {
-		log.Debug("Cannot add image state with empty image id")
+		seelog.Debug("Cannot add image state with empty image id")
 		return
 	}
 	state.lock.Lock()
@@ -397,6 +452,7 @@ func (state *DockerTaskEngineState) RemoveTask(task *apitask.Task) {
 		// remove v3 endpoint mappings
 		state.removeV3EndpointIDToTaskContainerUnsafe(dockerContainer.Container.V3EndpointID)
 	}
+	delete(state.taskToPulledContainer, task.Arn)
 }
 
 // taskToIPUnsafe gets the ip address for a given task arn
@@ -454,7 +510,7 @@ func (state *DockerTaskEngineState) removeV3EndpointIDToTaskContainerUnsafe(v3En
 // RemoveImageState removes an image.ImageState
 func (state *DockerTaskEngineState) RemoveImageState(imageState *image.ImageState) {
 	if imageState == nil {
-		log.Debug("Cannot remove empty image state")
+		seelog.Debug("Cannot remove empty image state")
 		return
 	}
 	state.lock.Lock()
@@ -462,7 +518,7 @@ func (state *DockerTaskEngineState) RemoveImageState(imageState *image.ImageStat
 
 	imageState, ok := state.imageStates[imageState.Image.ImageID]
 	if !ok {
-		log.Debug("Image State is not found. Cannot be removed")
+		seelog.Debug("Image State is not found. Cannot be removed")
 		return
 	}
 	delete(state.imageStates, imageState.Image.ImageID)
@@ -483,6 +539,19 @@ func (state *DockerTaskEngineState) GetTaskByIPAddress(addr string) (string, boo
 
 	taskARN, ok := state.ipToTask[addr]
 	return taskARN, ok
+}
+
+// GetIPAddressByTaskARN gets the local ip address of a task.
+func (state *DockerTaskEngineState) GetIPAddressByTaskARN(taskARN string) (string, bool) {
+	state.lock.RLock()
+	defer state.lock.RUnlock()
+
+	for addr, arn := range state.ipToTask {
+		if arn == taskARN {
+			return addr, true
+		}
+	}
+	return "", false
 }
 
 // storeV3EndpointIDToTaskUnsafe adds v3EndpointID -> taskARN mapping to state
