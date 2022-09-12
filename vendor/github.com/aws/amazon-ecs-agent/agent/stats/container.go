@@ -1,4 +1,4 @@
-// Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -16,40 +16,49 @@ package stats
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient/dockerapi"
 	"github.com/aws/amazon-ecs-agent/agent/stats/resolver"
+	"github.com/aws/amazon-ecs-agent/agent/utils/retry"
 	"github.com/cihub/seelog"
 )
 
-const (
-	// SleepBetweenUsageDataCollection is the sleep duration between collecting usage data for a container.
-	SleepBetweenUsageDataCollection = 1 * time.Second
-
-	// ContainerStatsBufferLength is the number of usage metrics stored in memory for a container. It is calculated as
-	// Number of usage metrics gathered in a second (1) * 60 * Time duration in minutes to store the data for (2)
-	ContainerStatsBufferLength = 120
-)
-
-func newStatsContainer(dockerID string, client dockerapi.DockerClient, resolver resolver.ContainerMetadataResolver) *StatsContainer {
+func newStatsContainer(dockerID string, client dockerapi.DockerClient, resolver resolver.ContainerMetadataResolver,
+	cfg *config.Config) (*StatsContainer, error) {
+	dockerContainer, err := resolver.ResolveContainer(dockerID)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &StatsContainer{
 		containerMetadata: &ContainerMetadata{
-			DockerID: dockerID,
+			DockerID:    dockerID,
+			Name:        dockerContainer.Container.Name,
+			NetworkMode: dockerContainer.Container.GetNetworkMode(),
 		},
 		ctx:      ctx,
 		cancel:   cancel,
 		client:   client,
 		resolver: resolver,
-	}
+		config:   cfg,
+	}, nil
 }
 
 func (container *StatsContainer) StartStatsCollection() {
-	// Create the queue to store utilization data from docker stats
-	container.statsQueue = NewQueue(ContainerStatsBufferLength)
-	container.statsQueue.Reset()
+	// queue will be sized to hold enough stats for 4 publishing intervals.
+	var queueSize int
+	if container.config != nil && container.config.PollMetrics.Enabled() {
+		pollingInterval := container.config.PollingMetricsWaitDuration.Seconds()
+		queueSize = int(config.DefaultContainerMetricsPublishInterval.Seconds() / pollingInterval * 4)
+	} else {
+		// for streaming stats we assume 1 stat every second
+		queueSize = int(config.DefaultContainerMetricsPublishInterval.Seconds() * 4)
+	}
+	container.statsQueue = NewQueue(queueSize)
 	go container.collect()
 }
 
@@ -59,20 +68,18 @@ func (container *StatsContainer) StopStatsCollection() {
 
 func (container *StatsContainer) collect() {
 	dockerID := container.containerMetadata.DockerID
+	backoff := retry.NewExponentialBackoff(time.Second*1, time.Second*10, 0.5, 2)
 	for {
+		err := container.processStatsStream()
 		select {
 		case <-container.ctx.Done():
-			seelog.Debugf("Stopping stats collection for container %s", dockerID)
+			seelog.Infof("Container [%s]: Stopping stats collection", dockerID)
 			return
 		default:
-			err := container.processStatsStream()
 			if err != nil {
-				// Currently, the only error that we get here is if go-dockerclient is unable
-				// to decode the stats payload properly. Other errors such as
-				// 'NoSuchContainer', 'InactivityTimeoutExceeded' etc are silently consumed.
-				// We rely on state reconciliation with docker task engine at this point of
-				// time to stop collecting metrics.
-				seelog.Debugf("Error querying stats for container %s: %v", dockerID, err)
+				d := backoff.Duration()
+				seelog.Debugf("Container [%s]: Error processing stats stream of container, backing off %s before reopening", dockerID, d)
+				time.Sleep(d)
 			}
 			// We were disconnected from the stats stream.
 			// Check if the container is terminal. If it is, stop collecting metrics.
@@ -85,11 +92,13 @@ func (container *StatsContainer) collect() {
 				// docker task engine. If the docker task engine has already removed
 				// the container from its state, there's no point in stats engine tracking the
 				// container. So, clean-up anyway.
-				seelog.Warnf("Error determining if the container %s is terminal, stopping stats collection: %v", dockerID, err)
+				seelog.Warnf("Container [%s]: Error determining if the container is terminal, stopping stats collection: %v", dockerID, err)
 				container.StopStatsCollection()
+				return
 			} else if terminal {
-				seelog.Infof("Container %s is terminal, stopping stats collection", dockerID)
+				seelog.Infof("Container [%s]: container is terminal, stopping stats collection", dockerID)
 				container.StopStatsCollection()
+				return
 			}
 		}
 	}
@@ -101,16 +110,38 @@ func (container *StatsContainer) processStatsStream() error {
 	if container.client == nil {
 		return errors.New("container processStatsStream: Client is not set.")
 	}
-	dockerStats, err := container.client.Stats(container.ctx, dockerID, dockerclient.StatsInactivityTimeout)
-	if err != nil {
-		return err
-	}
-	for rawStat := range dockerStats {
-		if err := container.statsQueue.Add(rawStat); err != nil {
-			seelog.Warnf("Error converting stats for container %s: %v", dockerID, err)
+	dockerStats, errC := container.client.Stats(container.ctx, dockerID, dockerclient.StatsInactivityTimeout)
+
+	returnError := false
+	for {
+		select {
+		case <-container.ctx.Done():
+			return nil
+		case err := <-errC:
+			select {
+			case <-container.ctx.Done():
+				// ignore error when container.ctx.Done()
+			default:
+				seelog.Warnf("Error encountered processing metrics stream from docker, this may affect cloudwatch metric accuracy: %s", err)
+				returnError = true
+			}
+		case rawStat, ok := <-dockerStats:
+			if !ok {
+				if returnError {
+					return fmt.Errorf("error encountered processing metrics stream from docker")
+				}
+				return nil
+			}
+			err := validateDockerStats(rawStat)
+			if err != nil {
+				return err
+			}
+
+			if err := container.statsQueue.Add(rawStat); err != nil {
+				seelog.Warnf("Container [%s]: error converting stats for container: %v", dockerID, err)
+			}
 		}
 	}
-	return nil
 }
 
 func (container *StatsContainer) terminal() (bool, error) {
