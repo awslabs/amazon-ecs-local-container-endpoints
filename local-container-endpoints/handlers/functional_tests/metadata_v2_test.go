@@ -133,8 +133,7 @@ func TestV2Handler_TaskMetadata(t *testing.T) {
 	actualMetadata := &v2.TaskResponse{}
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
-
-	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assertContainersEqual(t, expectedMetadata.Containers, actualMetadata.Containers)
 	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
 	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
 	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
@@ -222,7 +221,7 @@ func TestV2Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
 
-	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assert.Equal(t, len(expectedMetadata.Containers), len(actualMetadata.Containers), "Expected container responses to match")
 	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
 	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
 	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
@@ -301,7 +300,7 @@ func TestV2Handler_ContainerMetadata(t *testing.T) {
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
 
-	assert.Equal(t, &expectedMetadata, actualMetadata, "Expected container metadata response to match")
+	assertContainerResponseEqual(t, &expectedMetadata, actualMetadata)
 }
 
 func TestV2Handler_TaskMetadata_InvalidURL(t *testing.T) {
@@ -372,7 +371,7 @@ func TestV2Handler_ContainerMetadata_TrailingSlash(t *testing.T) {
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
 
-	assert.Equal(t, &expectedMetadata, actualMetadata, "Expected container metadata response to match")
+	assertContainerResponseEqual(t, &expectedMetadata, actualMetadata)
 }
 
 // Tests Path: /v2/stats/<container ID>
@@ -630,4 +629,55 @@ func TestV2Handler_TaskStats_DockerAPIError(t *testing.T) {
 	response, err := http.Get(fmt.Sprintf("%s/v2/stats/", testServer.URL))
 	assert.NoError(t, err, "Unexpected error making HTTP Request")
 	assert.True(t, strings.Contains(response.Status, strconv.Itoa(http.StatusInternalServerError)), "Expected http response status to be internal server error")
+}
+
+func assertContainerResponseEqual(t *testing.T, expected, actual *v2.ContainerResponse) {
+	assert.Equal(t, expected.ID, actual.ID)
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.DockerName, actual.DockerName)
+	assert.Equal(t, expected.Image, actual.Image)
+	assert.Equal(t, expected.ImageID, actual.ImageID)
+	assert.Equal(t, expected.Ports, actual.Ports)
+	assert.Equal(t, expected.Labels, actual.Labels)
+	assert.Equal(t, expected.DesiredStatus, actual.DesiredStatus)
+	assert.Equal(t, expected.KnownStatus, actual.KnownStatus)
+	assert.Equal(t, expected.ExitCode, actual.ExitCode)
+	assert.Equal(t, expected.Limits, actual.Limits)
+	assert.Equal(t, expected.Type, actual.Type)
+	assert.Equal(t, expected.Networks, actual.Networks)
+	assert.Equal(t, expected.Health, actual.Health)
+	assert.Equal(t, expected.Volumes, actual.Volumes)
+
+	if expected.CreatedAt == nil {
+		assert.Nil(t, actual.CreatedAt)
+	} else {
+		assert.True(t, expected.CreatedAt.Equal(*actual.CreatedAt))
+	}
+	if expected.StartedAt == nil {
+		assert.Nil(t, actual.StartedAt)
+	} else {
+		assert.True(t, expected.StartedAt.Equal(*actual.StartedAt))
+	}
+	if expected.FinishedAt == nil {
+		assert.Nil(t, actual.FinishedAt)
+	} else {
+		assert.True(t, expected.FinishedAt.Equal(*actual.FinishedAt))
+	}
+}
+
+func assertContainersEqual(t *testing.T, expected, actual []v2.ContainerResponse) {
+	assert.Equal(t, len(expected), len(actual))
+	expectedMap := make(map[string]v2.ContainerResponse, len(expected))
+	actualMap := make(map[string]v2.ContainerResponse, len(actual))
+	for _, cr := range expected {
+		expectedMap[cr.ID] = cr
+	}
+	for _, cr := range actual {
+		actualMap[cr.ID] = cr
+	}
+	for k, expectedContainerResponse := range expectedMap {
+		actualContainerResponse, ok := actualMap[k]
+		assert.True(t, ok)
+		assertContainerResponseEqual(t, &expectedContainerResponse, &actualContainerResponse)
+	}
 }

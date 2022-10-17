@@ -113,7 +113,7 @@ func TestV3Handler_TaskMetadata(t *testing.T) {
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
 
-	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assertContainersEqual(t, expectedMetadata.Containers, actualMetadata.Containers)
 	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
 	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
 	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
@@ -200,7 +200,7 @@ func TestV3Handler_TaskMetadata_TrailingSlash(t *testing.T) {
 	err = json.Unmarshal(response, actualMetadata)
 	assert.NoError(t, err, "Unexpected error unmarshalling response")
 
-	assert.ElementsMatch(t, expectedMetadata.Containers, actualMetadata.Containers, "Expected container responses to match")
+	assertContainersEqual(t, expectedMetadata.Containers, actualMetadata.Containers)
 	assert.Equal(t, expectedMetadata.TaskTags, actualMetadata.TaskTags, "Expected Task Tags to match")
 	assert.Equal(t, expectedMetadata.ContainerInstanceTags, actualMetadata.ContainerInstanceTags, "Expected Container Instance Tags to match")
 	assert.Equal(t, expectedMetadata.Cluster, actualMetadata.Cluster, "Expected Cluster to match")
