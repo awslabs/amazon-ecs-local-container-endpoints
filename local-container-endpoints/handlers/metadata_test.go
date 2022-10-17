@@ -14,6 +14,7 @@
 package handlers
 
 import (
+	"os"
 	"testing"
 
 	"github.com/awslabs/amazon-ecs-local-container-endpoints/local-container-endpoints/testingutils"
@@ -166,6 +167,9 @@ func TestFindContainerWithCallerIP(t *testing.T) {
 }
 
 func TestFindContainerWithCallerIPAndNetworks(t *testing.T) {
+	os.Setenv("HOSTNAME", endpointsShortID)
+	defer os.Unsetenv("HOSTNAME")
+
 	endpointsContainer := testingutils.BaseDockerContainer("endpoints", endpointsLongID).WithNetwork(network1, ipAddress).Get()
 	container1 := testingutils.BaseDockerContainer(containerName1, longID1).WithNetwork(network2, ipAddress1).Get()
 	container2 := testingutils.BaseDockerContainer(containerName2, longID2).WithNetwork(network1, ipAddress2).Get()
