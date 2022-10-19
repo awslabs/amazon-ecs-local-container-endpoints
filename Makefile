@@ -94,6 +94,9 @@ functional-test:
 
 .PHONY: integ
 integ: build-local-image
+	# Prerequisites of running the integration tests:
+	# 1. Have a [default] profile in ~/.aws
+	# 2. Have an IAM role named "ecs-local-endpoints-integ-role" in your AWS account and make it assume-able by the [default] profile.
 	docker build -t amazon-ecs-local-container-endpoints-integ-test:latest -f ./integ/Dockerfile .
 	docker-compose --file ./integ/docker-compose.yml up --abort-on-container-exit
 

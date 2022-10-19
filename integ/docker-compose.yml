@@ -24,6 +24,7 @@ services:
     volumes:
       - /var/run:/var/run
       - $HOME/.aws/:/home/.aws/
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       ECS_LOCAL_METADATA_PORT: "80"
       AWS_PROFILE: "default"
