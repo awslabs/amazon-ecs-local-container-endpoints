@@ -1,4 +1,4 @@
-// Copyright 2017-2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -67,6 +67,7 @@ type PortResponse struct {
 	ContainerPort uint16 `json:"ContainerPort,omitempty"`
 	Protocol      string `json:"Protocol,omitempty"`
 	HostPort      uint16 `json:"HostPort,omitempty"`
+	HostIp        string `json:"HostIp,omitempty"`
 }
 
 // NewTaskResponse creates a TaskResponse for a task.
@@ -76,7 +77,7 @@ func NewTaskResponse(task *apitask.Task, containerMap map[string]*apicontainer.D
 		if container.Container.IsInternal() {
 			continue
 		}
-		containerResponse := NewContainerResponse(container, task.GetTaskENI())
+		containerResponse := NewContainerResponse(container, task.GetPrimaryENI())
 		containers = append(containers, containerResponse)
 	}
 
@@ -174,7 +175,7 @@ func NewVolumesResponse(dockerContainer *apicontainer.DockerContainer) []VolumeR
 
 // NewTasksResponse creates TasksResponse for all the tasks.
 func NewTasksResponse(state dockerstate.TaskEngineState) *TasksResponse {
-	allTasks := state.AllTasks()
+	allTasks := state.AllExternalTasks()
 	taskResponses := make([]*TaskResponse, len(allTasks))
 	for ndx, task := range allTasks {
 		containerMap, _ := state.ContainerMapByArn(task.Arn)

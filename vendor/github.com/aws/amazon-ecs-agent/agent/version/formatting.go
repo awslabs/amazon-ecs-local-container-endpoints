@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -22,9 +22,9 @@ import (
 // PrintVersions prints the version information on stdout as a multi-line
 // string. The output will look similar to the following:
 //
-//    Amazon ECS Agent:
-//        Version: 0.0.3
-//        Commit: 4bdc7fc
+//	Amazon ECS Agent:
+//	    Version: 0.0.3
+//	    Commit: 4bdc7fc
 func PrintVersion() int {
 	cleanliness := ""
 	if GitDirty {

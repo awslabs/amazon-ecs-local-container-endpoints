@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -31,10 +31,11 @@ const (
 )
 
 // A GenericMetricsClient records 3 metrics:
-// 1) A Prometheus summary vector representing call durations for different API calls
-// 2) A durations guage vector that updates the last recorded duration for the API call
-// 	  allowing for a time series view in the Prometheus browser
-// 3) A counter vector that increments call counts for each API call
+//  1. A Prometheus summary vector representing call durations for different API calls
+//  2. A durations guage vector that updates the last recorded duration for the API call
+//     allowing for a time series view in the Prometheus browser
+//  3. A counter vector that increments call counts for each API call
+//
 // The outstandingCalls map allows Fired CallStarts to be matched with Fired CallEnds
 type GenericMetrics struct {
 	durationVec      *prometheus.SummaryVec
@@ -113,12 +114,6 @@ func (gm *GenericMetrics) FireCallEnd(callHash, callName string, timestamp time.
 	} else {
 		seelog.Errorf("Call is not outstanding: %s", callName)
 	}
-}
-
-// Simple Timeout function
-func startTimeout(timeout chan bool) {
-	time.Sleep(callTimeout)
-	timeout <- true
 }
 
 // This function increments the call count for a specific API call

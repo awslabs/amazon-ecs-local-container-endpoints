@@ -1,4 +1,4 @@
-// Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -39,7 +39,7 @@ func NewSSMClientCreator() SSMClientCreator {
 
 type ssmClientCreator struct{}
 
-//SSM Client will automatically retry 3 times when has throttling error
+// SSM Client will automatically retry 3 times when has throttling error
 func (*ssmClientCreator) NewSSMClient(region string,
 	creds credentials.IAMRoleCredentials) ssmclient.SSMClient {
 	cfg := aws.NewConfig().

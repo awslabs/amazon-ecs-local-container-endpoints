@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -21,13 +21,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/logger"
+	"github.com/aws/amazon-ecs-agent/agent/logger/field"
+
+	"github.com/docker/docker/api/types"
+
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
 	"github.com/aws/amazon-ecs-agent/agent/config"
+	"github.com/aws/amazon-ecs-agent/agent/data"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient"
 	"github.com/aws/amazon-ecs-agent/agent/dockerclient/dockerapi"
 	"github.com/aws/amazon-ecs-agent/agent/engine/dockerstate"
 	"github.com/aws/amazon-ecs-agent/agent/engine/image"
-	"github.com/aws/amazon-ecs-agent/agent/statemanager"
 	"github.com/cihub/seelog"
 )
 
@@ -43,7 +48,7 @@ type ImageManager interface {
 	AddAllImageStates(imageStates []*image.ImageState)
 	GetImageStateFromImageName(containerImageName string) (*image.ImageState, bool)
 	StartImageCleanupProcess(ctx context.Context)
-	SetSaver(stateManager statemanager.Saver)
+	SetDataClient(dataClient data.Client)
 }
 
 // dockerImageManager accounts all the images and their states in the instance.
@@ -51,19 +56,20 @@ type ImageManager interface {
 type dockerImageManager struct {
 	imageStates                        []*image.ImageState
 	client                             dockerapi.DockerClient
+	dataClient                         data.Client
 	updateLock                         sync.RWMutex
 	imageCleanupTicker                 *time.Ticker
 	state                              dockerstate.TaskEngineState
-	saver                              statemanager.Saver
 	imageStatesConsideredForDeletion   map[string]*image.ImageState
 	minimumAgeBeforeDeletion           time.Duration
 	numImagesToDelete                  int
 	imageCleanupTimeInterval           time.Duration
 	imagePullBehavior                  config.ImagePullBehaviorType
 	imageCleanupExclusionList          []string
-	deleteNonECSImagesEnabled          bool
+	deleteNonECSImagesEnabled          config.BooleanDefaultFalse
 	nonECSContainerCleanupWaitDuration time.Duration
 	numNonECSContainersToDelete        int
+	nonECSMinimumAgeBeforeDeletion     time.Duration
 }
 
 // ImageStatesForDeletion is used for implementing the sort interface
@@ -78,15 +84,32 @@ func NewImageManager(cfg *config.Config, client dockerapi.DockerClient, state do
 		numImagesToDelete:                  cfg.NumImagesToDeletePerCycle,
 		imageCleanupTimeInterval:           cfg.ImageCleanupInterval,
 		imagePullBehavior:                  cfg.ImagePullBehavior,
-		imageCleanupExclusionList:          cfg.ImageCleanupExclusionList,
+		imageCleanupExclusionList:          buildImageCleanupExclusionList(cfg),
 		deleteNonECSImagesEnabled:          cfg.DeleteNonECSImagesEnabled,
 		nonECSContainerCleanupWaitDuration: cfg.TaskCleanupWaitDuration,
 		numNonECSContainersToDelete:        cfg.NumNonECSContainersToDeletePerCycle,
+		nonECSMinimumAgeBeforeDeletion:     cfg.NonECSMinimumImageDeletionAge,
 	}
 }
 
-func (imageManager *dockerImageManager) SetSaver(stateManager statemanager.Saver) {
-	imageManager.saver = stateManager
+// SetDataClient sets the saver that is used by the ImageManager.
+func (imageManager *dockerImageManager) SetDataClient(dataClient data.Client) {
+	imageManager.dataClient = dataClient
+}
+
+func buildImageCleanupExclusionList(cfg *config.Config) []string {
+	// append known cached internal images to imageCleanupExclusionList
+	excludedImages := append(cfg.ImageCleanupExclusionList,
+		cfg.PauseContainerImageName+":"+cfg.PauseContainerTag,
+		config.DefaultPauseContainerImageName+":"+config.DefaultPauseContainerTag,
+		config.CachedImageNameAgentContainer,
+	)
+	for _, image := range excludedImages {
+		logger.Info("Image excluded from cleanup", logger.Fields{
+			field.Image: image,
+		})
+	}
+	return excludedImages
 }
 
 func (imageManager *dockerImageManager) AddAllImageStates(imageStates []*image.ImageState) {
@@ -105,8 +128,6 @@ func (imageManager *dockerImageManager) GetImageStatesCount() int {
 
 // RecordContainerReference adds container reference to the corresponding imageState object
 func (imageManager *dockerImageManager) RecordContainerReference(container *apicontainer.Container) error {
-	// the image state has been updated, save the new state
-	defer imageManager.saver.ForceSave()
 	// On agent restart, container ID was retrieved from agent state file
 	// TODO add setter and getter for modifying this
 	if container.ImageID != "" {
@@ -126,13 +147,41 @@ func (imageManager *dockerImageManager) RecordContainerReference(container *apic
 		seelog.Errorf("Error inspecting image %v: %v", container.Image, err)
 		return err
 	}
-
 	container.ImageID = imageInspected.ID
+	imageDigest := imageManager.fetchRepoDigest(imageInspected, container)
+	container.SetImageDigest(imageDigest)
 	added := imageManager.addContainerReferenceToExistingImageState(container)
 	if !added {
 		imageManager.addContainerReferenceToNewImageState(container, imageInspected.Size)
 	}
 	return nil
+}
+
+// check whether image pull from ECR
+func (imageManager *dockerImageManager) isImagePullFromECR(container *apicontainer.Container) bool {
+	return container.RegistryAuthentication != nil && container.RegistryAuthentication.ECRAuthData != nil && container.RegistryAuthentication.Type == apicontainer.AuthTypeECR
+}
+
+// The helper function to fetch the RepoImageDigest when inspect the image
+func (imageManager *dockerImageManager) fetchRepoDigest(imageInspected *types.ImageInspect, container *apicontainer.Container) string {
+	resultRepoDigest := ""
+	if imageManager.isImagePullFromECR(container) {
+		imageRepoDigests := imageInspected.RepoDigests
+		imagePrefix := strings.Split(container.Image, "/")[0]
+		for _, imageRepoDigest := range imageRepoDigests {
+			if strings.HasPrefix(imageRepoDigest, imagePrefix) {
+				repoDigestSplitList := strings.Split(imageRepoDigest, "@")
+				if len(repoDigestSplitList) > 1 {
+					resultRepoDigest = repoDigestSplitList[1]
+					return resultRepoDigest
+				} else {
+					seelog.Warnf("ImageRepoDigest doesn't have the right format: %v", imageRepoDigest)
+					return ""
+				}
+			}
+		}
+	}
+	return resultRepoDigest
 }
 
 func (imageManager *dockerImageManager) addContainerReferenceToExistingImageState(container *apicontainer.Container) bool {
@@ -143,6 +192,7 @@ func (imageManager *dockerImageManager) addContainerReferenceToExistingImageStat
 	imageState, ok := imageManager.getImageState(container.ImageID)
 	if ok {
 		imageState.UpdateImageState(container)
+		imageManager.saveImageStateData(imageState)
 	}
 	return ok
 }
@@ -156,6 +206,7 @@ func (imageManager *dockerImageManager) addContainerReferenceToNewImageState(con
 	imageState, ok := imageManager.getImageState(container.ImageID)
 	if ok {
 		imageState.UpdateImageState(container)
+		imageManager.saveImageStateData(imageState)
 	} else {
 		sourceImage := &image.Image{
 			ImageID: container.ImageID,
@@ -173,8 +224,6 @@ func (imageManager *dockerImageManager) addContainerReferenceToNewImageState(con
 
 // RemoveContainerReferenceFromImageState removes container reference from the corresponding imageState object
 func (imageManager *dockerImageManager) RemoveContainerReferenceFromImageState(container *apicontainer.Container) error {
-	// the image state has been updated, save the new state
-	defer imageManager.saver.ForceSave()
 	// this lock is for reading image states and finding the one that the container belongs to
 	imageManager.updateLock.RLock()
 	defer imageManager.updateLock.RUnlock()
@@ -188,11 +237,18 @@ func (imageManager *dockerImageManager) RemoveContainerReferenceFromImageState(c
 		return fmt.Errorf("Cannot find image state for the container to be removed")
 	}
 	// Found matching ImageState
-	return imageState.RemoveContainerReference(container)
+	err := imageState.RemoveContainerReference(container)
+	if err != nil {
+		return err
+	}
+	imageManager.saveImageStateData(imageState)
+	return nil
 }
 
 func (imageManager *dockerImageManager) addImageState(imageState *image.ImageState) {
 	imageManager.imageStates = append(imageManager.imageStates, imageState)
+	imageManager.saveImageStateData(imageState)
+
 }
 
 // getAllImageStates returns the list of imageStates in the instance
@@ -217,6 +273,7 @@ func (imageManager *dockerImageManager) removeImageState(imageStateToBeRemoved *
 			// Image State found; hence remove it
 			seelog.Infof("Removing Image State: [%s] from Image Manager", imageState.String())
 			imageManager.imageStates = append(imageManager.imageStates[:i], imageManager.imageStates[i+1:]...)
+			imageManager.removeImageStateData(imageState.Image.ImageID)
 			return
 		}
 	}
@@ -239,8 +296,14 @@ func (imageManager *dockerImageManager) getCandidateImagesForDeletion() []*image
 }
 
 func (imageManager *dockerImageManager) isImageOldEnough(imageState *image.ImageState) bool {
-	ageOfImage := time.Now().Sub(imageState.PulledAt)
+	ageOfImage := time.Since(imageState.PulledAt)
 	return ageOfImage > imageManager.minimumAgeBeforeDeletion
+}
+
+// TODO: change image createdTime to image lastUsedTime when docker support it in the future
+func (imageManager *dockerImageManager) nonECSImageOldEnough(NonECSImage ImageWithSizeID) bool {
+	ageOfImage := time.Since(NonECSImage.createdTime)
+	return ageOfImage > imageManager.nonECSMinimumAgeBeforeDeletion
 }
 
 // Implementing sort interface based on last used times of the images
@@ -271,7 +334,9 @@ func (imageManager *dockerImageManager) removeExistingImageNameOfDifferentID(con
 	for _, imageState := range imageManager.getAllImageStates() {
 		// image with same name pulled in the instance. Untag the already existing image name
 		if imageState.Image.ImageID != inspectedImageID {
-			imageState.RemoveImageName(containerImageName)
+			if imageNameRemoved := imageState.RemoveImageName(containerImageName); imageNameRemoved {
+				imageManager.saveImageStateData(imageState)
+			}
 		}
 	}
 }
@@ -312,6 +377,7 @@ func (imageManager *dockerImageManager) removeUnusedImages(ctx context.Context) 
 
 	var numECSImagesDeleted int
 	imageManager.imageStatesConsideredForDeletion = imageManager.imagesConsiderForDeletion(imageManager.getAllImageStates())
+
 	for i := 0; i < imageManager.numImagesToDelete; i++ {
 		err := imageManager.removeLeastRecentlyUsedImage(ctx)
 		numECSImagesDeleted = i
@@ -320,7 +386,7 @@ func (imageManager *dockerImageManager) removeUnusedImages(ctx context.Context) 
 			break
 		}
 	}
-	if imageManager.deleteNonECSImagesEnabled {
+	if imageManager.deleteNonECSImagesEnabled.Enabled() {
 		// remove nonecs containers
 		imageManager.removeNonECSContainers(ctx)
 		// remove nonecs images
@@ -342,9 +408,17 @@ func (imageManager *dockerImageManager) removeNonECSContainers(ctx context.Conte
 			continue
 		}
 
-		finishedTime, _ := time.Parse(time.Now().String(), response.State.FinishedAt)
+		seelog.Debugf("Inspecting Non-ECS Container ID [%s] for removal, Finished [%s] Status [%s]", id, response.State.FinishedAt, response.State.Status)
+		finishedTime, err := time.Parse(time.RFC3339Nano, response.State.FinishedAt)
+		if err != nil {
+			seelog.Errorf("Error parsing time string for container. id: %s, time: %s err: %s", id, response.State.FinishedAt, err)
+			continue
+		}
 
-		if response.State.Status == "exited" && time.Now().Sub(finishedTime) > imageManager.nonECSContainerCleanupWaitDuration {
+		if (response.State.Status == "exited" ||
+			response.State.Status == "dead" ||
+			response.State.Status == "created") &&
+			time.Since(finishedTime) > imageManager.nonECSContainerCleanupWaitDuration {
 			nonECSContainerRemoveAvailableIDs = append(nonECSContainerRemoveAvailableIDs, id)
 		}
 	}
@@ -353,13 +427,13 @@ func (imageManager *dockerImageManager) removeNonECSContainers(ctx context.Conte
 		if numNonECSContainerDeleted == imageManager.numNonECSContainersToDelete {
 			break
 		}
-		seelog.Infof("Removing non-ECS container id: %s", id)
+		seelog.Debugf("Removing non-ECS Container ID %s", id)
 		err := imageManager.client.RemoveContainer(ctx, id, dockerclient.RemoveContainerTimeout)
 		if err == nil {
-			seelog.Infof("Image removed: %s", id)
+			seelog.Infof("Removed Container ID: %s", id)
 			numNonECSContainerDeleted++
 		} else {
-			seelog.Errorf("Error removing Image %s - %v", id, err)
+			seelog.Errorf("Error Removing Container ID %s - %s", id, err)
 			continue
 		}
 	}
@@ -371,83 +445,123 @@ func (imageManager *dockerImageManager) getNonECSContainerIDs(ctx context.Contex
 	if listContainersResponse.Error != nil {
 		return nil, fmt.Errorf("Error listing containers: %v", listContainersResponse.Error)
 	}
-	for _, dockerID := range listContainersResponse.DockerIDs {
-		allContainersIDs = append(allContainersIDs, dockerID)
-	}
+	allContainersIDs = append(allContainersIDs, listContainersResponse.DockerIDs...)
 	ECSContainersIDs := imageManager.state.GetAllContainerIDs()
 	nonECSContainersIDs := exclude(allContainersIDs, ECSContainersIDs)
 	return nonECSContainersIDs, nil
 }
 
-type ImageWithSize struct {
-	ImageName string
-	Size      int64
+type ImageWithSizeID struct {
+	RepoTags    []string
+	ImageID     string
+	Size        int64
+	createdTime time.Time
 }
 
 func (imageManager *dockerImageManager) removeNonECSImages(ctx context.Context, nonECSImagesNumToDelete int) {
 	if nonECSImagesNumToDelete == 0 {
 		return
 	}
-	var nonECSImageNames = imageManager.getNonECSImageNames(ctx)
-	var nonECSImageNamesRemoveEligible []string
-	for _, nonECSImage := range nonECSImageNames {
-		if !isInExclusionList(nonECSImage, imageManager.imageCleanupExclusionList) {
-			nonECSImageNamesRemoveEligible = append(nonECSImageNamesRemoveEligible, nonECSImage)
-		}
-	}
+	nonECSImages := imageManager.getNonECSImages(ctx)
 
-	var imageWithSizeList []ImageWithSize
-	for _, imageName := range nonECSImageNamesRemoveEligible {
-		resp, iiErr := imageManager.client.InspectImage(imageName)
-		if iiErr != nil {
-			seelog.Errorf("Error inspecting non-ECS image name: %s - %v", imageName, iiErr)
-			continue
-		}
-		imageWithSizeList = append(imageWithSizeList, ImageWithSize{imageName, resp.Size})
-	}
 	// we want to sort images with size ascending
-	sort.Slice(imageWithSizeList, func(i, j int) bool {
-		return imageWithSizeList[i].Size < imageWithSizeList[j].Size
+	sort.Slice(nonECSImages, func(i, j int) bool {
+		return nonECSImages[i].Size < nonECSImages[j].Size
 	})
 
 	// we will remove the remaining nonECSImages in each performPeriodicImageCleanup call()
 	var numImagesAlreadyDeleted = 0
-	for _, kv := range imageWithSizeList {
-		if numImagesAlreadyDeleted == nonECSImagesNumToDelete {
+	for _, image := range nonECSImages {
+		if numImagesAlreadyDeleted >= nonECSImagesNumToDelete {
 			break
 		}
-		seelog.Infof("Removing non-ECS Image: %s", kv.ImageName)
-		err := imageManager.client.RemoveImage(ctx, kv.ImageName, dockerclient.RemoveImageTimeout)
-		if err != nil {
-			seelog.Errorf("Error removing Image %s - %v", kv.ImageName, err)
+		// use current time - image creation time to determine if image is old enough to be deleted.
+		if !imageManager.nonECSImageOldEnough(image) {
 			continue
+		}
+		if len(image.RepoTags) > 1 {
+			seelog.Debugf("Non-ECS image has more than one tag Image: %s (Tags: %s)", image.ImageID, image.RepoTags)
+			for _, tag := range image.RepoTags {
+				err := imageManager.client.RemoveImage(ctx, tag, dockerclient.RemoveImageTimeout)
+				if err != nil {
+					seelog.Errorf("Error removing RepoTag (ImageID: %s, Tag: %s) %v", image.ImageID, tag, err)
+				} else {
+					seelog.Infof("Image Tag Removed: %s (ImageID: %s)", tag, image.ImageID)
+					numImagesAlreadyDeleted++
+				}
+			}
 		} else {
-			seelog.Infof("Image removed: %s", kv.ImageName)
-			numImagesAlreadyDeleted++
+			seelog.Debugf("Removing non-ECS Image: %s (Tags: %s)", image.ImageID, image.RepoTags)
+			err := imageManager.client.RemoveImage(ctx, image.ImageID, dockerclient.RemoveImageTimeout)
+			if err != nil {
+				seelog.Errorf("Error removing Image %s (Tags: %s) - %v", image.ImageID, image.RepoTags, err)
+			} else {
+				seelog.Infof("Image removed: %s (Tags: %s)", image.ImageID, image.RepoTags)
+				numImagesAlreadyDeleted++
+			}
 		}
 	}
 }
 
-func (imageManager *dockerImageManager) getNonECSImageNames(ctx context.Context) []string {
-	response := imageManager.client.ListImages(ctx, dockerclient.ListImagesTimeout)
-	var allImagesNames []string
-	for _, name := range response.RepoTags {
-		allImagesNames = append(allImagesNames, name)
-	}
-	var ecsImageNames []string
-	for _, imageState := range imageManager.getAllImageStates() {
-		for _, imageName := range imageState.Image.Names {
-			ecsImageNames = append(ecsImageNames, imageName)
+// getNonECSImages returns type ImageWithSizeID with all fields populated.
+func (imageManager *dockerImageManager) getNonECSImages(ctx context.Context) []ImageWithSizeID {
+	r := imageManager.client.ListImages(ctx, dockerclient.ListImagesTimeout)
+	var allImages []ImageWithSizeID
+	// inspect all images
+	for _, imageID := range r.ImageIDs {
+		resp, err := imageManager.client.InspectImage(imageID)
+		if err != nil {
+			seelog.Errorf("Error inspecting non-ECS image: (ImageID: %s), %s", imageID, err)
+			continue
 		}
+		createTime := time.Time{}
+		createTime, err = time.Parse(time.RFC3339, resp.Created)
+		if err != nil {
+			seelog.Warnf("Error parse the inspected non-ECS image created time (ImageID: %s), %v", imageID, err)
+		}
+		allImages = append(allImages,
+			ImageWithSizeID{
+				ImageID:     imageID,
+				Size:        resp.Size,
+				RepoTags:    resp.RepoTags,
+				createdTime: createTime,
+			})
 	}
 
-	var nonECSImageNames = exclude(allImagesNames, ecsImageNames)
-	return nonECSImageNames
+	// get all 'ecs' image IDs
+	var ecsImageIDs []string
+	for _, imageState := range imageManager.getAllImageStates() {
+		ecsImageIDs = append(ecsImageIDs, imageState.Image.ImageID)
+	}
+
+	// exclude 'ecs' image IDs and image IDs with an explicitly excluded tag
+	var nonECSImages []ImageWithSizeID
+	for _, image := range allImages {
+		// check image ID is not excluded
+		if isInExclusionList(image.ImageID, ecsImageIDs) {
+			continue
+		}
+		// check image TAG(s) is not excluded
+		if !anyIsInExclusionList(image.RepoTags, imageManager.imageCleanupExclusionList) {
+			nonECSImages = append(nonECSImages, image)
+		}
+	}
+	return nonECSImages
 }
 
 func isInExclusionList(imageName string, imageExclusionList []string) bool {
 	for _, exclusionName := range imageExclusionList {
 		if imageName == exclusionName {
+			return true
+		}
+	}
+	return false
+}
+
+// anyIsInExclusionList returns true if any name is in the exclusion list.
+func anyIsInExclusionList(imageNames []string, nameExclusionList []string) bool {
+	for _, name := range imageNames {
+		if isInExclusionList(name, nameExclusionList) {
 			return true
 		}
 	}
@@ -464,7 +578,7 @@ func exclude(allList []string, exclusionList []string) []string {
 		allMap[b] = false
 	}
 	for k := range allMap {
-		if allMap[k] == true {
+		if allMap[k] {
 			ret = append(ret, k)
 		}
 	}
@@ -477,8 +591,9 @@ func (imageManager *dockerImageManager) imagesConsiderForDeletion(allImageStates
 	for _, imageState := range allImageStates {
 		if imageManager.isExcludedFromCleanup(imageState) {
 			//imageState that we want to keep
-			seelog.Infof("Image excluded from deletion: [%s]", imageState.String())
+			seelog.Debugf("Image excluded from deletion: [%s]", imageState.String())
 		} else {
+			seelog.Debugf("Image going to be considered for deletion: [%s]", imageState.String())
 			imagesConsiderForDeletionMap[imageState.Image.ImageID] = imageState
 		}
 	}
@@ -538,7 +653,7 @@ func (imageManager *dockerImageManager) deleteImage(ctx context.Context, imageID
 	seelog.Infof("Removing Image: %s", imageID)
 	err := imageManager.client.RemoveImage(ctx, imageID, dockerclient.RemoveImageTimeout)
 	if err != nil {
-		if strings.Contains(err.Error(), imageNotFoundForDeletionError) {
+		if strings.Contains(strings.ToLower(err.Error()), imageNotFoundForDeletionError) {
 			seelog.Errorf("Image already removed from the instance: %v", err)
 		} else {
 			seelog.Errorf("Error removing Image %v - %v", imageID, err)
@@ -553,7 +668,6 @@ func (imageManager *dockerImageManager) deleteImage(ctx context.Context, imageID
 		delete(imageManager.imageStatesConsideredForDeletion, imageState.Image.ImageID)
 		imageManager.removeImageState(imageState)
 		imageManager.state.RemoveImageState(imageState)
-		imageManager.saver.Save()
 	}
 }
 

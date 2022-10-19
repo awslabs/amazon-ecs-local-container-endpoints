@@ -1,4 +1,4 @@
-// Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
 // not use this file except in compliance with the License. A copy of the
@@ -68,14 +68,10 @@ type IAMRoleCredentials struct {
 type TaskIAMRoleCredentials struct {
 	ARN                string
 	IAMRoleCredentials IAMRoleCredentials
-	lock               sync.RWMutex
 }
 
 // GetIAMRoleCredentials returns the IAM role credentials in the task IAM role struct
 func (role *TaskIAMRoleCredentials) GetIAMRoleCredentials() IAMRoleCredentials {
-	role.lock.RLock()
-	defer role.lock.RUnlock()
-
 	return role.IAMRoleCredentials
 }
 
