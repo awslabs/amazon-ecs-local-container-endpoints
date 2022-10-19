@@ -193,7 +193,7 @@ github.com/fatih/structs
 # github.com/godbus/dbus v0.0.0-20190305164336-85c147412614
 ## explicit
 github.com/godbus/dbus
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.3.2
 ## explicit
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
