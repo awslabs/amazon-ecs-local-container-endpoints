@@ -207,7 +207,7 @@ github.com/golang/protobuf/proto
 ## explicit
 # github.com/google/uuid v1.0.0
 github.com/google/uuid
-# github.com/gorilla/mux v1.7.0
+# github.com/gorilla/mux v1.8.0
 ## explicit
 github.com/gorilla/mux
 # github.com/jmespath/go-jmespath v0.4.0

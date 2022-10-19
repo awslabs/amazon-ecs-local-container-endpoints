@@ -20,7 +20,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.2.0 // indirect
-	github.com/gorilla/mux v1.7.0
+	github.com/gorilla/mux v1.8.0
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
