@@ -3,4 +3,4 @@ FROM golang:1.17
 WORKDIR /go/src/github.com/awslabs/amazon-ecs-local-container-endpoints
 COPY . .
 
-CMD GO111MODULE=on go test -mod=vendor -timeout=120s -v -cover ./integ/... || { echo 'Integration Test Failure' ; exit 1; }
+CMD GO111MODULE=on go test -timeout=120s -v -cover ./integ/... || { echo 'Integration Test Failure' ; exit 1; }

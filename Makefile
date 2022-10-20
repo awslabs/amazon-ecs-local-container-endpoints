@@ -86,11 +86,11 @@ publish-dockerhub:
 
 .PHONY: test
 test:
-	go test -mod=vendor -timeout=120s -v -cover ./local-container-endpoints/...
+	go test -timeout=120s -v -cover ./local-container-endpoints/...
 
 .PHONY: functional-test
 functional-test:
-	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
+	go test -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 .PHONY: integ
 integ: build-local-image

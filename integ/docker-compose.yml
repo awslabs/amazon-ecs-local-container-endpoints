@@ -43,6 +43,7 @@ services:
     environment:
       ECS_CONTAINER_METADATA_URI: "http://169.254.170.2/v3/containers/integ"
       AWS_REGION: "us-east-1"
+      GOPROXY: "${GOPROXY-direct}"
 
   nginx:
     image: nginx
