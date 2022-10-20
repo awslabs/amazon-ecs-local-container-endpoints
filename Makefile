@@ -15,7 +15,7 @@ ROOT := $(shell pwd)
 
 all: local-build
 
-GO_VERSION := 1.15
+GO_VERSION := 1.17
 SCRIPT_PATH := $(ROOT)/scripts/:${PATH}
 SOURCES := $(shell find . -name '*.go')
 BINARY_NAME := local-container-endpoints
@@ -86,11 +86,11 @@ publish-dockerhub:
 
 .PHONY: test
 test:
-	go test -mod=vendor -timeout=120s -v -cover ./local-container-endpoints/...
+	go test -timeout=120s -v -cover ./local-container-endpoints/...
 
 .PHONY: functional-test
 functional-test:
-	go test -mod=vendor -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
+	go test -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 .PHONY: integ
 integ: build-local-image
