@@ -15,7 +15,7 @@ ROOT := $(shell pwd)
 
 all: local-build
 
-GO_VERSION := 1.15
+GO_VERSION := 1.17
 SCRIPT_PATH := $(ROOT)/scripts/:${PATH}
 SOURCES := $(shell find . -name '*.go')
 BINARY_NAME := local-container-endpoints
