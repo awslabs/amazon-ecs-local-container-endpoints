@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+* Security - Update security patches (#194)
+
 ## 1.4.0
 * Feature - Add support for ARM64 binaries and docker images (#59)
 
