@@ -86,11 +86,21 @@ publish-dockerhub:
 
 .PHONY: test
 test:
-	go test -timeout=120s -v -cover ./local-container-endpoints/...
+	# NOTE: unit tests need to run in a linux/windows environment with the current `amazon-ecs-agents` dependency.
+	# If your dev env is running linux/windows feel free to just:
+	# go test -timeout=120s -v -cover ./local-container-endpoints/...
+	docker build -t amazon-ecs-local-container-endpoints-test -f test.Dockerfile .
+	docker run amazon-ecs-local-container-endpoints-test \
+		go test -timeout=120s -v -cover ./local-container-endpoints/...
 
 .PHONY: functional-test
 functional-test:
-	go test -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
+	# NOTE: functional tests need to run in a linux/windows environment with the current `amazon-ecs-agents` dependency.
+	# If your dev env running linux/windows feel free to just:
+	# go test -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
+	docker build -t amazon-ecs-local-container-endpoints-test -f test.Dockerfile .
+	docker run amazon-ecs-local-container-endpoints-test \
+		go test -timeout=120s -v -tags functional -cover ./local-container-endpoints/handlers/functional_tests/...
 
 .PHONY: integ
 integ: build-local-image
