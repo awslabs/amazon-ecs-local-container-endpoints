@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/amazon-ecs-agent/agent v0.0.0-20221019221528-5fb8e801e9d1
-	github.com/aws/aws-sdk-go v1.37.10
+	github.com/aws/aws-sdk-go v1.44.185
 	github.com/docker/docker v0.0.0-20200531234253-77e06fda0c94
 	github.com/fatih/structs v1.1.0
 	github.com/golang/mock v1.2.0
@@ -51,9 +51,9 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
 	github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
 	google.golang.org/grpc v1.38.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
