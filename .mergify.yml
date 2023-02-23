@@ -1,8 +1,8 @@
 pull_request_rules:
-  - name: Merge on CI success and review approval
+  - name: Merge for developers
     conditions:
       - base~=(mainline|rename-commands)
-      - "#approved-reviews-by>=1"
+      - "#approved-reviews-by>=2"
       - approved-reviews-by=@aws/aws-ecs-devx
       - -approved-reviews-by~=author
       - -label~=(WIP|do-not-merge)
@@ -11,14 +11,18 @@ pull_request_rules:
       - -closed
       - author!=dependabot[bot]
     actions:
-      merge:
+      queue:
+        name: default
         method: squash
-        strict: smart
-        strict_method: merge
-        commit_message: title+body
-  - name: Automatically approve and merge Dependabot PRs
+        commit_message_template: |
+          {{ title }} (#{{ number }})
+
+          {{ body }}
+  - name: Merge for bots
     conditions:
       - base=mainline
+      - "#approved-reviews-by>=1"
+      - "#changes-requested-reviews-by=0"
       - author=dependabot[bot]
       - -title~=(WIP|wip)
       - -label~=(WIP|do-not-merge)
@@ -26,9 +30,12 @@ pull_request_rules:
       - -closed
     actions:
       review:
-       type: APPROVE
-      merge:
+        type: APPROVE
+      queue:
+        name: default
         method: squash
-        strict: smart+fasttrack
-        strict_method: merge
+        commit_message_template: |
+          {{ title }} (#{{ number }})
+
+          {{ body }}
 
