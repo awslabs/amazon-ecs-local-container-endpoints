@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.204
 	github.com/docker/docker v0.0.0-20200531234253-77e06fda0c94
 	github.com/fatih/structs v1.1.0
-	github.com/golang/mock v1.2.0
+	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/mergemap v0.0.0-20130613134717-e21c03b7a721
 	github.com/pkg/errors v0.9.1
