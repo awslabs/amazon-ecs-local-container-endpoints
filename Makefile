@@ -78,6 +78,14 @@ build-image:
 	docker tag $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX) $(IMAGE_REPO_NAME):$(TAG)-$(ARCH_SUFFIX)
 	docker tag $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX) $(IMAGE_REPO_NAME):$(VERSION)-$(ARCH_SUFFIX)
 
+.PHONY: tag-latest
+tag-latest:
+	docker tag $(IMAGE_REPO_NAME):latest-amd64 $(IMAGE_REPO_NAME):latest
+
+.PHONY: publish-dockerhub-latest
+publish-dockerhub-latest:
+	docker push $(IMAGE_REPO_NAME):latest
+
 .PHONY: publish-dockerhub
 publish-dockerhub:
 	docker push $(IMAGE_REPO_NAME):latest-$(ARCH_SUFFIX)

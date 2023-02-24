@@ -21,6 +21,11 @@ phases:
       - echo Building Docker image...
       - make build-image
       - make publish-dockerhub
+      - |
+        if [ ARCH_SUFFIX = "amd64" ]; then
+          make tag-latest
+          make publish-dockerhub-latest
+        fi
   post_build:
     commands:
       - ok && echo Build completed on `date`
