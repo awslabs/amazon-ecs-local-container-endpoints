@@ -238,10 +238,6 @@ func TestV3Handler_TaskMetadata_InvalidURL(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	dockerMock := mock_docker.NewMockClient(ctrl)
 
-	gomock.InOrder(
-		dockerMock.EXPECT().ContainerList(gomock.Any()).Return(nil, fmt.Errorf("Some API Error")),
-	)
-
 	metadataService, err := handlers.NewMetadataServiceWithClient(dockerMock, nil, nil)
 	assert.NoError(t, err, "Unexpected error creating new metadata service")
 
