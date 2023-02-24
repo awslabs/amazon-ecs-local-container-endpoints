@@ -3,7 +3,7 @@ pull_request_rules:
     conditions:
       - base~=(mainline|rename-commands)
       - "#approved-reviews-by>=2"
-      - approved-reviews-by=@aws/aws-ecs-devx
+      - approved-reviews-by=@awslabs/developer-experience
       - -approved-reviews-by~=author
       - -label~=(WIP|do-not-merge)
       - -title~=(WIP|wip)
