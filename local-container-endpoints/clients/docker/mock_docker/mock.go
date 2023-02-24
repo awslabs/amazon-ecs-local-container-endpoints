@@ -25,30 +25,30 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// ContainerList mocks base method
+// ContainerList mocks base method.
 func (m *MockClient) ContainerList(arg0 context.Context) ([]types.Container, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerList", arg0)
@@ -57,13 +57,13 @@ func (m *MockClient) ContainerList(arg0 context.Context) ([]types.Container, err
 	return ret0, ret1
 }
 
-// ContainerList indicates an expected call of ContainerList
+// ContainerList indicates an expected call of ContainerList.
 func (mr *MockClientMockRecorder) ContainerList(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerList", reflect.TypeOf((*MockClient)(nil).ContainerList), arg0)
 }
 
-// ContainerStats mocks base method
+// ContainerStats mocks base method.
 func (m *MockClient) ContainerStats(arg0 context.Context, arg1 string) (*types.Stats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1)
@@ -72,7 +72,7 @@ func (m *MockClient) ContainerStats(arg0 context.Context, arg1 string) (*types.S
 	return ret0, ret1
 }
 
-// ContainerStats indicates an expected call of ContainerStats
+// ContainerStats indicates an expected call of ContainerStats.
 func (mr *MockClientMockRecorder) ContainerStats(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerStats", reflect.TypeOf((*MockClient)(nil).ContainerStats), arg0, arg1)
