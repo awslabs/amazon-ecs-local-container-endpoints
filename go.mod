@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/amazon-ecs-agent/agent v0.0.0-20221019221528-5fb8e801e9d1
-	github.com/aws/aws-sdk-go v1.44.204
+	github.com/aws/aws-sdk-go v1.44.209
 	github.com/docker/docker v0.0.0-20200531234253-77e06fda0c94
 	github.com/fatih/structs v1.1.0
 	github.com/golang/mock v1.6.0
