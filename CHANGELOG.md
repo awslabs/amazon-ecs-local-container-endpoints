@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 1.4.2
+* Security - Update security patches (#228)
+
 ## 1.4.1
 * Security - Update security patches (#194)
 
