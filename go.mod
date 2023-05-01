@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/aws/amazon-ecs-agent/agent v0.0.0-20221019221528-5fb8e801e9d1
 	github.com/aws/aws-sdk-go v1.44.204
-	github.com/docker/docker v0.0.0-20200531234253-77e06fda0c94
+	github.com/docker/docker v24.0.0-rc.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
@@ -23,7 +23,6 @@ require (
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/cilium/ebpf v0.6.2 // indirect
 	github.com/containerd/cgroups v1.0.4-0.20220221221032-e710ed6ebb1a // indirect
-	github.com/containerd/containerd v1.5.18 // indirect
 	github.com/containernetworking/cni v0.8.1 // indirect
 	github.com/containernetworking/plugins v0.9.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
@@ -39,6 +38,7 @@ require (
 	github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/moby/term v0.0.0-20230501114404-2ff7073d9493 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 // indirect
@@ -54,8 +54,9 @@ require (
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
-	google.golang.org/grpc v1.38.0 // indirect
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools/v3 v3.0.3 // indirect
 )
