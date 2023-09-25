@@ -74,8 +74,8 @@ github.com/aws/amazon-ecs-agent/agent v0.0.0-20221019221528-5fb8e801e9d1 h1:z4wU
 github.com/aws/amazon-ecs-agent/agent v0.0.0-20221019221528-5fb8e801e9d1/go.mod h1:HvUsuKRJkOZL3Eb+zGVWof7V69lOvDreB+encvVc8Vg=
 github.com/aws/aws-sdk-go v1.15.11/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=
 github.com/aws/aws-sdk-go v1.36.0/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
-github.com/aws/aws-sdk-go v1.44.204 h1:7/tPUXfNOHB390A63t6fJIwmlwVQAkAwcbzKsU2/6OQ=
-github.com/aws/aws-sdk-go v1.44.204/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
+github.com/aws/aws-sdk-go v1.45.15 h1:gYBTVSYuhXdatrLbsPaRgVcc637zzdgThWmsDRwXLOo=
+github.com/aws/aws-sdk-go v1.45.15/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/awslabs/go-config-generator-for-fluentd-and-fluentbit v0.0.0-20190829210224-55d4fd2e6f35 h1:nwDvkjUJ6L2g508W1+Wla1VxP5qiNc+a7vDAIHTqXu4=
 github.com/awslabs/go-config-generator-for-fluentd-and-fluentbit v0.0.0-20190829210224-55d4fd2e6f35/go.mod h1:Q7J7NFmrAo82bPpfvj523hKGlXH7uOnFEAZS3UZdw38=
 github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
