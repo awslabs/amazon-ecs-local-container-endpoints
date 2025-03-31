@@ -3,7 +3,7 @@ Amazon ECS Local Container Endpoints
 
 A container that provides local versions of the [ECS Task IAM Roles endpoint](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html) and the [ECS Task Metadata Endpoints](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint.html). This project will help you test applications locally before you deploy to ECS/Fargate.
 
-This repository contains the source code for the project. To use it, pull the [amazon/amazon-ecs-local-container-endpoints:latest image from Docker Hub](https://hub.docker.com/r/amazon/amazon-ecs-local-container-endpoints/).
+This repository contains the source code for the project. To use it, pull the [amazon/amazon-ecs-local-container-endpoints:latest image from ECR](https://gallery.ecr.aws/ecs-local/amazon-ecs-local-container-endpoints).
 
 #### Table of Contents
 * [Tutorial](https://aws.amazon.com/blogs/compute/a-guide-to-locally-testing-containers-with-amazon-ecs-local-endpoints-and-docker-compose/)
