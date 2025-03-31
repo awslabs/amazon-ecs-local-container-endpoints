@@ -1,6 +1,6 @@
-pull_request_rules:
+queue_rules:
   - name: Merge for developers
-    conditions:
+    queue_conditions:
       - base~=(mainline|rename-commands)
       - "#approved-reviews-by>=2"
       - approved-reviews-by=@awslabs/developer-experience
@@ -10,14 +10,30 @@ pull_request_rules:
       - -merged
       - -closed
       - author!=dependabot[bot]
-    actions:
-      queue:
-        name: default
-        method: squash
-        commit_message_template: |
-          {{ title }} (#{{ number }})
+    merge_conditions: []
+    commit_message_template: |
+      {{ title }} (#{{ number }})
 
-          {{ body }}
+      {{ body }}
+    merge_method: squash
+  - name: Merge for bots
+    queue_conditions:
+      - base=mainline
+      - "#approved-reviews-by>=1"
+      - "#changes-requested-reviews-by=0"
+      - author=dependabot[bot]
+      - -title~=(WIP|wip)
+      - -label~=(WIP|do-not-merge)
+      - -merged
+      - -closed
+    merge_conditions: []
+    commit_message_template: |
+      {{ title }} (#{{ number }})
+
+      {{ body }}
+    merge_method: squash
+
+pull_request_rules:
   - name: Merge for bots
     conditions:
       - base=mainline
@@ -31,11 +47,7 @@ pull_request_rules:
     actions:
       review:
         type: APPROVE
+  - name: Merge for bots + Merge for developers
+    conditions: []
+    actions:
       queue:
-        name: default
-        method: squash
-        commit_message_template: |
-          {{ title }} (#{{ number }})
-
-          {{ body }}
-
